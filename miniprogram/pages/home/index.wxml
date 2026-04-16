@@ -1,0 +1,48 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <view class="badge">薄荷学习风</view>
+    <view class="title" style="margin-top: 18rpx;">
+      {{profile ? (profile.nickname || 'CPA 考生') : 'CPA 考生'}}，今晚继续稳稳推进。
+    </view>
+    <view class="subtitle">打开就开始学，结束时拍照和写一句总结，把努力留在热力日历里。</view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 24rpx; text-align: center;">
+    <view class="badge">{{activeSession ? (activeSession.status === 'running' ? '正在学习' : '暂停中') : '准备开始'}}</view>
+    <view style="font-size: 88rpx; font-weight: 800; margin-top: 22rpx; line-height: 1;">{{timerText}}</view>
+    <view class="subtitle">{{activeSession ? '专注结束后，记得拍照并写下今天的收获。' : '开始今天的 CPA 学习，让热力格慢慢变深。'}}</view>
+
+    <view wx:if="{{actions[0] === 'start'}}" style="margin-top: 28rpx;">
+      <button class="cta-button" bindtap="handleStart">开始学习</button>
+    </view>
+
+    <view wx:else style="display: flex; gap: 18rpx; margin-top: 28rpx;">
+      <button wx:if="{{actions[0] === 'pause'}}" class="ghost-button" style="flex: 1;" bindtap="handlePause">暂停</button>
+      <button wx:if="{{actions[0] === 'resume'}}" class="ghost-button" style="flex: 1;" bindtap="handleResume">继续</button>
+      <button class="cta-button" style="flex: 1;" bindtap="handleComplete">结束学习</button>
+    </view>
+  </view>
+
+  <view class="stats-grid" style="margin-top: 24rpx;">
+    <view class="stat-card">
+      <view class="stat-value">{{todayMinutesText}}</view>
+      <view class="stat-label">今日累计时长</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{streakText}}</view>
+      <view class="stat-label">连续打卡</view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="section-title">最近一次总结</view>
+    <view class="subtitle" style="margin-top: 0;">{{lastSummary}}</view>
+  </view>
+
+  <view class="glass-card" style="margin-top: 20rpx;">
+    <view class="section-title">累计进度</view>
+    <view class="stat-value">{{totalMinutesText}}</view>
+    <view class="subtitle" style="margin-top: 8rpx;">慢一点也没关系，关键是每天都有实实在在的推进。</view>
+  </view>
+</view>
+

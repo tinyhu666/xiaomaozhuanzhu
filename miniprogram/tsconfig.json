@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["miniprogram-api-typings"],
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "../typings/**/*.d.ts"]
+}
+

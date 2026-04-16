@@ -1,0 +1,67 @@
+import type { SessionTag, Subject } from "./constants";
+
+export type SessionStatus = "running" | "paused" | "completed" | "abandoned";
+
+export interface User {
+  id: string;
+  openid: string;
+  nickname: string;
+  avatarUrl: string;
+  profileCompleted: boolean;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+export interface PublicProfileSettings {
+  userId: string;
+  shareSlug: string;
+  isPublic: boolean;
+  requireWechatAuth: boolean;
+}
+
+export interface PauseSegment {
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface StudySession {
+  id: string;
+  userId: string;
+  status: SessionStatus;
+  startedAt: string;
+  endedAt: string | null;
+  currentPauseStartedAt: string | null;
+  pauseSegments: PauseSegment[];
+  durationMinutes: number;
+  summary: string;
+  subject: Subject | null;
+  tags: SessionTag[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionPhoto {
+  id: string;
+  sessionId: string;
+  fileId: string;
+  objectKey: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface DailyStat {
+  userId: string;
+  date: string;
+  totalMinutes: number;
+  sessionCount: number;
+  heatLevel: number;
+  streakDays: number;
+  updatedAt: string;
+}
+
+export interface TemporaryUrl {
+  objectKey: string;
+  url: string;
+  expiresAt: string;
+}
+

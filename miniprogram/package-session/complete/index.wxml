@@ -1,0 +1,62 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <view class="badge">结束学习</view>
+    <view class="title" style="margin-top: 18rpx;">这次专注了 {{durationText}}</view>
+    <view class="subtitle">拍一张照片，再写一句总结，把今天的努力稳稳记下来。</view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 24rpx;">
+    <view class="field-label">学习照片（至少 1 张，最多 3 张）</view>
+    <view class="photo-grid">
+      <view wx:for="{{photos}}" wx:key="objectKey" class="photo-item">
+        <image src="{{item.localPath}}" mode="aspectFill" />
+        <view class="photo-remove" data-index="{{index}}" bindtap="removePhoto">×</view>
+      </view>
+      <view wx:if="{{photos.length < 3}}" class="photo-picker" bindtap="choosePhotos">
+        <view>上传照片</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="field-label">一句话总结</view>
+    <textarea
+      class="textarea-input"
+      maxlength="80"
+      placeholder="今天主要学了什么？哪里更顺了？"
+      value="{{summary}}"
+      bindinput="handleSummaryInput"
+    />
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="field-label">可选科目</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{subjects}}"
+        wx:key="*this"
+        class="tag-chip {{selectedSubject === item ? 'is-active' : ''}}"
+        data-value="{{item}}"
+        bindtap="toggleSubject"
+      >
+        {{item}}
+      </view>
+    </view>
+
+    <view class="field-label" style="margin-top: 24rpx;">标签</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{tags}}"
+        wx:key="*this"
+        class="tag-chip {{selectedTags.indexOf(item) !== -1 ? 'is-active' : ''}}"
+        data-value="{{item}}"
+        bindtap="toggleTag"
+      >
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
+</view>
+

@@ -1,0 +1,56 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <view style="display: flex; align-items: center; gap: 20rpx;">
+      <image
+        wx:if="{{profile && profile.avatarUrl}}"
+        src="{{profile.avatarUrl}}"
+        mode="aspectFill"
+        style="width: 100rpx; height: 100rpx; border-radius: 50%;"
+      />
+      <view style="flex: 1;">
+        <view class="title">{{profile ? profile.nickname : '学习主页'}}</view>
+        <view class="subtitle">这是一张公开的 CPA 学习主页，里面放着最近的坚持痕迹。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="stats-grid" style="margin-top: 24rpx;">
+    <view class="stat-card">
+      <view class="stat-value">{{totalText}}</view>
+      <view class="stat-label">累计学习</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{streakText}}</view>
+      <view class="stat-label">连续打卡</view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="section-title">本月热力</view>
+    <view class="calendar-grid">
+      <view
+        wx:for="{{grid}}"
+        wx:key="date"
+        class="calendar-cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}}"
+      >
+        {{item.day}}
+      </view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="section-title">最近照片</view>
+    <view class="photo-grid">
+      <image wx:for="{{photos}}" wx:key="objectKey" src="{{item.tempUrl}}" mode="aspectFill" class="photo-item" />
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="section-title">最近总结</view>
+    <view wx:for="{{summaries}}" wx:key="id" style="padding: 18rpx 0; border-bottom: 1rpx solid var(--line-soft);">
+      <view style="font-size: 28rpx; font-weight: 600;">{{item.subject || '学习记录'}}</view>
+      <view class="subtitle">{{item.summary}}</view>
+    </view>
+  </view>
+</view>
+

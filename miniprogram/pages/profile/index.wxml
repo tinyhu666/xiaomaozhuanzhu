@@ -1,0 +1,34 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <view style="display: flex; align-items: center; gap: 22rpx;">
+      <image
+        wx:if="{{profile && profile.avatarUrl}}"
+        src="{{profile.avatarUrl}}"
+        mode="aspectFill"
+        style="width: 104rpx; height: 104rpx; border-radius: 50%;"
+      />
+      <view style="flex: 1;">
+        <view class="title">{{profile ? profile.nickname : 'CPA 考生'}}</view>
+        <view class="subtitle">一页管理自己的资料、公开设置和备考身份感。</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="stats-grid" style="margin-top: 24rpx;">
+    <view class="stat-card">
+      <view class="stat-value">{{totalMinutes}}</view>
+      <view class="stat-label">累计时长</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{streakText}}</view>
+      <view class="stat-label">连续打卡</view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="section-title">资料与主页</view>
+    <view class="subtitle" style="margin-top: 0;">头像、昵称和公开主页展示内容都在这里统一调整。</view>
+    <button class="cta-button" style="margin-top: 24rpx;" bindtap="editProfile">编辑资料</button>
+  </view>
+</view>
+

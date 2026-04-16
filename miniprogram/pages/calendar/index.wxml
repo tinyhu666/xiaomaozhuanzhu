@@ -1,0 +1,46 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <view class="title">学习热力日历</view>
+    <view class="subtitle">当天学得越久，格子的颜色越深。连续几天都亮起来，会特别有冲刺感。</view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 24rpx;">
+    <view style="display: flex; align-items: center; justify-content: space-between;">
+      <button class="ghost-button" style="width: 120rpx;" bindtap="handlePrevMonth">上月</button>
+      <view>
+        <view class="section-title" style="margin-bottom: 8rpx; text-align: center;">{{monthTitle}}</view>
+        <view class="subtitle" style="margin-top: 0; text-align: center;">本月累计 {{monthTotalText}}</view>
+      </view>
+      <button class="ghost-button" style="width: 120rpx;" bindtap="handleNextMonth">下月</button>
+    </view>
+
+    <view style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12rpx; margin-top: 26rpx; color: var(--text-sub); font-size: 22rpx; text-align: center;">
+      <view>一</view>
+      <view>二</view>
+      <view>三</view>
+      <view>四</view>
+      <view>五</view>
+      <view>六</view>
+      <view>日</view>
+    </view>
+
+    <view class="calendar-grid" style="margin-top: 16rpx;">
+      <view
+        wx:for="{{grid}}"
+        wx:key="date"
+        class="calendar-cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}}"
+        data-date="{{item.date}}"
+        data-inmonth="{{item.inMonth}}"
+        bindtap="openDay"
+      >
+        {{item.day}}
+      </view>
+    </view>
+  </view>
+
+  <view class="glass-card" style="margin-top: 20rpx;">
+    <view class="section-title">颜色说明</view>
+    <view class="subtitle" style="margin-top: 0;">1-59 分钟 / 60-119 分钟 / 120-179 分钟 / 180 分钟以上</view>
+  </view>
+</view>
+

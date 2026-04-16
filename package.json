@@ -1,0 +1,28 @@
+{
+  "name": "cpa-study-checkin",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "server"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:server": "vitest run server/tests",
+    "test:miniprogram": "vitest run miniprogram/tests",
+    "build:server": "npm run build --workspace server",
+    "typecheck:server": "tsc -p server/tsconfig.json --noEmit",
+    "typecheck:miniprogram": "tsc -p miniprogram/tsconfig.json --noEmit",
+    "typecheck": "npm run typecheck:server && npm run typecheck:miniprogram"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "@types/supertest": "^6.0.3",
+    "miniprogram-api-typings": "^4.0.5",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
