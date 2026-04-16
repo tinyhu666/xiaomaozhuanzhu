@@ -1,6 +1,5 @@
 export const runtimeConfig = {
-  cloudEnv: "replace-with-your-cloud-env-id",
+  cloudEnv: "prod-d4g3sqnpj0acb9be5",
   service: "cpa-study-checkin",
   basePath: "/api"
 };
-

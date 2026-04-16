@@ -2,7 +2,7 @@
   "miniprogramRoot": "miniprogram/",
   "projectname": "cpa-study-checkin",
   "description": "CPA 备考打卡微信小程序",
-  "appid": "touristappid",
+  "appid": "wxfb24f334e5070a82",
   "setting": {
     "es6": true,
     "enhance": true,
