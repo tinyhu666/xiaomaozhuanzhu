@@ -2,7 +2,7 @@
   "name": "cpa-study-checkin-server",
   "private": true,
   "version": "0.1.0",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts"
@@ -16,4 +16,3 @@
     "zod": "^4.1.5"
   }
 }
-
