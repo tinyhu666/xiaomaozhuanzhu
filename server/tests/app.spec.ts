@@ -307,4 +307,84 @@ describe("CPA study check-in API", () => {
 
     expect(invalid.body.error.code).toBe("INVALID_INPUT");
   });
+
+  it("returns dashboard analytics for subjects and the longest study day", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "dashboard-user")
+      .send({
+        nickname: "统计考生",
+        avatarUrl: "https://example.com/dashboard.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    const first = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "dashboard-user")
+      .expect(200);
+
+    clock.advanceMinutes(90);
+    await request(app)
+      .post(`/api/sessions/${first.body.session.id}/complete`)
+      .set("x-wx-openid", "dashboard-user")
+      .send({
+        summary: "会计分录复盘",
+        subject: "会计",
+        tags: ["复习"],
+        photos: [
+          {
+            fileId: "cloud://demo/dashboard-1.jpg",
+            objectKey: "checkins/2026/04/dashboard-1.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    const second = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "dashboard-user")
+      .expect(200);
+
+    clock.advanceMinutes(135);
+    await request(app)
+      .post(`/api/sessions/${second.body.session.id}/complete`)
+      .set("x-wx-openid", "dashboard-user")
+      .send({
+        summary: "审计章节串讲",
+        subject: "审计",
+        tags: ["新课"],
+        photos: [
+          {
+            fileId: "cloud://demo/dashboard-2.jpg",
+            objectKey: "checkins/2026/04/dashboard-2.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    const dashboard = await request(app)
+      .get("/api/me/dashboard")
+      .set("x-wx-openid", "dashboard-user")
+      .expect(200);
+
+    expect(dashboard.body.profile.nickname).toBe("统计考生");
+    expect(dashboard.body.summary.totalMinutes).toBe(225);
+    expect(dashboard.body.summary.currentStreakDays).toBe(1);
+    expect(dashboard.body.bestDay).toEqual({
+      date: "2026-04-16",
+      totalMinutes: 225
+    });
+    expect(dashboard.body.subjects).toEqual([
+      {
+        subject: "审计",
+        totalMinutes: 135
+      },
+      {
+        subject: "会计",
+        totalMinutes: 90
+      }
+    ]);
+  });
 });

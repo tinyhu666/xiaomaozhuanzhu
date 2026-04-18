@@ -84,3 +84,18 @@ export type PublicProfileResponse = {
   }>;
 };
 
+export type ProfileDashboardResponse = {
+  profile: UserProfile;
+  summary: {
+    totalMinutes: number;
+    currentStreakDays: number;
+  };
+  subjects: Array<{
+    subject: string;
+    totalMinutes: number;
+  }>;
+  bestDay: {
+    date: string | null;
+    totalMinutes: number;
+  };
+};

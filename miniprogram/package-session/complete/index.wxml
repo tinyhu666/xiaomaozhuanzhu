@@ -59,4 +59,3 @@
 
   <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
 </view>
-

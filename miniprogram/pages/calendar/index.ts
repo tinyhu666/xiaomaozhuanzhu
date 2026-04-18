@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { getCalendar } from "../../utils/api";
+import type { CalendarDayResponse } from "../../types/models";
+import { getCalendar, getCalendarDay } from "../../utils/api";
 import { buildMonthGrid, formatDuration } from "../../utils/view-models";
 
 type CalendarPageData = {
@@ -7,6 +8,10 @@ type CalendarPageData = {
   monthTitle: string;
   grid: ReturnType<typeof buildMonthGrid>;
   monthTotalText: string;
+  selectedDate: string;
+  selectedDateText: string;
+  selectedTotalText: string;
+  selectedDetail: CalendarDayResponse | null;
 };
 
 Page<{}, CalendarPageData>({
@@ -14,7 +19,11 @@ Page<{}, CalendarPageData>({
     month: "",
     monthTitle: "",
     grid: [],
-    monthTotalText: "0m"
+    monthTotalText: "0m",
+    selectedDate: "",
+    selectedDateText: "",
+    selectedTotalText: "0m",
+    selectedDetail: null
   },
 
   async onShow() {
@@ -36,17 +45,59 @@ Page<{}, CalendarPageData>({
       const month = this.data.month;
       const result = await getCalendar(month);
       const totalMinutes = Object.values(result.days).reduce((sum, day) => sum + day.totalMinutes, 0);
+      const grid = buildMonthGrid(month, result.days);
+      const selectedDate = this.pickSelectedDate(grid);
+
       this.setData({
-        monthTitle: month.replace("-", " 年 ") + " 月",
-        grid: buildMonthGrid(month, result.days),
-        monthTotalText: formatDuration(totalMinutes)
+        monthTitle: month.replace("-", "年") + "月",
+        grid,
+        monthTotalText: formatDuration(totalMinutes),
+        selectedDate
       });
+
+      await this.loadDay(selectedDate);
     } catch (error) {
       wx.showToast({
         title: error instanceof Error ? error.message : "加载日历失败",
         icon: "none"
       });
     }
+  },
+
+  async loadDay(date: string) {
+    try {
+      const detail = await getCalendarDay(date);
+      this.setData({
+        selectedDate: date,
+        selectedDateText: date.replace(/-/g, "."),
+        selectedTotalText: formatDuration(detail.totalMinutes),
+        selectedDetail: detail
+      });
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : "加载当天详情失败",
+        icon: "none"
+      });
+    }
+  },
+
+  pickSelectedDate(grid: ReturnType<typeof buildMonthGrid>) {
+    if (this.data.selectedDate && this.data.selectedDate.startsWith(this.data.month)) {
+      return this.data.selectedDate;
+    }
+
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (today.startsWith(this.data.month) && grid.some((item) => item.date === today && item.inMonth)) {
+      return today;
+    }
+
+    const inMonth = grid.filter((item) => item.inMonth);
+    const hottest = [...inMonth]
+      .filter((item) => item.totalMinutes > 0)
+      .sort((left, right) => right.date.localeCompare(left.date))[0];
+
+    return hottest?.date ?? inMonth[0]?.date ?? "";
   },
 
   async handlePrevMonth() {
@@ -59,12 +110,10 @@ Page<{}, CalendarPageData>({
     await this.loadMonth();
   },
 
-  openDay(event: WechatMiniprogram.BaseEvent) {
+  async openDay(event: WechatMiniprogram.BaseEvent) {
     const { date, inmonth } = event.currentTarget.dataset as { date: string; inmonth: boolean };
     if (!inmonth) return;
-    wx.navigateTo({
-      url: `/package-calendar/day/index?date=${date}`
-    });
+    await this.loadDay(date);
   },
 
   shiftMonth(amount: number) {

@@ -2,6 +2,7 @@ import { runtimeConfig } from "../config/runtime";
 import type {
   CalendarDayResponse,
   HomeResponse,
+  ProfileDashboardResponse,
   PublicProfileResponse,
   SessionPhoto,
   UserProfile
@@ -166,6 +167,12 @@ export function getShareMe() {
   });
 }
 
+export function getProfileDashboard() {
+  return callContainer<ProfileDashboardResponse>({
+    path: "/me/dashboard"
+  });
+}
+
 export function updateShareSettings(payload: { isPublic: boolean; requireWechatAuth: boolean }) {
   return callContainer<{
     publicProfile: {
@@ -215,4 +222,3 @@ export async function uploadCheckinPhoto(localPath: string) {
     localPath
   };
 }
-

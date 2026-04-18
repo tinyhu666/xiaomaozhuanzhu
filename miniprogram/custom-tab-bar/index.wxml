@@ -7,8 +7,6 @@
     data-index="{{index}}"
     bindtap="switchTab"
   >
-    <view class="tab-badge">{{item.short}}</view>
     <view class="tab-label">{{item.text}}</view>
   </view>
 </view>
-

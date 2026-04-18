@@ -2,37 +2,24 @@
   "pages": [
     "pages/home/index",
     "pages/calendar/index",
-    "pages/share/index",
     "pages/profile/index"
   ],
   "subpackages": [
     {
       "root": "package-session",
-      "pages": [
-        "complete/index"
-      ]
+      "pages": ["complete/index"]
     },
     {
       "root": "package-calendar",
-      "pages": [
-        "day/index"
-      ]
-    },
-    {
-      "root": "package-public",
-      "pages": [
-        "index"
-      ]
+      "pages": ["day/index"]
     },
     {
       "root": "package-profile",
-      "pages": [
-        "onboarding/index"
-      ]
+      "pages": ["onboarding/index"]
     }
   ],
   "window": {
-    "navigationBarTitleText": "CPA 打卡",
+    "navigationBarTitleText": "CPA 首页",
     "navigationBarBackgroundColor": "#F4FFF9",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F7FFF8",
@@ -47,15 +34,11 @@
     "list": [
       {
         "pagePath": "pages/home/index",
-        "text": "学习"
+        "text": "首页"
       },
       {
         "pagePath": "pages/calendar/index",
         "text": "日历"
-      },
-      {
-        "pagePath": "pages/share/index",
-        "text": "共享"
       },
       {
         "pagePath": "pages/profile/index",

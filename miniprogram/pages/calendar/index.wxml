@@ -1,46 +1,70 @@
-<view class="page-shell">
-  <view class="hero-card">
-    <view class="title">学习热力日历</view>
-    <view class="subtitle">当天学得越久，格子的颜色越深。连续几天都亮起来，会特别有冲刺感。</view>
+<view class="page-shell calendar-page">
+  <view class="calendar-hero">
+    <button class="ghost-button calendar-hero__nav" bindtap="handlePrevMonth">上月</button>
+    <view class="calendar-hero__center">
+      <text class="calendar-hero__title">{{monthTitle}}</text>
+      <text class="calendar-hero__meta">本月 {{monthTotalText}}</text>
+    </view>
+    <button class="ghost-button calendar-hero__nav" bindtap="handleNextMonth">下月</button>
   </view>
 
-  <view class="surface-card" style="margin-top: 24rpx;">
-    <view style="display: flex; align-items: center; justify-content: space-between;">
-      <button class="ghost-button" style="width: 120rpx;" bindtap="handlePrevMonth">上月</button>
-      <view>
-        <view class="section-title" style="margin-bottom: 8rpx; text-align: center;">{{monthTitle}}</view>
-        <view class="subtitle" style="margin-top: 0; text-align: center;">本月累计 {{monthTotalText}}</view>
-      </view>
-      <button class="ghost-button" style="width: 120rpx;" bindtap="handleNextMonth">下月</button>
+  <view class="calendar-board">
+    <view class="calendar-board__weekdays">
+      <text>一</text>
+      <text>二</text>
+      <text>三</text>
+      <text>四</text>
+      <text>五</text>
+      <text>六</text>
+      <text>日</text>
     </view>
 
-    <view style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12rpx; margin-top: 26rpx; color: var(--text-sub); font-size: 22rpx; text-align: center;">
-      <view>一</view>
-      <view>二</view>
-      <view>三</view>
-      <view>四</view>
-      <view>五</view>
-      <view>六</view>
-      <view>日</view>
-    </view>
-
-    <view class="calendar-grid" style="margin-top: 16rpx;">
+    <view class="calendar-board__grid">
       <view
         wx:for="{{grid}}"
         wx:key="date"
-        class="calendar-cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}}"
+        class="calendar-board__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}} {{selectedDate === item.date ? 'is-selected' : ''}}"
         data-date="{{item.date}}"
         data-inmonth="{{item.inMonth}}"
         bindtap="openDay"
       >
-        {{item.day}}
+        <text class="calendar-board__day">{{item.day}}</text>
       </view>
     </view>
   </view>
 
-  <view class="glass-card" style="margin-top: 20rpx;">
-    <view class="section-title">颜色说明</view>
-    <view class="subtitle" style="margin-top: 0;">1-59 分钟 / 60-119 分钟 / 120-179 分钟 / 180 分钟以上</view>
+  <view class="day-panel">
+    <view class="day-panel__header">
+      <view>
+        <text class="day-panel__date">{{selectedDateText || '--'}}</text>
+        <text class="day-panel__meta">{{selectedDetail ? (selectedDetail.sessionCount + '次学习') : '0次学习'}}</text>
+      </view>
+      <text class="day-panel__total">{{selectedTotalText}}</text>
+    </view>
+
+    <view wx:if="{{selectedDetail && selectedDetail.sessions.length}}" class="day-panel__sessions">
+      <view wx:for="{{selectedDetail.sessions}}" wx:key="id" class="session-item">
+        <view class="session-item__top">
+          <text class="session-item__subject">{{item.subject || '学习记录'}}</text>
+          <text class="session-item__duration">{{item.totalMinutes}}m</text>
+        </view>
+        <text class="session-item__summary">{{item.summary}}</text>
+        <view wx:if="{{item.tags.length}}" class="session-item__tags">
+          <text wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag" class="session-item__tag">{{tag}}</text>
+        </view>
+        <scroll-view wx:if="{{item.photos.length}}" class="session-item__photos" scroll-x="true" enable-flex="true">
+          <image
+            wx:for="{{item.photos}}"
+            wx:key="objectKey"
+            wx:for-item="photo"
+            class="session-item__photo"
+            src="{{photo.tempUrl || photo.fileId}}"
+            mode="aspectFill"
+          />
+        </scroll-view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-state">这一天还没有完成打卡</view>
   </view>
 </view>
-

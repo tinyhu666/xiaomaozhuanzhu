@@ -131,6 +131,44 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
+  app.get("/api/me/dashboard", withUser(store, clock, async (_request, response, context) => {
+    const dailyStats = await store.getDailyStats(context.user.id);
+    const sessions = (await store.listSessions(context.user.id)).filter((session) => session.status === "completed");
+    const subjectTotals = SUBJECTS.map((subject) => ({
+      subject,
+      totalMinutes: sessions
+        .filter((session) => session.subject === subject)
+        .reduce((sum, session) => sum + session.durationMinutes, 0)
+    }))
+      .filter((item) => item.totalMinutes > 0)
+      .sort((left, right) => right.totalMinutes - left.totalMinutes);
+    const bestDay = [...dailyStats.values()].reduce(
+      (result, stat) => {
+        if (stat.totalMinutes > result.totalMinutes) {
+          return {
+            date: stat.date,
+            totalMinutes: stat.totalMinutes
+          };
+        }
+        return result;
+      },
+      {
+        date: null as string | null,
+        totalMinutes: 0
+      }
+    );
+
+    response.json({
+      profile: serializeProfile(context.user, context.publicProfile),
+      summary: {
+        totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
+        currentStreakDays: getCurrentStreak(dailyStats)
+      },
+      subjects: subjectTotals,
+      bestDay
+    });
+  }));
+
   app.post("/api/sessions/start", withUser(store, clock, async (_request, response, context) => {
     const currentSession = await store.getCurrentSession(context.user.id);
 
