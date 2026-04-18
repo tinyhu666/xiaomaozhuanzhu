@@ -4,6 +4,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 
 import { createApp } from "./app";
+import { ensureMySqlSchema } from "./mysql-bootstrap";
 
 const envCandidates = [
   path.resolve(process.cwd(), "server/.env"),
@@ -15,9 +16,18 @@ if (envPath) {
   loadEnv({ path: envPath });
 }
 
-const port = Number(process.env.PORT ?? 3000);
-const app = createApp();
+async function main() {
+  await ensureMySqlSchema(process.env);
 
-app.listen(port, () => {
-  console.log(`CPA study check-in server listening on port ${port}`);
+  const port = Number(process.env.PORT ?? 3000);
+  const app = createApp();
+
+  app.listen(port, () => {
+    console.log(`CPA study check-in server listening on port ${port}`);
+  });
+}
+
+main().catch((error) => {
+  console.error("Failed to start CPA study check-in server", error);
+  process.exit(1);
 });

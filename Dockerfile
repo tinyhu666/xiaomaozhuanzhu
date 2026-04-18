@@ -19,8 +19,7 @@ ENV NODE_ENV=production
 ENV TZ=Asia/Shanghai
 
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/server/package.json ./server/package.json
-COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/server ./server
 
 WORKDIR /app/server
 
