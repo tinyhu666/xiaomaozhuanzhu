@@ -10,6 +10,7 @@
     "test:watch": "vitest",
     "test:server": "vitest run server/tests",
     "test:miniprogram": "vitest run miniprogram/tests",
+    "upload:miniprogram": "node scripts/upload-miniprogram.cjs",
     "build:server": "npm run build --workspace server",
     "typecheck:server": "tsc -p server/tsconfig.json --noEmit",
     "typecheck:miniprogram": "tsc -p miniprogram/tsconfig.json --noEmit",
