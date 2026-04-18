@@ -6,6 +6,7 @@ import { z } from "zod";
 import { SUBJECTS, TAGS, type SessionTag, type Subject } from "./constants";
 import { monthBounds, formatShanghaiDate } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
+import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
 import { createStorageClient, type StorageClient } from "./storage/default-storage";
 import { MemoryStore } from "./store/memory-store";
@@ -545,7 +546,7 @@ function parse<T>(schema: z.ZodType<T>, body: unknown) {
 }
 
 function createDataStore(): DataStore {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = resolveDatabaseUrl(process.env);
   if (connectionString) {
     return MySQLStore.fromConnectionString(connectionString);
   }
