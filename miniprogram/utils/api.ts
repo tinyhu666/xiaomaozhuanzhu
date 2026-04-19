@@ -27,27 +27,43 @@ type RequestOptions = {
 
 async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
   ensureCloudReady();
+
+  const header: Record<string, string> = {
+    "X-WX-SERVICE": runtimeConfig.service
+  };
+  if (method === "POST") {
+    header["content-type"] = "application/json";
+  }
+
   const response = await wx.cloud.callContainer({
     config: {
       env: runtimeConfig.cloudEnv
     },
     path: `${runtimeConfig.basePath}${path}`,
     method,
-    header: {
-      "X-WX-SERVICE": runtimeConfig.service
-    },
-    data
+    header,
+    data: method === "POST" ? data ?? {} : data
   });
 
-  const payload = response.data as {
-    error?: {
-      code: string;
-      message: string;
-    };
-  };
+  const payload = response.data as
+    | {
+        error?: {
+          code: string;
+          message: string;
+        };
+      }
+    | string
+    | null
+    | undefined;
 
-  if (payload?.error) {
+  if (payload && typeof payload === "object" && "error" in payload && payload.error) {
     throw new Error(payload.error.message);
+  }
+
+  const statusCode = (response as { statusCode?: number }).statusCode;
+  if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
+    const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${statusCode}`;
+    throw new Error(`${method} ${path} 失败：${fallback}`);
   }
 
   return response.data as T;

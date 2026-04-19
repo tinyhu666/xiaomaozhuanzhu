@@ -1,1 +1,17 @@
+.page-shell {
+  padding: 28rpx 28rpx 56rpx;
+}
 
+.photo-grid {
+  margin-top: 18rpx;
+}
+
+.textarea-input {
+  display: block;
+  margin-top: 4rpx;
+}
+
+.cta-button {
+  width: 100%;
+  box-sizing: border-box;
+}

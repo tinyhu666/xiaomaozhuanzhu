@@ -1,1 +1,16 @@
+.page-shell {
+  padding: 28rpx 28rpx 56rpx;
+}
 
+.surface-card .subtitle {
+  margin-top: 12rpx;
+  line-height: 1.7;
+}
+
+.surface-card .tag-list {
+  margin-top: 18rpx;
+}
+
+.surface-card .photo-grid {
+  margin-top: 18rpx;
+}

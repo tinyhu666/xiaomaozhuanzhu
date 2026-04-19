@@ -156,11 +156,13 @@ Page<{}, HomePageData>({
     if (!session) return;
 
     await this.runSessionAction(async () => {
-      let target = session;
+      let target: ActiveSession = session;
 
       if (session.status === "running") {
         const paused = await pauseSession(session.id);
-        target = paused.session as ActiveSession;
+        if (paused.session) {
+          target = paused.session as ActiveSession;
+        }
       }
 
       wx.navigateTo({

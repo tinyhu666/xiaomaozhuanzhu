@@ -1,6 +1,6 @@
 // @ts-nocheck
 import type { CalendarDayResponse } from "../../types/models";
-import { getCalendar, getCalendarDay } from "../../utils/api";
+import { getCalendar, getCalendarDay, getTempUrls } from "../../utils/api";
 import { buildMonthGrid, formatDuration } from "../../utils/view-models";
 
 type CalendarPageData = {
@@ -67,11 +67,24 @@ Page<{}, CalendarPageData>({
   async loadDay(date: string) {
     try {
       const detail = await getCalendarDay(date);
+      const objectKeys = detail.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
+      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
+
       this.setData({
         selectedDate: date,
         selectedDateText: date.replace(/-/g, "."),
         selectedTotalText: formatDuration(detail.totalMinutes),
-        selectedDetail: detail
+        selectedDetail: {
+          ...detail,
+          sessions: detail.sessions.map((session) => ({
+            ...session,
+            photos: session.photos.map((photo) => ({
+              ...photo,
+              tempUrl: urlMap.get(photo.objectKey) || photo.tempUrl || ""
+            }))
+          }))
+        }
       });
     } catch (error) {
       wx.showToast({
