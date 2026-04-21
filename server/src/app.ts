@@ -8,6 +8,7 @@ import { monthBounds, formatShanghaiDate } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
+import { selectDailyHomeQuote } from "./quotes/select-daily-quote";
 import { createStorageClient, type StorageClient } from "./storage/default-storage";
 import { MemoryStore } from "./store/memory-store";
 import { MySQLStore } from "./store/mysql-store";
@@ -112,16 +113,26 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.get("/api/home", withUser(store, clock, async (_request, response, context) => {
-    const activeSession = await abandonLingeringPausedSession(store, context.user.id, clock.now().toISOString());
-    const todayKey = formatShanghaiDate(clock.now());
+  app.get("/api/home", withUser(store, clock, async (request, response, context) => {
+    const now = clock.now();
+    const nowIso = now.toISOString();
+    const activeSession = await abandonLingeringPausedSession(store, context.user.id, nowIso);
+    const todayKey = formatShanghaiDate(now);
     const dailyStats = await store.getDailyStats(context.user.id);
-    const today = dailyStats.get(todayKey) ?? emptyDailyStat(context.user.id, todayKey, clock.now().toISOString());
+    const today = dailyStats.get(todayKey) ?? emptyDailyStat(context.user.id, todayKey, nowIso);
     const latestCompleted = (await store.listSessions(context.user.id)).find((session) => session.status === "completed") ?? null;
+    const quote = await selectDailyHomeQuote({
+      store,
+      userId: context.user.id,
+      quoteDate: todayKey,
+      now: nowIso,
+      event: resolveQuoteEvent(request.query.quoteEvent)
+    });
 
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
-      activeSession: activeSession ? serializeActiveSession(activeSession, clock.now()) : null,
+      activeSession: activeSession ? serializeActiveSession(activeSession, now) : null,
+      quote,
       today,
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
@@ -444,6 +455,12 @@ export function createApp(options: CreateAppOptions = {}) {
       return;
     }
 
+    console.error("Unhandled request error", {
+      method: _request.method,
+      path: _request.path,
+      error: error instanceof Error ? error.stack ?? error.message : error
+    });
+
     response.status(500).json({
       error: {
         code: "INTERNAL_ERROR",
@@ -581,6 +598,10 @@ function parse<T>(schema: z.ZodType<T>, body: unknown) {
     throw new AppError(400, "INVALID_INPUT", "Request payload validation failed", result.error.flatten());
   }
   return result.data;
+}
+
+function resolveQuoteEvent(value: unknown) {
+  return value === "peek" ? "peek" : "advance";
 }
 
 function createDataStore(): DataStore {

@@ -5,7 +5,8 @@
 }
 
 .profile-card,
-.metric-card {
+.metric-card,
+.auth-card {
   padding: 26rpx;
   border-radius: 34rpx;
   background: rgba(255, 255, 255, 0.86);
@@ -57,6 +58,51 @@
   color: var(--text-sub);
   font-size: 24rpx;
   line-height: 1.6;
+}
+
+.auth-card {
+  background:
+    radial-gradient(circle at top right, rgba(94, 195, 157, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(237, 251, 245, 0.96) 100%);
+}
+
+.auth-card__badge,
+.auth-card__title,
+.auth-card__desc {
+  display: block;
+}
+
+.auth-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 18rpx;
+  min-width: 132rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  color: var(--mint-600);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.auth-card__title {
+  margin-top: 20rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.auth-card__desc {
+  margin-top: 14rpx;
+  color: var(--text-sub);
+  font-size: 24rpx;
+  line-height: 1.7;
+}
+
+.auth-card__button,
+.profile-actions__button {
+  width: 100%;
+  margin-top: 28rpx;
 }
 
 .metric-card--primary {
@@ -144,8 +190,4 @@
 
 .profile-actions {
   margin-top: 4rpx;
-}
-
-.profile-actions__button {
-  width: 100%;
 }

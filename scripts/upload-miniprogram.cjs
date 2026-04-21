@@ -83,7 +83,6 @@ function upload() {
   };
 
   const args = [
-    npxPath,
     "--yes",
     "miniprogram-ci",
     "upload",
@@ -106,11 +105,12 @@ function upload() {
     uploadInfoPath
   ];
 
-  const result = spawnSync(args.join(" "), {
+  const invocation = createNpxInvocation(args);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: projectRoot,
     stdio: "inherit",
     env,
-    shell: true
+    shell: invocation.shell
   });
 
   if (result.error) {
@@ -158,12 +158,33 @@ function resolveDevtoolsDir(explicitPath) {
 }
 
 function resolveNpxPath() {
+  const bundledNpx = path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npx-cli.js");
+  if (fs.existsSync(bundledNpx)) {
+    return bundledNpx;
+  }
+
   const localNpx = path.join(path.dirname(process.execPath), "npx.cmd");
   if (fs.existsSync(localNpx)) {
     return localNpx;
   }
 
   return "npx.cmd";
+}
+
+function createNpxInvocation(args) {
+  if (path.extname(npxPath).toLowerCase() === ".js") {
+    return {
+      command: process.execPath,
+      args: [npxPath, ...args],
+      shell: false
+    };
+  }
+
+  return {
+    command: npxPath,
+    args,
+    shell: true
+  };
 }
 
 function runOrThrow(command, args) {

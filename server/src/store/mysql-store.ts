@@ -1,11 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { createPool, type Pool, type RowDataPacket } from "mysql2/promise";
 
+import { fromMySqlDateTime, toMySqlDateTime } from "./mysql-date";
 import type {
   DailyStat,
+  Quote,
+  QuoteSource,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
+  UserDailyQuote,
+  UserDailyQuoteState,
   User
 } from "../types";
 
@@ -35,6 +40,49 @@ type DailyStatRow = RowDataPacket & {
   updated_at: string;
 };
 
+type QuoteSourceRow = RowDataPacket & {
+  id: string;
+  name: string;
+  base_url: string;
+  fetch_type: string;
+  is_active: number;
+  last_fetched_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type QuoteRow = RowDataPacket & {
+  id: string;
+  quote_en: string;
+  quote_zh: string;
+  author: string;
+  topic: string;
+  source_id: string;
+  source_url: string;
+  raw_title: string;
+  fingerprint: string;
+  quality_score: number;
+  is_active: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type UserDailyQuoteRow = RowDataPacket & {
+  user_id: string;
+  quote_date: string;
+  slot: number;
+  quote_id: string;
+  created_at: string;
+};
+
+type UserDailyQuoteStateRow = RowDataPacket & {
+  user_id: string;
+  quote_date: string;
+  visit_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export class MySQLStore {
   constructor(private readonly pool: Pool) {}
 
@@ -49,45 +97,26 @@ export class MySQLStore {
   }
 
   async ensureUser(openid: string, now: string) {
-    const user = await this.getUserByOpenid(openid);
-    if (user) {
-      await this.pool.execute("UPDATE users SET last_login_at = ? WHERE id = ?", [now, user.id]);
-      const publicProfile = (await this.getPublicSettingsByUserId(user.id))!;
-      return {
-        user: {
-          ...user,
-          lastLoginAt: now
-        },
-        publicProfile
-      };
-    }
-
-    const id = randomUUID();
+    const persistedNow = toMySqlDateTime(now);
+    const suggestedUserId = randomUUID();
     const shareSlug = randomUUID().slice(0, 8);
     await this.pool.execute(
-      "INSERT INTO users (id, openid, nickname, avatar_url, profile_completed, created_at, last_login_at) VALUES (?, ?, '', '', 0, ?, ?)",
-      [id, openid, now, now]
+      `INSERT INTO users (id, openid, nickname, avatar_url, profile_completed, created_at, last_login_at)
+      VALUES (?, ?, '', '', 0, ?, ?)
+      ON DUPLICATE KEY UPDATE last_login_at = VALUES(last_login_at)`,
+      [suggestedUserId, openid, persistedNow, persistedNow]
     );
+    const user = (await this.getUserByOpenid(openid))!;
     await this.pool.execute(
-      "INSERT INTO user_public_settings (user_id, share_slug, is_public, require_wechat_auth) VALUES (?, ?, 0, 1)",
-      [id, shareSlug]
+      `INSERT INTO user_public_settings (user_id, share_slug, is_public, require_wechat_auth)
+      VALUES (?, ?, 0, 1)
+      ON DUPLICATE KEY UPDATE user_id = user_id`,
+      [user.id, shareSlug]
     );
+    const publicProfile = (await this.getPublicSettingsByUserId(user.id))!;
     return {
-      user: {
-        id,
-        openid,
-        nickname: "",
-        avatarUrl: "",
-        profileCompleted: false,
-        createdAt: now,
-        lastLoginAt: now
-      },
-      publicProfile: {
-        userId: id,
-        shareSlug,
-        isPublic: false,
-        requireWechatAuth: true
-      }
+      user,
+      publicProfile
     };
   }
 
@@ -151,8 +180,8 @@ export class MySQLStore {
         nickname: String(row.nickname),
         avatarUrl: String(row.avatar_url),
         profileCompleted: Boolean(row.profile_completed),
-        createdAt: String(row.created_at),
-        lastLoginAt: String(row.last_login_at)
+        createdAt: fromMySqlDateTime(row.created_at) ?? "",
+        lastLoginAt: fromMySqlDateTime(row.last_login_at) ?? ""
       },
       publicProfile: {
         userId: String(row.user_id),
@@ -195,16 +224,16 @@ export class MySQLStore {
         session.id,
         session.userId,
         session.status,
-        session.startedAt,
-        session.endedAt,
-        session.currentPauseStartedAt,
+        toMySqlDateTime(session.startedAt),
+        toMySqlDateTime(session.endedAt),
+        toMySqlDateTime(session.currentPauseStartedAt),
         JSON.stringify(session.pauseSegments),
         session.durationMinutes,
         session.summary,
         session.subject,
         JSON.stringify(session.tags),
-        session.createdAt,
-        session.updatedAt
+        toMySqlDateTime(session.createdAt),
+        toMySqlDateTime(session.updatedAt)
       ]
     );
     return session;
@@ -230,7 +259,7 @@ export class MySQLStore {
           photo.fileId,
           photo.objectKey,
           photo.sortOrder,
-          photo.createdAt
+          toMySqlDateTime(photo.createdAt)
         ])
       ]
     );
@@ -270,7 +299,7 @@ export class MySQLStore {
           stat.sessionCount,
           stat.heatLevel,
           stat.streakDays,
-          stat.updatedAt
+          toMySqlDateTime(stat.updatedAt)
         ])
       ]
     );
@@ -282,6 +311,171 @@ export class MySQLStore {
       [userId]
     );
     return new Map(rows.map((row) => [row.stat_date, mapDailyStatRow(row)]));
+  }
+
+  async saveQuoteSources(sources: QuoteSource[]) {
+    if (!sources.length) return;
+    await this.pool.query(
+      `INSERT INTO quote_sources
+        (id, name, base_url, fetch_type, is_active, last_fetched_at, created_at, updated_at)
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        base_url = VALUES(base_url),
+        fetch_type = VALUES(fetch_type),
+        is_active = VALUES(is_active),
+        last_fetched_at = VALUES(last_fetched_at),
+        updated_at = VALUES(updated_at)`,
+      [
+        sources.map((source) => [
+          source.id,
+          source.name,
+          source.baseUrl,
+          source.fetchType,
+          source.isActive ? 1 : 0,
+          toMySqlDateTime(source.lastFetchedAt),
+          toMySqlDateTime(source.createdAt),
+          toMySqlDateTime(source.updatedAt)
+        ])
+      ]
+    );
+  }
+
+  async getActiveQuoteSources() {
+    const [rows] = await this.pool.query<QuoteSourceRow[]>(
+      "SELECT id, name, base_url, fetch_type, is_active, last_fetched_at, created_at, updated_at FROM quote_sources WHERE is_active = 1 ORDER BY name ASC"
+    );
+    return rows.map(mapQuoteSourceRow);
+  }
+
+  async saveQuotes(quotes: Quote[]) {
+    if (!quotes.length) return;
+    await this.pool.query(
+      `INSERT INTO quotes
+        (id, quote_en, quote_zh, author, topic, source_id, source_url, raw_title, fingerprint, quality_score, is_active, created_at, updated_at)
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+        quote_en = VALUES(quote_en),
+        quote_zh = VALUES(quote_zh),
+        author = VALUES(author),
+        topic = VALUES(topic),
+        source_id = VALUES(source_id),
+        source_url = VALUES(source_url),
+        raw_title = VALUES(raw_title),
+        fingerprint = VALUES(fingerprint),
+        quality_score = VALUES(quality_score),
+        is_active = VALUES(is_active),
+        updated_at = VALUES(updated_at)`,
+      [
+        quotes.map((quote) => [
+          quote.id,
+          quote.quoteEn,
+          quote.quoteZh,
+          quote.author,
+          quote.topic,
+          quote.sourceId,
+          quote.sourceUrl,
+          quote.rawTitle,
+          quote.fingerprint,
+          quote.qualityScore,
+          quote.isActive ? 1 : 0,
+          toMySqlDateTime(quote.createdAt),
+          toMySqlDateTime(quote.updatedAt)
+        ])
+      ]
+    );
+  }
+
+  async getActiveQuotes() {
+    const [rows] = await this.pool.query<QuoteRow[]>(
+      `SELECT
+        id,
+        quote_en,
+        quote_zh,
+        author,
+        topic,
+        source_id,
+        source_url,
+        raw_title,
+        fingerprint,
+        quality_score,
+        is_active,
+        created_at,
+        updated_at
+      FROM quotes
+      WHERE is_active = 1
+      ORDER BY quality_score DESC, updated_at DESC, id ASC`
+    );
+    return rows.map(mapQuoteRow);
+  }
+
+  async getQuotesByIds(quoteIds: string[]) {
+    if (!quoteIds.length) return [];
+    const [rows] = await this.pool.query<QuoteRow[]>(
+      `SELECT
+        id,
+        quote_en,
+        quote_zh,
+        author,
+        topic,
+        source_id,
+        source_url,
+        raw_title,
+        fingerprint,
+        quality_score,
+        is_active,
+        created_at,
+        updated_at
+      FROM quotes
+      WHERE id IN (${quoteIds.map(() => "?").join(", ")})`,
+      quoteIds
+    );
+    const byId = new Map(rows.map((row) => [row.id, mapQuoteRow(row)]));
+    return quoteIds.map((quoteId) => byId.get(quoteId)).filter((quote): quote is Quote => Boolean(quote));
+  }
+
+  async replaceUserDailyQuotes(userId: string, quoteDate: string, quotes: UserDailyQuote[]) {
+    await this.pool.execute("DELETE FROM user_daily_quotes WHERE user_id = ? AND quote_date = ?", [userId, quoteDate]);
+    if (!quotes.length) return;
+    await this.pool.query(
+      "INSERT INTO user_daily_quotes (user_id, quote_date, slot, quote_id, created_at) VALUES ?",
+      [
+        quotes.map((quote) => [quote.userId, quote.quoteDate, quote.slot, quote.quoteId, toMySqlDateTime(quote.createdAt)])
+      ]
+    );
+  }
+
+  async getUserDailyQuotes(userId: string, quoteDate: string) {
+    const [rows] = await this.pool.query<UserDailyQuoteRow[]>(
+      "SELECT user_id, quote_date, slot, quote_id, created_at FROM user_daily_quotes WHERE user_id = ? AND quote_date = ? ORDER BY slot ASC",
+      [userId, quoteDate]
+    );
+    return rows.map(mapUserDailyQuoteRow);
+  }
+
+  async getUserDailyQuoteState(userId: string, quoteDate: string) {
+    const [rows] = await this.pool.query<UserDailyQuoteStateRow[]>(
+      "SELECT user_id, quote_date, visit_count, created_at, updated_at FROM user_daily_quote_state WHERE user_id = ? AND quote_date = ? LIMIT 1",
+      [userId, quoteDate]
+    );
+    return rows[0] ? mapUserDailyQuoteStateRow(rows[0]) : null;
+  }
+
+  async saveUserDailyQuoteState(state: UserDailyQuoteState) {
+    await this.pool.execute(
+      `INSERT INTO user_daily_quote_state (user_id, quote_date, visit_count, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        visit_count = VALUES(visit_count),
+        updated_at = VALUES(updated_at)`,
+      [
+        state.userId,
+        state.quoteDate,
+        state.visitCount,
+        toMySqlDateTime(state.createdAt),
+        toMySqlDateTime(state.updatedAt)
+      ]
+    );
   }
 
   private async getUserByOpenid(openid: string) {
@@ -297,8 +491,8 @@ function mapUserRow(row: RowDataPacket): User {
     nickname: String(row.nickname),
     avatarUrl: String(row.avatar_url),
     profileCompleted: Boolean(row.profile_completed),
-    createdAt: String(row.created_at),
-    lastLoginAt: String(row.last_login_at)
+    createdAt: fromMySqlDateTime(row.created_at) ?? "",
+    lastLoginAt: fromMySqlDateTime(row.last_login_at) ?? ""
   };
 }
 
@@ -307,16 +501,16 @@ function mapSessionRow(row: SessionRow): StudySession {
     id: row.id,
     userId: row.user_id,
     status: row.status,
-    startedAt: row.started_at,
-    endedAt: row.ended_at,
-    currentPauseStartedAt: row.current_pause_started_at,
+    startedAt: fromMySqlDateTime(row.started_at) ?? "",
+    endedAt: fromMySqlDateTime(row.ended_at),
+    currentPauseStartedAt: fromMySqlDateTime(row.current_pause_started_at),
     pauseSegments: row.pause_segments_json ? JSON.parse(row.pause_segments_json) : [],
     durationMinutes: row.duration_minutes,
     summary: row.summary,
     subject: (row.subject as StudySession["subject"]) ?? null,
     tags: row.tags_json ? JSON.parse(row.tags_json) : [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
+    createdAt: fromMySqlDateTime(row.created_at) ?? "",
+    updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
   };
 }
 
@@ -327,7 +521,7 @@ function mapPhotoRow(row: RowDataPacket): SessionPhoto {
     fileId: String(row.file_id),
     objectKey: String(row.object_key),
     sortOrder: Number(row.sort_order),
-    createdAt: String(row.created_at)
+    createdAt: fromMySqlDateTime(row.created_at) ?? ""
   };
 }
 
@@ -339,6 +533,57 @@ function mapDailyStatRow(row: DailyStatRow): DailyStat {
     sessionCount: row.session_count,
     heatLevel: row.heat_level,
     streakDays: row.streak_snapshot,
-    updatedAt: row.updated_at
+    updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
+  };
+}
+
+function mapQuoteSourceRow(row: QuoteSourceRow): QuoteSource {
+  return {
+    id: row.id,
+    name: row.name,
+    baseUrl: row.base_url,
+    fetchType: row.fetch_type,
+    isActive: Boolean(row.is_active),
+    lastFetchedAt: fromMySqlDateTime(row.last_fetched_at),
+    createdAt: fromMySqlDateTime(row.created_at) ?? "",
+    updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
+  };
+}
+
+function mapQuoteRow(row: QuoteRow): Quote {
+  return {
+    id: row.id,
+    quoteEn: row.quote_en,
+    quoteZh: row.quote_zh,
+    author: row.author,
+    topic: row.topic,
+    sourceId: row.source_id,
+    sourceUrl: row.source_url,
+    rawTitle: row.raw_title,
+    fingerprint: row.fingerprint,
+    qualityScore: row.quality_score,
+    isActive: Boolean(row.is_active),
+    createdAt: fromMySqlDateTime(row.created_at) ?? "",
+    updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
+  };
+}
+
+function mapUserDailyQuoteRow(row: UserDailyQuoteRow): UserDailyQuote {
+  return {
+    userId: row.user_id,
+    quoteDate: row.quote_date,
+    slot: row.slot,
+    quoteId: row.quote_id,
+    createdAt: fromMySqlDateTime(row.created_at) ?? ""
+  };
+}
+
+function mapUserDailyQuoteStateRow(row: UserDailyQuoteStateRow): UserDailyQuoteState {
+  return {
+    userId: row.user_id,
+    quoteDate: row.quote_date,
+    visitCount: row.visit_count,
+    createdAt: fromMySqlDateTime(row.created_at) ?? "",
+    updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
   };
 }

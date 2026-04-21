@@ -5,7 +5,6 @@ import {
   buildMonthGrid,
   buildSubjectSummary,
   formatDuration,
-  getDailyQuote,
   getSessionActions,
   validateCompletionDraft
 } from "../utils/view-models";
@@ -30,7 +29,7 @@ describe("miniprogram view models", () => {
 
     expect(
       validateCompletionDraft({
-        summary: "今天把会计分录重新梳理了一遍",
+        summary: "今天把会计分录重新梳理了一遍。",
         photos: [
           {
             fileId: "cloud://demo/a.jpg",
@@ -73,13 +72,6 @@ describe("miniprogram view models", () => {
     expect(formatDuration(59)).toBe("59m");
     expect(formatDuration(60)).toBe("1h");
     expect(formatDuration(125)).toBe("2h 5m");
-  });
-
-  it("returns a deterministic bilingual quote for a date", () => {
-    expect(getDailyQuote("2026-04-18")).toEqual({
-      en: "One page at a time.",
-      zh: "一页一页，也是在前进。"
-    });
   });
 
   it("builds subject summaries with formatted durations", () => {

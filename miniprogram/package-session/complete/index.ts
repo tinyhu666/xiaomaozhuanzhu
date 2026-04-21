@@ -71,26 +71,56 @@ Page<{}, CompletePageData>({
     const remain = 3 - this.data.photos.length;
     if (remain <= 0) return;
 
-    const chooser = await wx.chooseMedia({
-      count: remain,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"]
-    });
+    let chooser: WechatMiniprogram.ChooseMediaSuccessCallbackResult;
+    try {
+      chooser = await wx.chooseMedia({
+        count: remain,
+        mediaType: ["image"],
+        sourceType: ["album", "camera"]
+      });
+    } catch (error) {
+      const message = typeof error === "object" && error && "errMsg" in error ? String(error.errMsg) : "";
+      if (!message.includes("cancel")) {
+        wx.showToast({
+          title: error instanceof Error ? error.message : "选择图片失败，请重试",
+          icon: "none"
+        });
+      }
+      return;
+    }
+
+    if (!chooser.tempFiles.length) return;
 
     wx.showLoading({
       title: "上传中"
     });
+
+    const originalCount = this.data.photos.length;
+    const nextPhotos = [...this.data.photos];
+    let failedCount = 0;
+
     try {
-      const uploaded: LocalPhoto[] = [];
       for (const file of chooser.tempFiles) {
-        const result = await uploadCheckinPhoto(file.tempFilePath);
-        uploaded.push(result);
+        try {
+          const result = await uploadCheckinPhoto(file.tempFilePath);
+          nextPhotos.push(result);
+          this.setData({
+            photos: [...nextPhotos]
+          });
+        } catch {
+          failedCount += 1;
+        }
       }
-      this.setData({
-        photos: [...this.data.photos, ...uploaded]
-      });
     } finally {
       wx.hideLoading();
+    }
+
+    if (failedCount > 0) {
+      const successCount = nextPhotos.length - originalCount;
+      wx.showToast({
+        title: successCount > 0 ? `已上传${successCount}张，${failedCount}张失败` : "图片上传失败，请重试",
+        icon: "none"
+      });
     }
   },
 

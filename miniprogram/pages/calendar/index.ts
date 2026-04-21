@@ -29,8 +29,15 @@ Page<{}, CalendarPageData>({
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 1 });
-    const ready = await getApp<IAppOption>().ensureProfile(this.route);
-    if (!ready) return;
+    try {
+      await getApp<IAppOption>().bootstrapProfileState();
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : "加载用户状态失败",
+        icon: "none"
+      });
+      return;
+    }
     if (!this.data.month) {
       const now = new Date();
       this.setData({
@@ -47,9 +54,10 @@ Page<{}, CalendarPageData>({
       const totalMinutes = Object.values(result.days).reduce((sum, day) => sum + day.totalMinutes, 0);
       const grid = buildMonthGrid(month, result.days);
       const selectedDate = this.pickSelectedDate(grid);
+      const [yearText, monthText] = month.split("-");
 
       this.setData({
-        monthTitle: month.replace("-", "年") + "月",
+        monthTitle: `${yearText}年${monthText}月`,
         grid,
         monthTotalText: formatDuration(totalMinutes),
         selectedDate
@@ -108,7 +116,12 @@ Page<{}, CalendarPageData>({
     const inMonth = grid.filter((item) => item.inMonth);
     const hottest = [...inMonth]
       .filter((item) => item.totalMinutes > 0)
-      .sort((left, right) => right.date.localeCompare(left.date))[0];
+      .sort((left, right) => {
+        if (right.totalMinutes !== left.totalMinutes) {
+          return right.totalMinutes - left.totalMinutes;
+        }
+        return right.date.localeCompare(left.date);
+      })[0];
 
     return hottest?.date ?? inMonth[0]?.date ?? "";
   },

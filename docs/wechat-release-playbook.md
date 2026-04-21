@@ -2,9 +2,9 @@
 
 ## Current status
 
-- Current review version: `0.1.4`
-- Review submission time: `2026-04-18 15:55:42` (Asia/Shanghai)
-- Current backend state: version already appears in `审核版本`
+- Current uploaded version: `0.1.6`
+- Upload time: `2026-04-22` (Asia/Shanghai)
+- Current backend state: development version `0.1.6` has been uploaded and is waiting for manual review submission in `版本管理`
 - Current repo upload command:
 
 ```bash
@@ -13,14 +13,15 @@ npm run upload:miniprogram -- <version> "<description>"
 
 ## What to do right now
 
-- No additional submit action is needed right now.
-- Wait for WeChat review to finish.
-- Use the WeChat mini program backend `版本管理` page to check whether `0.1.4` moves from `审核版本` to `线上版本` or gets rejected.
+1. Open the WeChat mini program backend `版本管理`.
+2. Find development version `0.1.6`.
+3. Confirm the version description is the release you want to review.
+4. Submit `0.1.6` for review manually.
 
 ## If the review is approved
 
 1. Open WeChat mini program backend `版本管理`.
-2. Confirm version `0.1.4` is marked as approved.
+2. Confirm version `0.1.6` is marked as approved.
 3. Click the publish or release action for the approved version.
 4. Verify the online version by opening the mini program from WeChat and checking:
    - home timer page loads correctly
@@ -39,6 +40,7 @@ npm run upload:miniprogram -- <version> "<description>"
 ```bash
 npm test
 npm run typecheck
+npm run build:server
 ```
 
 4. Upload a new development version:
@@ -62,13 +64,14 @@ Follow the exact prompt shown in the backend before retrying release.
 
 ## Recommended versioning rule
 
-- Patch release for fixes during review: `0.1.5`, `0.1.6`
+- Patch release for fixes during review: `0.1.6`, `0.1.7`
 - Minor release for new user-facing functionality: `0.2.0`, `0.3.0`
 
 ## Release checklist
 
 - `npm test` passes
 - `npm run typecheck` passes
+- `npm run build:server` passes
 - cloud service is healthy
 - database and object storage environment variables are present
 - uploaded mini program version matches the intended GitHub commit

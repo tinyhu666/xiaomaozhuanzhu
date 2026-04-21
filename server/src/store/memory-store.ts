@@ -2,9 +2,13 @@ import { randomUUID } from "node:crypto";
 
 import type {
   DailyStat,
+  Quote,
+  QuoteSource,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
+  UserDailyQuote,
+  UserDailyQuoteState,
   User
 } from "../types";
 
@@ -16,6 +20,10 @@ export class MemoryStore {
   private sessions = new Map<string, StudySession>();
   private photos = new Map<string, SessionPhoto[]>();
   private dailyStats = new Map<string, Map<string, DailyStat>>();
+  private quoteSources = new Map<string, QuoteSource>();
+  private quotes = new Map<string, Quote>();
+  private userDailyQuotes = new Map<string, UserDailyQuote[]>();
+  private userDailyQuoteStates = new Map<string, UserDailyQuoteState>();
 
   ensureUser(openid: string, now: string) {
     const existingId = this.userByOpenId.get(openid);
@@ -121,5 +129,66 @@ export class MemoryStore {
   getDailyStats(userId: string) {
     return this.dailyStats.get(userId) ?? new Map<string, DailyStat>();
   }
+
+  saveQuoteSources(sources: QuoteSource[]) {
+    for (const source of sources) {
+      this.quoteSources.set(source.id, { ...source });
+    }
+  }
+
+  getActiveQuoteSources() {
+    return [...this.quoteSources.values()]
+      .filter((source) => source.isActive)
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  saveQuotes(quotes: Quote[]) {
+    for (const quote of quotes) {
+      this.quotes.set(quote.id, { ...quote });
+    }
+  }
+
+  getActiveQuotes() {
+    return [...this.quotes.values()]
+      .filter((quote) => quote.isActive)
+      .sort(compareQuotes);
+  }
+
+  getQuotesByIds(quoteIds: string[]) {
+    return quoteIds
+      .map((quoteId) => this.quotes.get(quoteId))
+      .filter((quote): quote is Quote => Boolean(quote))
+      .map((quote) => ({ ...quote }));
+  }
+
+  replaceUserDailyQuotes(userId: string, quoteDate: string, quotes: UserDailyQuote[]) {
+    this.userDailyQuotes.set(getDailyKey(userId, quoteDate), quotes.map((quote) => ({ ...quote })));
+  }
+
+  getUserDailyQuotes(userId: string, quoteDate: string) {
+    return [...(this.userDailyQuotes.get(getDailyKey(userId, quoteDate)) ?? [])]
+      .sort((left, right) => left.slot - right.slot)
+      .map((quote) => ({ ...quote }));
+  }
+
+  getUserDailyQuoteState(userId: string, quoteDate: string) {
+    const state = this.userDailyQuoteStates.get(getDailyKey(userId, quoteDate));
+    return state ? { ...state } : null;
+  }
+
+  saveUserDailyQuoteState(state: UserDailyQuoteState) {
+    this.userDailyQuoteStates.set(getDailyKey(state.userId, state.quoteDate), { ...state });
+  }
 }
 
+function getDailyKey(userId: string, quoteDate: string) {
+  return `${userId}:${quoteDate}`;
+}
+
+function compareQuotes(left: Quote, right: Quote) {
+  return (
+    right.qualityScore - left.qualityScore ||
+    right.updatedAt.localeCompare(left.updatedAt) ||
+    left.id.localeCompare(right.id)
+  );
+}

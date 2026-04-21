@@ -2,7 +2,7 @@
 import type { ActiveSession, HomeResponse } from "../../types/models";
 import { getCalendar, getHome, pauseSession, resumeSession, startSession } from "../../utils/api";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
-import { buildMonthGrid, formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
+import { buildMonthGrid, formatDuration, getSessionActions } from "../../utils/view-models";
 
 type HomePageData = {
   profile: HomeResponse["profile"] | null;
@@ -19,6 +19,13 @@ type HomePageData = {
   actionLoading: boolean;
 };
 
+type QuoteEvent = "advance" | "peek";
+
+const DEFAULT_QUOTE = {
+  en: "Hold steady. One page at a time.",
+  zh: "稳住，一页一页来。"
+};
+
 let timerHandle: number | undefined;
 
 Page<{}, HomePageData>({
@@ -28,8 +35,8 @@ Page<{}, HomePageData>({
     timerText: "00:00:00",
     todayMinutesText: "0m",
     streakText: "0天",
-    quoteEn: "One page at a time.",
-    quoteZh: "一页一页，也是在前进。",
+    quoteEn: DEFAULT_QUOTE.en,
+    quoteZh: DEFAULT_QUOTE.zh,
     monthLabel: "",
     monthTotalText: "0m",
     monthGrid: [],
@@ -40,9 +47,16 @@ Page<{}, HomePageData>({
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 0 });
-    const ready = await getApp<IAppOption>().ensureProfile(this.route);
-    if (!ready) return;
-    await this.loadHome();
+    try {
+      await getApp<IAppOption>().bootstrapProfileState();
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : "加载用户状态失败",
+        icon: "none"
+      });
+      return;
+    }
+    await this.loadHome("advance");
   },
 
   onHide() {
@@ -54,18 +68,26 @@ Page<{}, HomePageData>({
   },
 
   async onPullDownRefresh() {
-    await this.loadHome();
+    await this.loadHome("peek");
     wx.stopPullDownRefresh();
   },
 
-  async loadHome() {
+  async loadHome(quoteEvent: QuoteEvent = "peek") {
     try {
       const now = new Date();
       const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-      const today = `${month}-${String(now.getDate()).padStart(2, "0")}`;
-      const [home, calendar] = await Promise.all([getHome(), getCalendar(month)]);
-      const monthTotalMinutes = Object.values(calendar.days).reduce((sum, day) => sum + day.totalMinutes, 0);
-      const quote = getDailyQuote(today);
+      const [homeResult, calendarResult] = await Promise.allSettled([getHome(quoteEvent), getCalendar(month)]);
+      if (homeResult.status !== "fulfilled") {
+        throw homeResult.reason;
+      }
+
+      const home = homeResult.value;
+      const calendarDays =
+        calendarResult.status === "fulfilled"
+          ? calendarResult.value.days
+          : ({} as Record<string, { totalMinutes: number; heatLevel: number }>);
+      const monthTotalMinutes = Object.values(calendarDays).reduce((sum, day) => sum + day.totalMinutes, 0);
+      const quote = home.quote ?? DEFAULT_QUOTE;
 
       this.setData({
         profile: home.profile,
@@ -77,10 +99,17 @@ Page<{}, HomePageData>({
         quoteZh: quote.zh,
         monthLabel: `${now.getMonth() + 1}月学习热力图`,
         monthTotalText: formatDuration(monthTotalMinutes),
-        monthGrid: buildMonthGrid(month, calendar.days),
+        monthGrid: buildMonthGrid(month, calendarDays),
         actions: getSessionActions(home.activeSession?.status ?? null)
       });
       this.syncTimer(home.activeSession);
+
+      if (calendarResult.status !== "fulfilled") {
+        wx.showToast({
+          title: calendarResult.reason instanceof Error ? calendarResult.reason.message : "热力图加载失败",
+          icon: "none"
+        });
+      }
     } catch (error) {
       wx.showToast({
         title: error instanceof Error ? error.message : "加载首页失败",
@@ -129,9 +158,30 @@ Page<{}, HomePageData>({
   },
 
   async handleStart() {
+    const app = getApp<IAppOption>();
+    if (!app.globalData.bootstrapped) {
+      try {
+        await app.bootstrapProfileState();
+      } catch (error) {
+        wx.showToast({
+          title: error instanceof Error ? error.message : "加载用户状态失败",
+          icon: "none"
+        });
+        return;
+      }
+    }
+
+    if (app.globalData.needsProfile || !app.globalData.profile?.profileCompleted) {
+      app.queuePendingProfileAction("startSession");
+      wx.switchTab({
+        url: "/pages/profile/index"
+      });
+      return;
+    }
+
     await this.runSessionAction(async () => {
       await startSession();
-      await this.loadHome();
+      await this.loadHome("peek");
     });
   },
 
@@ -139,7 +189,7 @@ Page<{}, HomePageData>({
     if (!this.data.activeSession) return;
     await this.runSessionAction(async () => {
       await pauseSession(this.data.activeSession!.id);
-      await this.loadHome();
+      await this.loadHome("peek");
     });
   },
 
@@ -147,7 +197,7 @@ Page<{}, HomePageData>({
     if (!this.data.activeSession) return;
     await this.runSessionAction(async () => {
       await resumeSession(this.data.activeSession!.id);
-      await this.loadHome();
+      await this.loadHome("peek");
     });
   },
 

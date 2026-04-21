@@ -41,9 +41,20 @@ export type SessionPhoto = {
   tempUrl?: string;
 };
 
+export type HomeQuote = {
+  id: string;
+  en: string;
+  zh: string;
+  author: string;
+  topic: string;
+  dailyIndex: number;
+  dailyLimit: number;
+};
+
 export type HomeResponse = {
   profile: UserProfile;
   activeSession: ActiveSession | null;
+  quote: HomeQuote;
   today: DailyStat;
   summary: {
     totalMinutes: number;
@@ -64,23 +75,6 @@ export type CalendarDayResponse = {
     tags: string[];
     totalMinutes: number;
     photos: SessionPhoto[];
-  }>;
-};
-
-export type PublicProfileResponse = {
-  profile: UserProfile;
-  summary: {
-    totalMinutes: number;
-    currentStreakDays: number;
-  };
-  calendar: DailyStat[];
-  photos: Array<SessionPhoto & { tempUrl: string }>;
-  recentSummaries: Array<{
-    id: string;
-    summary: string;
-    subject: string | null;
-    tags: string[];
-    endedAt: string | null;
   }>;
 };
 

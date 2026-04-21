@@ -6,15 +6,6 @@ export type CompletionPhoto = {
   objectKey: string;
 };
 
-const DAILY_QUOTES = [
-  { en: "One page at a time.", zh: "一页一页，也是在前进。" },
-  { en: "Stay with the problem.", zh: "沉住气，题会慢慢松动。" },
-  { en: "Small progress is still progress.", zh: "学得慢一点，也是往前。" },
-  { en: "Calm work adds up.", zh: "安静地学，分数会慢慢长出来。" },
-  { en: "Keep the promise to today.", zh: "先把今天答应自己的事情做完。" },
-  { en: "Focus makes the page lighter.", zh: "专注一点，书页就没那么重了。" }
-] as const;
-
 export function getSessionActions(state: SessionState): SessionAction[] {
   if (state === "running") {
     return ["pause", "complete"];
@@ -76,11 +67,6 @@ export function formatDuration(totalMinutes: number) {
   if (hours <= 0) return `${minutes}m`;
   if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
-}
-
-export function getDailyQuote(dateKey: string) {
-  const day = Number(dateKey.split("-")[2] ?? "1");
-  return DAILY_QUOTES[Math.max(day, 1) % DAILY_QUOTES.length];
 }
 
 export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes: number }>) {

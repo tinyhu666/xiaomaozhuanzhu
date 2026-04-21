@@ -3,7 +3,6 @@ import type {
   CalendarDayResponse,
   HomeResponse,
   ProfileDashboardResponse,
-  PublicProfileResponse,
   SessionPhoto,
   UserProfile
 } from "../types/models";
@@ -23,6 +22,10 @@ type RequestOptions = {
   path: string;
   method?: "GET" | "POST";
   data?: Record<string, unknown>;
+};
+
+type TempUrlResponse = {
+  items: Array<{ objectKey: string; url: string; expiresAt: string }>;
 };
 
 async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
@@ -63,7 +66,7 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
   const statusCode = (response as { statusCode?: number }).statusCode;
   if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
     const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${statusCode}`;
-    throw new Error(`${method} ${path} 失败：${fallback}`);
+    throw new Error(`${method} ${path} failed: ${fallback}`);
   }
 
   return response.data as T;
@@ -95,9 +98,9 @@ export function saveProfile(payload: {
   });
 }
 
-export function getHome() {
+export function getHome(quoteEvent: "advance" | "peek" = "advance") {
   return callContainer<HomeResponse>({
-    path: "/home"
+    path: `/home?quoteEvent=${quoteEvent}`
   });
 }
 
@@ -118,13 +121,6 @@ export function pauseSession(sessionId: string) {
 export function resumeSession(sessionId: string) {
   return callContainer<{ session: HomeResponse["activeSession"] }>({
     path: `/sessions/${sessionId}/resume`,
-    method: "POST"
-  });
-}
-
-export function abandonSession(sessionId: string) {
-  return callContainer<{ session: { id: string; status: string } }>({
-    path: `/sessions/${sessionId}/abandon`,
     method: "POST"
   });
 }
@@ -171,52 +167,32 @@ export function getCalendarDay(date: string) {
   });
 }
 
-export function getShareMe() {
-  return callContainer<{
-    profile: UserProfile;
-    summary: {
-      totalMinutes: number;
-      currentStreakDays: number;
-    };
-  }>({
-    path: "/share/me"
-  });
-}
-
 export function getProfileDashboard() {
   return callContainer<ProfileDashboardResponse>({
     path: "/me/dashboard"
   });
 }
 
-export function updateShareSettings(payload: { isPublic: boolean; requireWechatAuth: boolean }) {
-  return callContainer<{
-    publicProfile: {
-      isPublic: boolean;
-      requireWechatAuth: boolean;
-      shareSlug: string;
-    };
-  }>({
-    path: "/share/me",
-    method: "POST",
-    data: payload
-  });
-}
+export async function getTempUrls(objectKeys: string[]) {
+  const uniqueKeys = [...new Set(objectKeys.filter((item) => item))];
+  if (!uniqueKeys.length) {
+    return { items: [] } satisfies TempUrlResponse;
+  }
 
-export function getPublicProfile(slug: string) {
-  return callContainer<PublicProfileResponse>({
-    path: `/public/${slug}`
-  });
-}
+  const responses: TempUrlResponse[] = [];
+  for (let index = 0; index < uniqueKeys.length; index += 30) {
+    responses.push(
+      await callContainer<TempUrlResponse>({
+        path: "/storage/temp-urls",
+        method: "POST",
+        data: { objectKeys: uniqueKeys.slice(index, index + 30) }
+      })
+    );
+  }
 
-export function getTempUrls(objectKeys: string[]) {
-  return callContainer<{
-    items: Array<{ objectKey: string; url: string; expiresAt: string }>;
-  }>({
-    path: "/storage/temp-urls",
-    method: "POST",
-    data: { objectKeys }
-  });
+  return {
+    items: responses.flatMap((response) => response.items)
+  } satisfies TempUrlResponse;
 }
 
 export async function uploadCheckinPhoto(localPath: string) {

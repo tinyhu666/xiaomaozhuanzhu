@@ -128,6 +128,10 @@ describe("CPA study check-in API", () => {
       .expect(200);
 
     expect(home.body.activeSession).toBeNull();
+    expect(home.body.quote.dailyLimit).toBe(5);
+    expect(home.body.quote.dailyIndex).toBe(1);
+    expect(home.body.quote.en).toBeTruthy();
+    expect(home.body.quote.zh).toBeTruthy();
     expect(home.body.today.totalMinutes).toBe(120);
     expect(home.body.today.sessionCount).toBe(1);
     expect(home.body.summary.currentStreakDays).toBe(1);
@@ -386,5 +390,36 @@ describe("CPA study check-in API", () => {
         totalMinutes: 90
       }
     ]);
+  });
+  it("does not advance the daily quote when home uses peek mode", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "peek-user")
+      .send({
+        nickname: "Peek User",
+        avatarUrl: "https://example.com/peek.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    const first = await request(app)
+      .get("/api/home?quoteEvent=advance")
+      .set("x-wx-openid", "peek-user")
+      .expect(200);
+
+    const peek = await request(app)
+      .get("/api/home?quoteEvent=peek")
+      .set("x-wx-openid", "peek-user")
+      .expect(200);
+
+    const second = await request(app)
+      .get("/api/home?quoteEvent=advance")
+      .set("x-wx-openid", "peek-user")
+      .expect(200);
+
+    expect(first.body.quote.dailyIndex).toBe(1);
+    expect(peek.body.quote.dailyIndex).toBe(1);
+    expect(second.body.quote.dailyIndex).toBe(2);
   });
 });
