@@ -45,7 +45,7 @@
     <view wx:if="{{selectedDetail && selectedDetail.sessions.length}}" class="day-panel__sessions">
       <view wx:for="{{selectedDetail.sessions}}" wx:key="id" class="session-item">
         <view class="session-item__top">
-          <text class="session-item__subject">{{item.subject || '学习记录'}}</text>
+          <text class="session-item__subject">{{item.subjectText}}</text>
           <text class="session-item__duration">{{item.totalMinutes}}m</text>
         </view>
         <text class="session-item__summary">{{item.summary}}</text>

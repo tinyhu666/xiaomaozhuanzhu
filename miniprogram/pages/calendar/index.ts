@@ -3,6 +3,10 @@ import type { CalendarDayResponse } from "../../types/models";
 import { getCalendar, getCalendarDay, getTempUrls } from "../../utils/api";
 import { buildMonthGrid, formatDuration } from "../../utils/view-models";
 
+type CalendarDayDetail = Omit<CalendarDayResponse, "sessions"> & {
+  sessions: Array<CalendarDayResponse["sessions"][number] & { subjectText: string }>;
+};
+
 type CalendarPageData = {
   month: string;
   monthTitle: string;
@@ -11,7 +15,7 @@ type CalendarPageData = {
   selectedDate: string;
   selectedDateText: string;
   selectedTotalText: string;
-  selectedDetail: CalendarDayResponse | null;
+  selectedDetail: CalendarDayDetail | null;
 };
 
 Page<{}, CalendarPageData>({
@@ -87,6 +91,7 @@ Page<{}, CalendarPageData>({
           ...detail,
           sessions: detail.sessions.map((session) => ({
             ...session,
+            subjectText: session.subjects.length ? session.subjects.join("、") : "学习记录",
             photos: session.photos.map((photo) => ({
               ...photo,
               tempUrl: urlMap.get(photo.objectKey) || photo.tempUrl || ""

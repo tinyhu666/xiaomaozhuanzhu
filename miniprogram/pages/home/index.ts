@@ -142,6 +142,15 @@ Page<{}, HomePageData>({
     }
   },
 
+  applyActiveSession(session: ActiveSession | null) {
+    this.setData({
+      activeSession: session,
+      actions: getSessionActions(session?.status ?? null),
+      timerText: session ? formatStopwatch(getElapsedMs(session, new Date())) : "00:00:00"
+    });
+    this.syncTimer(session);
+  },
+
   async runSessionAction(task: () => Promise<void>) {
     if (this.data.actionLoading) return;
     this.setData({ actionLoading: true });
@@ -215,7 +224,9 @@ Page<{}, HomePageData>({
         }
       }
 
-      wx.navigateTo({
+      this.applyActiveSession(target);
+
+      await wx.navigateTo({
         url: `/package-session/complete/index?sessionId=${target.id}&minutes=${Math.max(1, target.effectiveMinutes)}`
       });
     });

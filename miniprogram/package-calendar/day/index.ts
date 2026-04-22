@@ -8,7 +8,8 @@ type DayPageData = {
   sessions: Array<{
     id: string;
     summary: string;
-    subject: string | null;
+    subjects: string[];
+    subjectText: string;
     tags: string[];
     totalMinutes: number;
     photos: Array<{ objectKey: string; url: string }>;
@@ -40,7 +41,8 @@ Page<{}, DayPageData>({
         sessions: result.sessions.map((session) => ({
           id: session.id,
           summary: session.summary,
-          subject: session.subject,
+          subjects: session.subjects,
+          subjectText: session.subjects.length ? session.subjects.join("、") : "未选择科目",
           tags: session.tags,
           totalMinutes: session.totalMinutes,
           photos: session.photos.map((photo) => ({

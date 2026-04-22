@@ -30,6 +30,7 @@ const TABLE_STATEMENTS = [
     duration_minutes INT NOT NULL DEFAULT 0,
     summary VARCHAR(80) NOT NULL DEFAULT '',
     subject VARCHAR(16) NULL,
+    subjects_json JSON NULL,
     tags_json JSON NULL,
     created_at DATETIME(3) NOT NULL,
     updated_at DATETIME(3) NOT NULL,
@@ -165,6 +166,7 @@ export async function ensureMySqlSchema(env: EnvMap = process.env) {
     for (const statement of TABLE_STATEMENTS) {
       await connection.query(statement);
     }
+    await connection.query("ALTER TABLE study_sessions ADD COLUMN IF NOT EXISTS subjects_json JSON NULL AFTER subject");
   } finally {
     await connection.end();
   }

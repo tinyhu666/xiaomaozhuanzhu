@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { runtimeConfig } from "./config/runtime";
-import { bootstrapProfile } from "./utils/api";
+import { bootstrapProfile, hydrateSessionToken } from "./utils/api";
 
 App<IAppOption>({
   globalData: {
@@ -14,6 +14,7 @@ App<IAppOption>({
       env: runtimeConfig.cloudEnv,
       traceUser: true
     });
+    hydrateSessionToken();
   },
   async bootstrapProfileState() {
     const result = await bootstrapProfile();

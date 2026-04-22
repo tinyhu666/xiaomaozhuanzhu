@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   duration_minutes INT NOT NULL DEFAULT 0,
   summary VARCHAR(80) NOT NULL DEFAULT '',
   subject VARCHAR(16) NULL,
+  subjects_json JSON NULL,
   tags_json JSON NULL,
   created_at DATETIME(3) NOT NULL,
   updated_at DATETIME(3) NOT NULL,
@@ -57,4 +58,3 @@ CREATE TABLE IF NOT EXISTS daily_stats (
   KEY idx_daily_stats_user_date (user_id, stat_date DESC),
   CONSTRAINT fk_daily_stat_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
-

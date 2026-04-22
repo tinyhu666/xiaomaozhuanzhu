@@ -1,3 +1,4 @@
+import { resolveAvatarUrlMap } from "../avatar-storage";
 import { addShanghaiDays } from "../domain/date-utils";
 import { buildDayContributions } from "../domain/stats";
 import type { StorageClient } from "../storage/default-storage";
@@ -23,7 +24,7 @@ export type AdminPhotoPreview = SessionPhoto & {
 export type AdminSessionPreview = {
   id: string;
   summary: string;
-  subject: StudySession["subject"];
+  subjects: StudySession["subjects"];
   tags: StudySession["tags"];
   startedAt: string;
   endedAt: string | null;
@@ -69,6 +70,7 @@ type SessionContext = {
 
 export async function buildAdminUserSummaries(
   store: DataStore,
+  storage: StorageClient,
   todayKey: string,
   rangeDays: number,
   search: string
@@ -76,6 +78,7 @@ export async function buildAdminUserSummaries(
   const recentDateSet = new Set(buildRecentDateKeys(todayKey, rangeDays));
   const normalizedSearch = search.trim().toLowerCase();
   const users = await store.listUsers();
+  const avatarUrlByUserId = await resolveAvatarUrlMap(users, storage);
 
   const summaries = await Promise.all(
     users.map(async (user) => {
@@ -100,7 +103,7 @@ export async function buildAdminUserSummaries(
         userId: user.id,
         openid: user.openid,
         nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: avatarUrlByUserId.get(user.id) ?? "",
         profileCompleted: user.profileCompleted,
         lastLoginAt: user.lastLoginAt,
         latestCheckinDate,
@@ -137,6 +140,7 @@ export async function buildAdminSelectedUser(
   const dailyStats = await store.getDailyStats(user.id);
   const sessionContexts = await buildSessionContexts(store, user.id);
   const tempUrlByObjectKey = await buildTempUrlLookup(storage, sessionContexts.flatMap((context) => context.photos));
+  const avatarUrlByUserId = await resolveAvatarUrlMap([user], storage);
 
   const recentDays = recentDateKeys.map((date) =>
     buildDayGroup({
@@ -151,7 +155,7 @@ export async function buildAdminSelectedUser(
     userId: user.id,
     openid: user.openid,
     nickname: user.nickname,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: avatarUrlByUserId.get(user.id) ?? "",
     profileCompleted: user.profileCompleted,
     lastLoginAt: user.lastLoginAt,
     publicProfile,
@@ -165,6 +169,7 @@ export async function buildAdminDateRows(
   dateKey: string
 ) {
   const users = await store.listUsers();
+  const avatarUrlByUserId = await resolveAvatarUrlMap(users, storage);
   const rows = await Promise.all(
     users.map(async (user) => {
       const sessionContexts = await buildSessionContexts(store, user.id);
@@ -182,7 +187,7 @@ export async function buildAdminDateRows(
         userId: user.id,
         openid: user.openid,
         nickname: user.nickname,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: avatarUrlByUserId.get(user.id) ?? "",
         totalMinutes: sessions.reduce((sum, session) => sum + session.totalMinutes, 0),
         sessionCount: sessions.length,
         uploadCount: sessions.reduce((sum, session) => sum + session.photos.length, 0),
@@ -264,7 +269,7 @@ function buildSessionPreview(
   return {
     id: context.session.id,
     summary: context.session.summary,
-    subject: context.session.subject,
+    subjects: context.session.subjects,
     tags: context.session.tags,
     startedAt: context.session.startedAt,
     endedAt: context.session.endedAt,

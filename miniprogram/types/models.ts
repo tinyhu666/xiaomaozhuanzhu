@@ -71,7 +71,7 @@ export type CalendarDayResponse = {
   sessions: Array<{
     id: string;
     summary: string;
-    subject: string | null;
+    subjects: string[];
     tags: string[];
     totalMinutes: number;
     photos: SessionPhoto[];

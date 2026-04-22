@@ -41,4 +41,93 @@ describe("miniprogram api helpers", () => {
     });
     expect(response.items.at(-1)?.objectKey).toBe("checkins/60.jpg");
   });
+
+  it("adds a bearer token to authenticated container requests", async () => {
+    const init = vi.fn();
+    const callContainer = vi.fn(async () => ({
+      data: {
+        profile: {
+          id: "user-1",
+          nickname: "Token User",
+          avatarUrl: "",
+          profileCompleted: false,
+          shareSlug: "slug-1",
+          isPublic: false,
+          requireWechatAuth: true
+        },
+        needsOnboarding: true,
+        serverTime: "2026-04-21T12:00:00.000Z"
+      }
+    }));
+    const setStorageSync = vi.fn();
+
+    vi.stubGlobal("wx", {
+      setStorageSync,
+      cloud: {
+        init,
+        callContainer
+      }
+    });
+
+    const { bootstrapProfile, setSessionToken } = await import("../utils/api");
+    setSessionToken("session-token");
+    await bootstrapProfile();
+
+    expect(setStorageSync).toHaveBeenCalledWith("cpa.sessionToken", "session-token");
+    expect(callContainer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        header: expect.objectContaining({
+          Authorization: "Bearer session-token"
+        })
+      })
+    );
+  });
+
+  it("posts the WeChat login code without a bearer token and stores the returned session token", async () => {
+    const init = vi.fn();
+    const callContainer = vi.fn(async () => ({
+      data: {
+        token: "fresh-session-token",
+        profile: {
+          id: "user-1",
+          nickname: "",
+          avatarUrl: "",
+          profileCompleted: false,
+          shareSlug: "slug-1",
+          isPublic: false,
+          requireWechatAuth: true
+        },
+        needsOnboarding: true,
+        serverTime: "2026-04-21T12:00:00.000Z"
+      }
+    }));
+    const setStorageSync = vi.fn();
+
+    vi.stubGlobal("wx", {
+      setStorageSync,
+      cloud: {
+        init,
+        callContainer
+      }
+    });
+
+    const { getSessionToken, loginWithWechatCode } = await import("../utils/api");
+    const response = await loginWithWechatCode("wechat-code");
+
+    expect(callContainer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: "/api/auth/login",
+        data: {
+          code: "wechat-code"
+        },
+        header: {
+          "X-WX-SERVICE": "cpa-study-checkin",
+          "content-type": "application/json"
+        }
+      })
+    );
+    expect(setStorageSync).toHaveBeenCalledWith("cpa.sessionToken", "fresh-session-token");
+    expect(getSessionToken()).toBe("fresh-session-token");
+    expect(response.token).toBe("fresh-session-token");
+  });
 });

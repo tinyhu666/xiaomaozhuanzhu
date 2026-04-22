@@ -1,69 +1,54 @@
 <view class="page-shell profile-page">
   <view class="profile-card">
     <image
-      wx:if="{{profile && profile.avatarUrl}}"
+      wx:if="{{(profile && profile.avatarUrl) || avatarDraftUrl}}"
       class="profile-card__avatar"
-      src="{{profile.avatarUrl}}"
+      src="{{(profile && profile.avatarUrl) || avatarDraftUrl}}"
       mode="aspectFill"
     />
     <view wx:else class="profile-card__avatar profile-card__avatar--placeholder">我</view>
 
     <view class="profile-card__content">
-      <text class="profile-card__name">{{profile ? (profile.nickname || 'CPA 考生') : 'CPA 考生'}}</text>
+      <text class="profile-card__name">
+        {{profile && profile.nickname ? profile.nickname : (nicknameDraft || '微信未登录')}}
+      </text>
       <text class="profile-card__hint">
-        {{needsProfile ? '授权微信昵称和头像后，就能直接开始计时并累计学习数据。' : '微信昵称和头像会同步到这里，学习成果也会持续积累。'}}
+        {{needsProfile ? '登录后将使用微信昵称和头像完成个人信息同步。' : '个人信息已同步，昵称和头像均来自微信用户信息。'}}
       </text>
     </view>
   </view>
 
   <view wx:if="{{needsProfile}}" class="auth-card">
-    <view class="auth-card__badge">微信授权</view>
-    <text class="auth-card__title">不再单独跳登录页，直接在这里完成授权</text>
+    <view class="auth-card__badge">微信登录</view>
+    <text class="auth-card__title">这里只保留个人信息展示和微信登录</text>
     <text class="auth-card__desc">
-      {{pendingStartAfterAuth ? '完成授权后会自动回到首页并继续开始计时。' : '完成授权后就能使用完整的学习记录功能。'}}
+      {{pendingStartAfterAuth ? '完成登录后会自动回到首页，并继续开始这次计时。' : '登录后会同步微信昵称与头像，用于个人信息展示与学习记录。'}}
     </text>
-    <button class="cta-button auth-card__button" loading="{{authLoading}}" disabled="{{authLoading}}" bindtap="authorizeProfile">
-      {{authButtonText}}
-    </button>
-  </view>
 
-  <block wx:else>
-    <view class="metric-card metric-card--primary">
-      <text class="metric-card__label">累计学习时长</text>
-      <text class="metric-card__value">{{totalMinutesText}}</text>
-    </view>
+    <view class="auth-form">
+      <button class="auth-avatar-picker" open-type="chooseAvatar" bindchooseavatar="handleChooseAvatar">
+        <image wx:if="{{avatarDraftUrl}}" class="auth-avatar-picker__preview" src="{{avatarDraftUrl}}" mode="aspectFill" />
+        <view wx:else class="auth-avatar-picker__placeholder">选择微信头像</view>
+      </button>
 
-    <view class="metric-card">
-      <view class="metric-card__header">
-        <text class="metric-card__label">各科总时长</text>
-        <text class="metric-card__sub">{{subjectRows.length}} 科</text>
-      </view>
+      <input
+        class="auth-input"
+        type="nickname"
+        maxlength="20"
+        placeholder="请输入微信昵称"
+        value="{{nicknameDraft}}"
+        bindinput="handleNicknameInput"
+        bindnicknamereview="handleNicknameReview"
+      />
 
-      <view wx:if="{{subjectRows.length}}" class="subject-list">
-        <view wx:for="{{subjectRows}}" wx:key="subject" class="subject-row">
-          <view class="subject-row__top">
-            <text class="subject-row__name">{{item.subject}}</text>
-            <text class="subject-row__value">{{item.durationText}}</text>
-          </view>
-          <view class="subject-row__track">
-            <view class="subject-row__fill" style="{{item.barStyle}}"></view>
-          </view>
-        </view>
-      </view>
-
-      <view wx:else class="empty-state">还没有按科目累计出的学习记录</view>
-    </view>
-
-    <view class="metric-card">
-      <text class="metric-card__label">最长学习日</text>
-      <text class="metric-card__value metric-card__value--small">{{bestDayDateText}}</text>
-      <text class="metric-card__sub metric-card__sub--spaced">{{bestDayDurationText}}</text>
-    </view>
-
-    <view class="profile-actions">
-      <button class="cta-button profile-actions__button" loading="{{authLoading}}" disabled="{{authLoading}}" bindtap="authorizeProfile">
+      <button class="cta-button auth-card__button" loading="{{authLoading}}" disabled="{{authLoading}}" bindtap="submitWechatLogin">
         {{authButtonText}}
       </button>
     </view>
-  </block>
+  </view>
+
+  <view wx:else class="status-card">
+    <text class="status-card__title">个人信息</text>
+    <text class="status-card__desc">昵称和头像已经同步完成，当前页面仅保留资料展示。</text>
+  </view>
 </view>

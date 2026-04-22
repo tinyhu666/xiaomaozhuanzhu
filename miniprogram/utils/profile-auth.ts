@@ -1,25 +1,40 @@
 // @ts-nocheck
-import { saveProfile } from "./api";
-import { buildAuthorizedProfile } from "./view-models";
+import { loginWithWechatCode, saveProfile, uploadWechatAvatar } from "./api";
 
-export async function authorizeWechatProfile() {
-  if (!wx.getUserProfile) {
-    throw new Error("当前微信版本不支持授权昵称头像");
+function buildAvatarStorageRef(objectKey: string) {
+  return `storage://${objectKey.replace(/^\/+/, "")}`;
+}
+
+export async function authorizeWechatProfile(input: { nickname: string; avatarUrl: string }) {
+  const nickname = input.nickname.trim();
+  const avatarLocalPath = input.avatarUrl.trim();
+
+  if (!nickname || !avatarLocalPath) {
+    throw new Error("请先选择微信头像并填写昵称");
   }
 
-  const profileResult = await new Promise<WechatMiniprogram.GetUserProfileSuccessCallbackResult>((resolve, reject) => {
-    wx.getUserProfile({
-      desc: "用于同步你的微信昵称和头像",
+  const loginResult = await new Promise<WechatMiniprogram.LoginSuccessCallbackResult>((resolve, reject) => {
+    wx.login({
       success: resolve,
       fail: reject
     });
   });
 
-  const profile = buildAuthorizedProfile(profileResult.userInfo);
-  const result = await saveProfile(profile);
+  if (!loginResult.code) {
+    throw new Error("微信登录失败，请重试");
+  }
+
+  await loginWithWechatCode(loginResult.code);
+  const uploadedAvatar = await uploadWechatAvatar(avatarLocalPath);
+
+  const result = await saveProfile({
+    nickname,
+    avatarUrl: buildAvatarStorageRef(uploadedAvatar.objectKey)
+  });
 
   const app = getApp<IAppOption>();
   app.globalData.profile = result.profile;
+  app.globalData.bootstrapped = true;
   app.globalData.needsProfile = !result.profile.profileCompleted;
 
   return result.profile;

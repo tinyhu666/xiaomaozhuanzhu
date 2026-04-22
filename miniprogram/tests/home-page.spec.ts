@@ -29,6 +29,7 @@ type HomePageDefinition = {
   onShow(): Promise<void>;
   onPullDownRefresh(): Promise<void>;
   handleStart(): Promise<void>;
+  handleComplete(): Promise<void>;
   [key: string]: unknown;
 };
 
@@ -235,5 +236,55 @@ describe("home page session actions", () => {
 
     expect(apiMocks.getHome.mock.calls.map(([event]) => event)).toEqual(["advance", "peek"]);
     expect(wx.stopPullDownRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks the local session as paused before navigating to the completion page", async () => {
+    const runningSession = {
+      id: "session-2",
+      status: "running" as const,
+      startedAt: "2026-04-21T09:10:00.000Z",
+      currentPauseStartedAt: null,
+      pauseSegments: [],
+      effectiveMinutes: 50
+    };
+    const pausedSession = {
+      ...runningSession,
+      status: "paused" as const,
+      currentPauseStartedAt: "2026-04-21T10:00:00.000Z"
+    };
+
+    apiMocks.pauseSession.mockResolvedValue({
+      session: pausedSession
+    });
+    apiMocks.getHome.mockResolvedValue(
+      createHomeResponse({
+        activeSession: pausedSession
+      })
+    );
+    apiMocks.getCalendar.mockResolvedValue({
+      month: "2026-04",
+      days: {}
+    });
+    vi.mocked(wx.navigateTo).mockResolvedValue(undefined);
+
+    const definition = await loadHomePageDefinition();
+    const page = instantiatePage(definition);
+    page.setData({
+      activeSession: runningSession,
+      actions: ["pause", "complete"],
+      timerText: "00:50:00"
+    });
+
+    await page.handleComplete();
+
+    expect(apiMocks.pauseSession).toHaveBeenCalledWith("session-2");
+    expect(page.data.activeSession).toMatchObject({
+      id: "session-2",
+      status: "paused"
+    });
+    expect(page.data.actions).toEqual(["resume", "complete"]);
+    expect(wx.navigateTo).toHaveBeenCalledWith({
+      url: "/package-session/complete/index?sessionId=session-2&minutes=50"
+    });
   });
 });

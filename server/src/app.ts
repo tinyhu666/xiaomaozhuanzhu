@@ -6,10 +6,11 @@ import { z } from "zod";
 import { clearAdminSessionCookie, isAdminAuthenticated, resolveAdminAuthConfig, setAdminSessionCookie } from "./admin/auth";
 import { renderAdminDashboardPage, renderAdminLoginPage } from "./admin/render";
 import { buildAdminDateRows, buildAdminSelectedUser, buildAdminUserSummaries } from "./admin/view-models";
+import { isPersistedAvatarValue, resolveAvatarUrl } from "./avatar-storage";
 import { SUBJECTS, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
-import { resolveDatabaseUrl } from "./env";
+import { resolveDatabaseUrl, resolveWechatAuthConfig } from "./env";
 import { AppError } from "./errors";
 import { selectDailyHomeQuote } from "./quotes/select-daily-quote";
 import { createStorageClient, type StorageClient } from "./storage/default-storage";
@@ -17,6 +18,7 @@ import { MemoryStore } from "./store/memory-store";
 import { MySQLStore } from "./store/mysql-store";
 import type { DataStore } from "./store/types";
 import type { DailyStat, SessionPhoto, StudySession, User } from "./types";
+import { createUserSessionToken, exchangeWechatCodeForSession, readOpenIdFromSessionToken } from "./wechat-auth";
 
 type Clock = {
   now(): Date;
@@ -26,11 +28,19 @@ type CreateAppOptions = {
   clock?: Clock;
   storage?: StorageClient;
   store?: DataStore;
+  fetchImpl?: typeof fetch;
 };
+
+const loginSchema = z.object({
+  code: z.string().trim().min(1)
+});
 
 const profileSchema = z.object({
   nickname: z.string().trim().min(1).max(20),
-  avatarUrl: z.string().url(),
+  avatarUrl: z
+    .string()
+    .trim()
+    .refine((value) => isPersistedAvatarValue(value), "avatarUrl must be a URL or storage reference"),
   isPublic: z.boolean().optional(),
   requireWechatAuth: z.boolean().optional()
 });
@@ -38,6 +48,7 @@ const profileSchema = z.object({
 const completeSchema = z.object({
   summary: z.string().trim().min(1).max(80),
   subject: z.enum(SUBJECTS).nullable().optional(),
+  subjects: z.array(z.enum(SUBJECTS)).max(SUBJECTS.length).optional(),
   tags: z.array(z.enum(TAGS)).max(6).default([]),
   photos: z
     .array(
@@ -51,7 +62,12 @@ const completeSchema = z.object({
     )
     .min(1)
     .max(3)
-});
+}).transform((payload) => ({
+  summary: payload.summary,
+  subjects: [...new Set(payload.subjects ?? (payload.subject ? [payload.subject] : []))] as Subject[],
+  tags: [...new Set(payload.tags)] as SessionTag[],
+  photos: payload.photos
+}));
 
 const shareSchema = z.object({
   isPublic: z.boolean(),
@@ -68,12 +84,14 @@ export function createApp(options: CreateAppOptions = {}) {
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
   const adminAuthConfig = resolveAdminAuthConfig(process.env);
+  const wechatAuthConfig = resolveWechatAuthConfig(process.env);
+  const fetchImpl = options.fetchImpl ?? fetch;
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use((request, response, next) => {
     const requestId = randomUUID();
-    const openid = getOpenId(request) || "-";
+    const openid = getOpenId(request, wechatAuthConfig, clock.now()) || "-";
     response.setHeader("x-request-id", requestId);
     response.on("finish", () => {
       console.log(
@@ -142,7 +160,7 @@ export function createApp(options: CreateAppOptions = {}) {
       const activeView = request.query.view === "date" ? "date" : "users";
       const search = typeof request.query.search === "string" ? request.query.search : "";
       const selectedDate = normalizeAdminDateQuery(request.query.date, todayKey);
-      const users = await buildAdminUserSummaries(store, todayKey, 7, search);
+      const users = await buildAdminUserSummaries(store, storage, todayKey, 7, search);
       const selectedUserKey =
         typeof request.query.user === "string" && request.query.user.trim()
           ? request.query.user.trim()
@@ -166,9 +184,26 @@ export function createApp(options: CreateAppOptions = {}) {
     }
   });
 
+  app.post("/api/auth/login", async (request, response, next) => {
+    try {
+      const payload = parse(loginSchema, request.body);
+      const session = await exchangeWechatCodeForSession(payload.code, wechatAuthConfig, fetchImpl);
+      const context = await store.ensureUser(session.openid, clock.now().toISOString());
+
+      response.json({
+        token: createUserSessionToken(session.openid, wechatAuthConfig, clock.now()),
+        profile: await serializeProfile(context.user, context.publicProfile, storage),
+        needsOnboarding: !context.user.profileCompleted,
+        serverTime: clock.now().toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/me/bootstrap", withUser(store, clock, async (_request, response, context) => {
     response.json({
-      profile: serializeProfile(context.user, context.publicProfile),
+      profile: await serializeProfile(context.user, context.publicProfile, storage),
       needsOnboarding: !context.user.profileCompleted,
       serverTime: clock.now().toISOString()
     });
@@ -190,7 +225,7 @@ export function createApp(options: CreateAppOptions = {}) {
     );
 
     response.json({
-      profile: serializeProfile(user, publicProfile),
+      profile: await serializeProfile(user, publicProfile, storage),
       publicProfile
     });
   }));
@@ -212,7 +247,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
 
     response.json({
-      profile: serializeProfile(context.user, context.publicProfile),
+      profile: await serializeProfile(context.user, context.publicProfile, storage),
       activeSession: activeSession ? serializeActiveSession(activeSession, now) : null,
       quote,
       today,
@@ -230,7 +265,7 @@ export function createApp(options: CreateAppOptions = {}) {
     const subjectTotals = SUBJECTS.map((subject) => ({
       subject,
       totalMinutes: sessions
-        .filter((session) => session.subject === subject)
+        .filter((session) => session.subjects.includes(subject))
         .reduce((sum, session) => sum + session.durationMinutes, 0)
     }))
       .filter((item) => item.totalMinutes > 0)
@@ -252,7 +287,7 @@ export function createApp(options: CreateAppOptions = {}) {
     );
 
     response.json({
-      profile: serializeProfile(context.user, context.publicProfile),
+      profile: await serializeProfile(context.user, context.publicProfile, storage),
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
         currentStreakDays: getCurrentStreak(dailyStats, formatShanghaiDate(clock.now()))
@@ -284,7 +319,7 @@ export function createApp(options: CreateAppOptions = {}) {
       pauseSegments: [],
       durationMinutes: 0,
       summary: "",
-      subject: null,
+      subjects: [],
       tags: [],
       createdAt: now,
       updatedAt: now
@@ -362,8 +397,8 @@ export function createApp(options: CreateAppOptions = {}) {
     session.status = "completed";
     session.endedAt = now;
     session.summary = payload.summary;
-    session.subject = (payload.subject ?? null) as Subject | null;
-    session.tags = payload.tags as SessionTag[];
+    session.subjects = payload.subjects;
+    session.tags = payload.tags;
     session.durationMinutes = calculateDurationMinutes(session.startedAt, now, session.pauseSegments);
     session.updatedAt = now;
     await store.saveSession(session);
@@ -425,7 +460,7 @@ export function createApp(options: CreateAppOptions = {}) {
     const sessions: Array<{
       id: string;
       summary: string;
-      subject: StudySession["subject"];
+      subjects: StudySession["subjects"];
       tags: StudySession["tags"];
       totalMinutes: number | undefined;
       photos: SessionPhoto[];
@@ -435,7 +470,7 @@ export function createApp(options: CreateAppOptions = {}) {
       .map((session) => ({
         id: session.id,
         summary: session.summary,
-        subject: session.subject,
+        subjects: session.subjects,
         tags: session.tags,
         totalMinutes: buildDayContributions(session).get(date),
         photos: []
@@ -456,7 +491,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get("/api/share/me", withUser(store, clock, async (_request, response, context) => {
     const stats = await store.getDailyStats(context.user.id);
     response.json({
-      profile: serializeProfile(context.user, context.publicProfile),
+      profile: await serializeProfile(context.user, context.publicProfile, storage),
       summary: {
         totalMinutes: [...stats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
         currentStreakDays: getCurrentStreak(stats, formatShanghaiDate(clock.now()))
@@ -484,7 +519,7 @@ export function createApp(options: CreateAppOptions = {}) {
     if (!record || !record.publicProfile.isPublic) {
       throw new AppError(404, "NOT_FOUND", "Public profile does not exist");
     }
-    if (record.publicProfile.requireWechatAuth && !getOpenId(request)) {
+    if (record.publicProfile.requireWechatAuth && !getOpenId(request, wechatAuthConfig, clock.now())) {
       throw new AppError(401, "UNAUTHORIZED", "Wechat login is required to view this page");
     }
 
@@ -498,7 +533,7 @@ export function createApp(options: CreateAppOptions = {}) {
     const urlMap = new Map(tempUrls.map((item) => [item.objectKey, item.url]));
 
     response.json({
-      profile: serializeProfile(record.user, record.publicProfile),
+      profile: await serializeProfile(record.user, record.publicProfile, storage),
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
         currentStreakDays: getCurrentStreak(dailyStats, formatShanghaiDate(clock.now()))
@@ -511,7 +546,7 @@ export function createApp(options: CreateAppOptions = {}) {
       recentSummaries: recentSessions.map((session) => ({
         id: session.id,
         summary: session.summary,
-        subject: session.subject,
+        subjects: session.subjects,
         tags: session.tags,
         endedAt: session.endedAt
       }))
@@ -569,7 +604,7 @@ function withUser(
 ) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
-      const openid = getOpenId(request);
+      const openid = getOpenId(request, resolveWechatAuthConfig(process.env), clock.now());
       if (!openid) {
         throw new AppError(401, "UNAUTHORIZED", "Wechat identity is required");
       }
@@ -581,7 +616,15 @@ function withUser(
   };
 }
 
-function getOpenId(request: Request) {
+function getOpenId(request: Request, wechatAuthConfig: ReturnType<typeof resolveWechatAuthConfig>, now: Date) {
+  const bearer = getBearerToken(request);
+  if (bearer) {
+    const openid = readOpenIdFromSessionToken(bearer, wechatAuthConfig, now);
+    if (openid) {
+      return openid;
+    }
+  }
+
   const openid = request.header("x-wx-openid") ?? request.header("X-WX-OPENID");
   if (openid) return openid;
   if (process.env.NODE_ENV !== "production") {
@@ -629,19 +672,29 @@ function getCurrentStreak(stats: Map<string, DailyStat>, todayKey: string) {
   return latest.date === todayKey || addShanghaiDays(latest.date, 1) === todayKey ? latest.streakDays : 0;
 }
 
-function serializeProfile(
+async function serializeProfile(
   user: User,
-  publicProfile: NonNullable<Awaited<ReturnType<DataStore["getPublicSettingsByUserId"]>>>
+  publicProfile: NonNullable<Awaited<ReturnType<DataStore["getPublicSettingsByUserId"]>>>,
+  storage: StorageClient
 ) {
   return {
     id: user.id,
     nickname: user.nickname,
-    avatarUrl: user.avatarUrl,
+    avatarUrl: await resolveAvatarUrl(user.avatarUrl, storage),
     profileCompleted: user.profileCompleted,
     shareSlug: publicProfile.shareSlug,
     isPublic: publicProfile.isPublic,
     requireWechatAuth: publicProfile.requireWechatAuth
   };
+}
+
+function getBearerToken(request: Request) {
+  const authorization = request.header("authorization") ?? request.header("Authorization") ?? "";
+  const [scheme, token] = authorization.split(" ");
+  if (!scheme || scheme.toLowerCase() !== "bearer" || !token) {
+    return "";
+  }
+  return token.trim();
 }
 
 function serializeActiveSession(session: StudySession, now: Date) {

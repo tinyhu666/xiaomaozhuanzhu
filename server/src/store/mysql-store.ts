@@ -25,6 +25,7 @@ type SessionRow = RowDataPacket & {
   duration_minutes: number;
   summary: string;
   subject: string | null;
+  subjects_json: unknown;
   tags_json: unknown;
   created_at: string;
   updated_at: string;
@@ -32,7 +33,7 @@ type SessionRow = RowDataPacket & {
 
 type DailyStatRow = RowDataPacket & {
   user_id: string;
-  stat_date: string;
+  stat_date: string | Date;
   total_minutes: number;
   session_count: number;
   heat_level: number;
@@ -69,7 +70,7 @@ type QuoteRow = RowDataPacket & {
 
 type UserDailyQuoteRow = RowDataPacket & {
   user_id: string;
-  quote_date: string;
+  quote_date: string | Date;
   slot: number;
   quote_id: string;
   created_at: string;
@@ -77,7 +78,7 @@ type UserDailyQuoteRow = RowDataPacket & {
 
 type UserDailyQuoteStateRow = RowDataPacket & {
   user_id: string;
-  quote_date: string;
+  quote_date: string | Date;
   visit_count: number;
   created_at: string;
   updated_at: string;
@@ -215,8 +216,8 @@ export class MySQLStore {
   async saveSession(session: StudySession) {
     await this.pool.execute(
       `INSERT INTO study_sessions
-        (id, user_id, status, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, summary, subject, tags_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, user_id, status, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, summary, subject, subjects_json, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         status = VALUES(status),
         ended_at = VALUES(ended_at),
@@ -225,6 +226,7 @@ export class MySQLStore {
         duration_minutes = VALUES(duration_minutes),
         summary = VALUES(summary),
         subject = VALUES(subject),
+        subjects_json = VALUES(subjects_json),
         tags_json = VALUES(tags_json),
         updated_at = VALUES(updated_at)`,
       [
@@ -237,7 +239,8 @@ export class MySQLStore {
         JSON.stringify(session.pauseSegments),
         session.durationMinutes,
         session.summary,
-        session.subject,
+        session.subjects[0] ?? null,
+        JSON.stringify(session.subjects),
         JSON.stringify(session.tags),
         toMySqlDateTime(session.createdAt),
         toMySqlDateTime(session.updatedAt)
@@ -317,7 +320,7 @@ export class MySQLStore {
       "SELECT user_id, stat_date, total_minutes, session_count, heat_level, streak_snapshot, updated_at FROM daily_stats WHERE user_id = ? ORDER BY stat_date ASC",
       [userId]
     );
-    return new Map(rows.map((row) => [row.stat_date, mapDailyStatRow(row)]));
+    return new Map(rows.map((row) => [normalizeDateKey(row.stat_date), mapDailyStatRow(row)]));
   }
 
   async saveQuoteSources(sources: QuoteSource[]) {
@@ -504,6 +507,7 @@ function mapUserRow(row: RowDataPacket): User {
 }
 
 function mapSessionRow(row: SessionRow): StudySession {
+  const subjects = parseJsonArray(row.subjects_json);
   return {
     id: row.id,
     userId: row.user_id,
@@ -514,7 +518,11 @@ function mapSessionRow(row: SessionRow): StudySession {
     pauseSegments: parseJsonArray(row.pause_segments_json),
     durationMinutes: row.duration_minutes,
     summary: row.summary,
-    subject: (row.subject as StudySession["subject"]) ?? null,
+    subjects: subjects.length
+      ? (subjects as StudySession["subjects"])
+      : row.subject
+        ? [row.subject as StudySession["subjects"][number]]
+        : [],
     tags: parseJsonArray(row.tags_json),
     createdAt: fromMySqlDateTime(row.created_at) ?? "",
     updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
@@ -564,13 +572,47 @@ function mapPhotoRow(row: RowDataPacket): SessionPhoto {
 function mapDailyStatRow(row: DailyStatRow): DailyStat {
   return {
     userId: row.user_id,
-    date: row.stat_date,
+    date: normalizeDateKey(row.stat_date),
     totalMinutes: row.total_minutes,
     sessionCount: row.session_count,
     heatLevel: row.heat_level,
     streakDays: row.streak_snapshot,
     updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
   };
+}
+
+function normalizeDateKey(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "";
+    }
+
+    const leadingDate = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (leadingDate) {
+      return leadingDate[1];
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatDateKey(parsed);
+    }
+
+    return trimmed;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatDateKey(value);
+  }
+
+  return String(value ?? "");
+}
+
+function formatDateKey(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function mapQuoteSourceRow(row: QuoteSourceRow): QuoteSource {
@@ -607,7 +649,7 @@ function mapQuoteRow(row: QuoteRow): Quote {
 function mapUserDailyQuoteRow(row: UserDailyQuoteRow): UserDailyQuote {
   return {
     userId: row.user_id,
-    quoteDate: row.quote_date,
+    quoteDate: normalizeDateKey(row.quote_date),
     slot: row.slot,
     quoteId: row.quote_id,
     createdAt: fromMySqlDateTime(row.created_at) ?? ""
@@ -617,7 +659,7 @@ function mapUserDailyQuoteRow(row: UserDailyQuoteRow): UserDailyQuote {
 function mapUserDailyQuoteStateRow(row: UserDailyQuoteStateRow): UserDailyQuoteState {
   return {
     userId: row.user_id,
-    quoteDate: row.quote_date,
+    quoteDate: normalizeDateKey(row.quote_date),
     visitCount: row.visit_count,
     createdAt: fromMySqlDateTime(row.created_at) ?? "",
     updatedAt: fromMySqlDateTime(row.updated_at) ?? ""

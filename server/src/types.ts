@@ -34,7 +34,7 @@ export interface StudySession {
   pauseSegments: PauseSegment[];
   durationMinutes: number;
   summary: string;
-  subject: Subject | null;
+  subjects: Subject[];
   tags: SessionTag[];
   createdAt: string;
   updatedAt: string;

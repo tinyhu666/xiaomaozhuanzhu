@@ -11,27 +11,50 @@ type LocalPhoto = {
   localPath: string;
 };
 
+type SelectableOption = {
+  value: string;
+  active: boolean;
+};
+
 type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
-  selectedSubject: string;
+  selectedSubjects: string[];
   selectedTags: string[];
-  subjects: string[];
-  tags: string[];
+  subjectOptions: SelectableOption[];
+  tagOptions: SelectableOption[];
   photos: LocalPhoto[];
   submitting: boolean;
 };
+
+function buildSelectableOptions(values: string[], selectedValues: string[]) {
+  const selected = new Set(selectedValues);
+  return values.map((value) => ({
+    value,
+    active: selected.has(value)
+  }));
+}
+
+function toggleSelection(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+function buildSelectionState(selectedSubjects: string[], selectedTags: string[]) {
+  return {
+    selectedSubjects,
+    selectedTags,
+    subjectOptions: buildSelectableOptions(SUBJECTS, selectedSubjects),
+    tagOptions: buildSelectableOptions(TAGS, selectedTags)
+  };
+}
 
 Page<{}, CompletePageData>({
   data: {
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
-    selectedSubject: "",
-    selectedTags: [],
-    subjects: SUBJECTS,
-    tags: TAGS,
+    ...buildSelectionState([], []),
     photos: [],
     submitting: false
   },
@@ -52,19 +75,12 @@ Page<{}, CompletePageData>({
 
   toggleSubject(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    this.setData({
-      selectedSubject: this.data.selectedSubject === value ? "" : value
-    });
+    this.setData(buildSelectionState(toggleSelection(this.data.selectedSubjects, value), this.data.selectedTags));
   },
 
   toggleTag(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    const exists = this.data.selectedTags.includes(value);
-    this.setData({
-      selectedTags: exists
-        ? this.data.selectedTags.filter((tag) => tag !== value)
-        : [...this.data.selectedTags, value]
-    });
+    this.setData(buildSelectionState(this.data.selectedSubjects, toggleSelection(this.data.selectedTags, value)));
   },
 
   async choosePhotos() {
@@ -149,7 +165,7 @@ Page<{}, CompletePageData>({
     try {
       await completeSession(this.data.sessionId, {
         summary: this.data.summary,
-        subject: this.data.selectedSubject || null,
+        subjects: this.data.selectedSubjects,
         tags: this.data.selectedTags,
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,

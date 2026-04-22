@@ -1,5 +1,5 @@
 import request from "supertest";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createApp } from "../src/app";
 
@@ -22,6 +22,7 @@ class TestClock {
 describe("CPA study check-in API", () => {
   let clock: TestClock;
   let app: ReturnType<typeof createApp>;
+  const originalEnv = { ...process.env };
 
   beforeEach(() => {
     clock = new TestClock("2026-04-16T10:00:00+08:00");
@@ -39,6 +40,81 @@ describe("CPA study check-in API", () => {
         }
       }
     });
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+    vi.restoreAllMocks();
+  });
+
+  it("logs in with a WeChat code, issues a bearer token, and resolves avatar storage references", async () => {
+    process.env.WECHAT_APP_ID = "wx-app-id";
+    process.env.WECHAT_APP_SECRET = "wx-app-secret";
+    process.env.WECHAT_SESSION_SECRET = "session-secret";
+
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      new Response(
+        JSON.stringify({
+          openid: "wechat-openid",
+          session_key: "session-key"
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    app = createApp({
+      clock: {
+        now: () => clock.now()
+      },
+      fetchImpl: fetchMock,
+      storage: {
+        async getTemporaryUrls(objectKeys: string[]) {
+          return objectKeys.map((objectKey) => ({
+            objectKey,
+            url: `https://temp.example.com/${objectKey}`,
+            expiresAt: "2026-04-16T12:00:00+08:00"
+          }));
+        }
+      }
+    });
+
+    const login = await request(app)
+      .post("/api/auth/login")
+      .send({
+        code: "wechat-login-code"
+      })
+      .expect(200);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("appid=wx-app-id");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("js_code=wechat-login-code");
+    expect(login.body.token).toEqual(expect.any(String));
+    expect(login.body.profile.profileCompleted).toBe(false);
+
+    await request(app)
+      .post("/api/me/profile")
+      .set("authorization", `Bearer ${login.body.token as string}`)
+      .send({
+        nickname: "微信考生",
+        avatarUrl: "storage://avatars/2026/04/profile.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("authorization", `Bearer ${login.body.token as string}`)
+      .expect(200);
+
+    expect(bootstrap.body.profile.nickname).toBe("微信考生");
+    expect(bootstrap.body.profile.avatarUrl).toBe("https://temp.example.com/avatars/2026/04/profile.png");
+    expect(bootstrap.body.needsOnboarding).toBe(false);
   });
 
   it("bootstraps a user, completes a session, and keeps complete idempotent", async () => {
@@ -310,6 +386,67 @@ describe("CPA study check-in API", () => {
       .expect(400);
 
     expect(invalid.body.error.code).toBe("INVALID_INPUT");
+  });
+
+  it("accepts multiple subjects and reflects them in session details and dashboard analytics", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "multi-subject-user")
+      .send({
+        nickname: "多科考生",
+        avatarUrl: "https://example.com/multi.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "multi-subject-user")
+      .expect(200);
+
+    clock.advanceMinutes(80);
+
+    const completed = await request(app)
+      .post(`/api/sessions/${started.body.session.id}/complete`)
+      .set("x-wx-openid", "multi-subject-user")
+      .send({
+        summary: "会计和审计都推进了一轮。",
+        subjects: ["会计", "审计"],
+        tags: ["高效"],
+        photos: [
+          {
+            fileId: "cloud://demo/multi-1.jpg",
+            objectKey: "checkins/2026/04/multi-1.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    expect(completed.body.session.subjects).toEqual(["会计", "审计"]);
+
+    const detail = await request(app)
+      .get("/api/calendar/2026-04-16")
+      .set("x-wx-openid", "multi-subject-user")
+      .expect(200);
+
+    expect(detail.body.sessions[0].subjects).toEqual(["会计", "审计"]);
+
+    const dashboard = await request(app)
+      .get("/api/me/dashboard")
+      .set("x-wx-openid", "multi-subject-user")
+      .expect(200);
+
+    expect(dashboard.body.subjects).toEqual([
+      {
+        subject: "会计",
+        totalMinutes: 80
+      },
+      {
+        subject: "审计",
+        totalMinutes: 80
+      }
+    ]);
   });
 
   it("returns dashboard analytics for subjects and the longest study day", async () => {

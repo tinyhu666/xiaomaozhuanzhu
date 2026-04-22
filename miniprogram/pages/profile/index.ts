@@ -1,27 +1,25 @@
 // @ts-nocheck
-import type { ProfileDashboardResponse } from "../../types/models";
-import { getProfileDashboard, startSession } from "../../utils/api";
+import type { UserProfile } from "../../types/models";
+import { startSession } from "../../utils/api";
 import { authorizeWechatProfile } from "../../utils/profile-auth";
-import { buildSubjectSummary, formatDuration } from "../../utils/view-models";
-
-type SubjectSummaryRow = ReturnType<typeof buildSubjectSummary>[number] & {
-  barStyle: string;
-};
 
 type ProfilePageData = {
-  profile: ProfileDashboardResponse["profile"] | null;
+  profile: UserProfile | null;
   needsProfile: boolean;
   pendingStartAfterAuth: boolean;
   authLoading: boolean;
   authButtonText: string;
-  totalMinutesText: string;
-  bestDayDateText: string;
-  bestDayDurationText: string;
-  subjectRows: SubjectSummaryRow[];
+  nicknameDraft: string;
+  avatarDraftUrl: string;
+  canSubmitLogin: boolean;
 };
 
-function getPendingAuthButtonText(action: "startSession" | null) {
-  return action === "startSession" ? "微信授权并开始计时" : "微信授权并开始使用";
+function getAuthButtonText(action: "startSession" | null) {
+  return action === "startSession" ? "微信登录并开始计时" : "微信登录";
+}
+
+function canSubmitLogin(nickname: string, avatarDraftUrl: string) {
+  return nickname.trim().length > 0 && avatarDraftUrl.trim().length > 0;
 }
 
 Page<{}, ProfilePageData>({
@@ -30,83 +28,105 @@ Page<{}, ProfilePageData>({
     needsProfile: false,
     pendingStartAfterAuth: false,
     authLoading: false,
-    authButtonText: "同步微信资料",
-    totalMinutesText: "0m",
-    bestDayDateText: "暂无",
-    bestDayDurationText: "还没有学习记录",
-    subjectRows: []
+    authButtonText: "微信登录",
+    nicknameDraft: "",
+    avatarDraftUrl: "",
+    canSubmitLogin: false
   },
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 2 });
 
+    const app = getApp<IAppOption>();
+    const pendingAction = app.globalData.pendingProfileAction;
+
     try {
-      const app = getApp<IAppOption>();
       const bootstrap = await app.bootstrapProfileState();
+      const needsProfile = bootstrap.needsOnboarding;
 
       this.setData({
         profile: bootstrap.profile,
-        needsProfile: bootstrap.needsOnboarding,
-        pendingStartAfterAuth: bootstrap.needsOnboarding && app.globalData.pendingProfileAction === "startSession",
-        authButtonText: bootstrap.needsOnboarding
-          ? getPendingAuthButtonText(app.globalData.pendingProfileAction)
-          : "同步微信资料"
+        needsProfile,
+        pendingStartAfterAuth: needsProfile && pendingAction === "startSession",
+        authButtonText: needsProfile ? getAuthButtonText(pendingAction) : "已登录",
+        nicknameDraft: needsProfile ? "" : bootstrap.profile.nickname,
+        avatarDraftUrl: needsProfile ? "" : bootstrap.profile.avatarUrl,
+        canSubmitLogin: needsProfile ? false : true
       });
-
-      if (bootstrap.needsOnboarding) {
-        this.setData({
-          totalMinutesText: "0m",
-          bestDayDateText: "暂无",
-          bestDayDurationText: "完成授权后开始累计学习数据",
-          subjectRows: []
+    } catch (error) {
+      if (!isMissingWechatIdentity(error)) {
+        wx.showToast({
+          title: error instanceof Error ? error.message : "加载个人信息失败",
+          icon: "none"
         });
-        return;
       }
 
-      await this.loadProfile();
-    } catch (error) {
+      this.setData({
+        profile: null,
+        needsProfile: true,
+        pendingStartAfterAuth: pendingAction === "startSession",
+        authButtonText: getAuthButtonText(pendingAction),
+        nicknameDraft: "",
+        avatarDraftUrl: "",
+        canSubmitLogin: false
+      });
+    }
+  },
+
+  handleChooseAvatar(event: { detail?: { avatarUrl?: string } }) {
+    const avatarDraftUrl = event.detail?.avatarUrl?.trim?.() ?? "";
+    this.setData({
+      avatarDraftUrl,
+      canSubmitLogin: canSubmitLogin(this.data.nicknameDraft, avatarDraftUrl)
+    });
+  },
+
+  handleNicknameInput(event: { detail?: { value?: string } }) {
+    const nicknameDraft = event.detail?.value ?? "";
+    this.setData({
+      nicknameDraft,
+      canSubmitLogin: canSubmitLogin(nicknameDraft, this.data.avatarDraftUrl)
+    });
+  },
+
+  handleNicknameReview(event: { detail?: { pass?: boolean; timeout?: boolean } }) {
+    if (event.detail?.pass === false && !event.detail.timeout) {
       wx.showToast({
-        title: error instanceof Error ? error.message : "加载我的页面失败",
+        title: "该昵称暂时不可用，请换一个试试",
         icon: "none"
       });
     }
   },
 
-  async loadProfile() {
-    const dashboard = await getProfileDashboard();
-    const subjectRows = buildSubjectSummary(dashboard.subjects);
-    const maxMinutes = subjectRows[0]?.totalMinutes ?? 0;
-
-    this.setData({
-      profile: dashboard.profile,
-      needsProfile: false,
-      pendingStartAfterAuth: false,
-      authButtonText: "同步微信资料",
-      totalMinutesText: formatDuration(dashboard.summary.totalMinutes),
-      bestDayDateText: dashboard.bestDay.date ? dashboard.bestDay.date.replace(/-/g, ".") : "暂无",
-      bestDayDurationText: dashboard.bestDay.totalMinutes > 0 ? formatDuration(dashboard.bestDay.totalMinutes) : "还没有学习记录",
-      subjectRows: subjectRows.map((item) => ({
-        ...item,
-        barStyle: `width: ${maxMinutes ? Math.max((item.totalMinutes / maxMinutes) * 100, 18) : 0}%`
-      }))
-    });
-  },
-
-  async authorizeProfile() {
+  async submitWechatLogin() {
     if (this.data.authLoading) return;
+
+    if (!this.data.canSubmitLogin) {
+      wx.showToast({
+        title: "请先选择微信头像并填写昵称",
+        icon: "none"
+      });
+      return;
+    }
 
     this.setData({ authLoading: true });
     try {
       const app = getApp<IAppOption>();
-      const profile = await authorizeWechatProfile();
+      const profile = await authorizeWechatProfile({
+        nickname: this.data.nicknameDraft,
+        avatarUrl: this.data.avatarDraftUrl
+      });
       const pendingAction = app.globalData.pendingProfileAction;
 
       this.setData({
         profile,
         needsProfile: false,
         pendingStartAfterAuth: false,
-        authButtonText: "同步微信资料"
+        authButtonText: "已登录",
+        nicknameDraft: profile.nickname,
+        avatarDraftUrl: profile.avatarUrl,
+        canSubmitLogin: true
       });
 
       if (pendingAction === "startSession") {
@@ -124,31 +144,22 @@ Page<{}, ProfilePageData>({
         return;
       }
 
-      await this.loadProfile();
       wx.showToast({
-        title: "同步成功",
+        title: "微信登录成功",
         icon: "success"
       });
     } catch (error) {
       const message = typeof error === "object" && error && "errMsg" in error ? String(error.errMsg) : "";
       if (message.includes("cancel")) {
         wx.showToast({
-          title: "你取消了微信授权",
+          title: "你取消了微信登录",
           icon: "none"
         });
         return;
       }
 
-      if (!getApp<IAppOption>().globalData.needsProfile) {
-        try {
-          await this.loadProfile();
-        } catch {
-          // Keep the latest visible state if dashboard refresh also fails.
-        }
-      }
-
       wx.showToast({
-        title: error instanceof Error ? error.message : "同步失败，请稍后重试",
+        title: error instanceof Error ? error.message : "微信登录失败，请稍后重试",
         icon: "none"
       });
     } finally {
@@ -156,3 +167,8 @@ Page<{}, ProfilePageData>({
     }
   }
 });
+
+function isMissingWechatIdentity(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return message.includes("Wechat identity is required") || message.includes("HTTP 401");
+}

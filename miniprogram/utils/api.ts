@@ -8,6 +8,8 @@ import type {
 } from "../types/models";
 
 let cloudReady = false;
+let sessionToken = "";
+const SESSION_TOKEN_STORAGE_KEY = "cpa.sessionToken";
 
 function ensureCloudReady() {
   if (cloudReady) return;
@@ -22,18 +24,25 @@ type RequestOptions = {
   path: string;
   method?: "GET" | "POST";
   data?: Record<string, unknown>;
+  skipAuth?: boolean;
 };
 
 type TempUrlResponse = {
   items: Array<{ objectKey: string; url: string; expiresAt: string }>;
 };
 
-async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
+async function callContainer<T>({ path, method = "GET", data, skipAuth = false }: RequestOptions) {
   ensureCloudReady();
 
   const header: Record<string, string> = {
     "X-WX-SERVICE": runtimeConfig.service
   };
+  if (!skipAuth) {
+    const token = getSessionToken();
+    if (token) {
+      header.Authorization = `Bearer ${token}`;
+    }
+  }
   if (method === "POST") {
     header["content-type"] = "application/json";
   }
@@ -72,6 +81,38 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
   return response.data as T;
 }
 
+export function hydrateSessionToken() {
+  if (sessionToken) {
+    return sessionToken;
+  }
+
+  const storageApi = wx as typeof wx & {
+    getStorageSync?: (key: string) => string;
+  };
+  const stored = storageApi.getStorageSync?.(SESSION_TOKEN_STORAGE_KEY);
+  sessionToken = typeof stored === "string" ? stored.trim() : "";
+  return sessionToken;
+}
+
+export function getSessionToken() {
+  return sessionToken || hydrateSessionToken();
+}
+
+export function setSessionToken(token: string | null) {
+  sessionToken = token?.trim() ?? "";
+  const storageApi = wx as typeof wx & {
+    removeStorageSync?: (key: string) => void;
+    setStorageSync?: (key: string, value: string) => void;
+  };
+
+  if (sessionToken) {
+    storageApi.setStorageSync?.(SESSION_TOKEN_STORAGE_KEY, sessionToken);
+    return;
+  }
+
+  storageApi.removeStorageSync?.(SESSION_TOKEN_STORAGE_KEY);
+}
+
 export function bootstrapProfile() {
   return callContainer<{
     profile: UserProfile;
@@ -81,6 +122,23 @@ export function bootstrapProfile() {
     path: "/me/bootstrap",
     method: "POST"
   });
+}
+
+export async function loginWithWechatCode(code: string) {
+  const result = await callContainer<{
+    token: string;
+    profile: UserProfile;
+    needsOnboarding: boolean;
+    serverTime: string;
+  }>({
+    path: "/auth/login",
+    method: "POST",
+    data: { code },
+    skipAuth: true
+  });
+
+  setSessionToken(result.token);
+  return result;
 }
 
 export function saveProfile(payload: {
@@ -129,7 +187,7 @@ export function completeSession(
   sessionId: string,
   payload: {
     summary: string;
-    subject: string | null;
+    subjects: string[];
     tags: string[];
     photos: SessionPhoto[];
   }
@@ -200,6 +258,27 @@ export async function uploadCheckinPhoto(localPath: string) {
   const timestamp = Date.now();
   const extension = localPath.split(".").pop() || "jpg";
   const objectKey = `checkins/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${timestamp}.${extension}`;
+  const result = await wx.cloud.uploadFile({
+    cloudPath: objectKey,
+    filePath: localPath,
+    config: {
+      env: runtimeConfig.cloudEnv
+    }
+  });
+
+  return {
+    fileId: result.fileID,
+    objectKey,
+    localPath
+  };
+}
+
+export async function uploadWechatAvatar(localPath: string) {
+  ensureCloudReady();
+  const timestamp = Date.now();
+  const randomSuffix = Math.random().toString(36).slice(2, 8);
+  const extension = localPath.split(".").pop() || "jpg";
+  const objectKey = `avatars/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${timestamp}-${randomSuffix}.${extension}`;
   const result = await wx.cloud.uploadFile({
     cloudPath: objectKey,
     filePath: localPath,

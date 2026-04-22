@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ProfileDashboardResponse, UserProfile } from "../types/models";
+import type { UserProfile } from "../types/models";
 
 const apiMocks = vi.hoisted(() => ({
-  getProfileDashboard: vi.fn(),
   startSession: vi.fn()
 }));
 
@@ -27,7 +26,6 @@ vi.mock("../utils/api", async () => {
   const actual = await vi.importActual("../utils/api");
   return {
     ...actual,
-    getProfileDashboard: apiMocks.getProfileDashboard,
     startSession: apiMocks.startSession
   };
 });
@@ -43,7 +41,9 @@ type ProfilePageInstance = ProfilePageDefinition & {
   route: string;
   setData(update: Record<string, unknown>): void;
   onShow(): Promise<void>;
-  authorizeProfile(): Promise<void>;
+  handleChooseAvatar(event: { detail: { avatarUrl: string } }): void;
+  handleNicknameInput(event: { detail: { value: string } }): void;
+  submitWechatLogin(): Promise<void>;
 };
 
 function createProfile(overrides: Partial<UserProfile> = {}): UserProfile {
@@ -55,27 +55,6 @@ function createProfile(overrides: Partial<UserProfile> = {}): UserProfile {
     shareSlug: "slug-1",
     isPublic: false,
     requireWechatAuth: true,
-    ...overrides
-  };
-}
-
-function createDashboard(overrides: Partial<ProfileDashboardResponse> = {}): ProfileDashboardResponse {
-  return {
-    profile: createProfile(),
-    summary: {
-      totalMinutes: 180,
-      currentStreakDays: 3
-    },
-    subjects: [
-      {
-        subject: "Accounting",
-        totalMinutes: 180
-      }
-    ],
-    bestDay: {
-      date: "2026-04-20",
-      totalMinutes: 120
-    },
     ...overrides
   };
 }
@@ -107,7 +86,7 @@ async function loadProfilePageDefinition() {
   return captured;
 }
 
-describe("profile page authorization flow", () => {
+describe("profile page official WeChat login flow", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.resetModules();
@@ -129,7 +108,7 @@ describe("profile page authorization flow", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows inline authorization instead of loading dashboard data for incomplete profiles", async () => {
+  it("shows the login form for incomplete profiles without loading dashboard analytics", async () => {
     appMock.bootstrapProfileState.mockResolvedValue({
       profile: createProfile({
         nickname: "",
@@ -145,11 +124,13 @@ describe("profile page authorization flow", () => {
 
     await page.onShow();
 
-    expect(apiMocks.getProfileDashboard).not.toHaveBeenCalled();
     expect(page.data.needsProfile).toBe(true);
+    expect(page.data.nicknameDraft).toBe("");
+    expect(page.data.avatarDraftUrl).toBe("");
+    expect(page.data.canSubmitLogin).toBe(false);
   });
 
-  it("continues the pending start flow after successful profile authorization", async () => {
+  it("submits nickname and avatar through the official login helper and continues the pending start flow", async () => {
     appMock.globalData.pendingProfileAction = "startSession";
     appMock.consumePendingProfileAction.mockReturnValue("startSession");
     authMocks.authorizeWechatProfile.mockResolvedValue(createProfile());
@@ -160,39 +141,49 @@ describe("profile page authorization flow", () => {
       },
       reused: false
     });
-    apiMocks.getProfileDashboard.mockResolvedValue(createDashboard());
 
     const definition = await loadProfilePageDefinition();
     const page = instantiatePage(definition);
 
-    await page.authorizeProfile();
+    page.handleChooseAvatar({
+      detail: {
+        avatarUrl: "/tmp/wechat-avatar.png"
+      }
+    });
+    page.handleNicknameInput({
+      detail: {
+        value: "微信昵称"
+      }
+    });
+
+    await page.submitWechatLogin();
     vi.runAllTimers();
 
-    expect(authMocks.authorizeWechatProfile).toHaveBeenCalledTimes(1);
+    expect(authMocks.authorizeWechatProfile).toHaveBeenCalledWith({
+      avatarUrl: "/tmp/wechat-avatar.png",
+      nickname: "微信昵称"
+    });
     expect(apiMocks.startSession).toHaveBeenCalledTimes(1);
     expect(wx.switchTab).toHaveBeenCalledWith({
       url: "/pages/home/index"
     });
   });
 
-  it("keeps the pending start action when starting the session fails after authorization", async () => {
-    appMock.globalData.pendingProfileAction = "startSession";
-    authMocks.authorizeWechatProfile.mockResolvedValue(createProfile());
-    apiMocks.startSession.mockRejectedValue(new Error("Start failed"));
-    apiMocks.getProfileDashboard.mockResolvedValue(createDashboard());
-
+  it("prevents submission until both nickname and avatar are ready", async () => {
     const definition = await loadProfilePageDefinition();
     const page = instantiatePage(definition);
 
-    await page.authorizeProfile();
+    page.handleNicknameInput({
+      detail: {
+        value: "只有昵称"
+      }
+    });
 
-    expect(authMocks.authorizeWechatProfile).toHaveBeenCalledTimes(1);
-    expect(apiMocks.startSession).toHaveBeenCalledTimes(1);
-    expect(appMock.consumePendingProfileAction).not.toHaveBeenCalled();
-    expect(appMock.globalData.pendingProfileAction).toBe("startSession");
-    expect(wx.switchTab).not.toHaveBeenCalled();
+    await page.submitWechatLogin();
+
+    expect(authMocks.authorizeWechatProfile).not.toHaveBeenCalled();
     expect(wx.showToast).toHaveBeenCalledWith({
-      title: "Start failed",
+      title: "请先选择微信头像并填写昵称",
       icon: "none"
     });
   });

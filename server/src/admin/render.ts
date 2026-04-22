@@ -167,7 +167,7 @@ function renderDayGroup(day: AdminSelectedUser["recentDays"][number]) {
                       <strong>${escapeHtml(session.summary || "未填写摘要")}</strong>
                       <span class="metric">${session.totalMinutes} 分钟</span>
                     </div>
-                    <p class="muted">科目: ${escapeHtml(session.subject ?? "未设置")} / 标签: ${escapeHtml(
+                    <p class="muted">科目: ${escapeHtml(session.subjects.length ? session.subjects.join("、") : "未设置")} / 标签: ${escapeHtml(
                       session.tags.length ? session.tags.join("、") : "无"
                     )}</p>
                     <p class="muted">结束时间: ${escapeHtml(session.endedAt ?? "未结束")}</p>
@@ -246,7 +246,7 @@ function renderDateView(selectedDate: string, rows: AdminDateUserRow[]) {
                                 <strong>${escapeHtml(session.summary || "未填写摘要")}</strong>
                                 <span class="metric">${session.totalMinutes} 分钟</span>
                               </div>
-                              <p class="muted">科目: ${escapeHtml(session.subject ?? "未设置")} / 标签: ${escapeHtml(
+                              <p class="muted">科目: ${escapeHtml(session.subjects.length ? session.subjects.join("、") : "未设置")} / 标签: ${escapeHtml(
                                 session.tags.length ? session.tags.join("、") : "无"
                               )}</p>
                               ${

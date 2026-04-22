@@ -11,6 +11,25 @@
   margin-top: 4rpx;
 }
 
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104rpx;
+  padding: 14rpx 24rpx;
+  border: 2rpx solid rgba(46, 169, 133, 0.12);
+  background: rgba(46, 169, 133, 0.08);
+  color: var(--mint-600);
+  font-weight: 600;
+}
+
+.tag-chip.is-active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  color: #fff;
+  box-shadow: 0 12rpx 24rpx rgba(46, 169, 133, 0.16);
+}
+
 .cta-button {
   width: 100%;
   box-sizing: border-box;
