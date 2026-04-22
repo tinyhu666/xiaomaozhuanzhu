@@ -47,7 +47,7 @@ Page<{}, DayPageData>({
           totalMinutes: session.totalMinutes,
           photos: session.photos.map((photo) => ({
             objectKey: photo.objectKey,
-            url: urlMap.get(photo.objectKey) || ""
+            url: urlMap.get(photo.objectKey) || photo.fileId || ""
           }))
         }))
       });

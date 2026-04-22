@@ -6,9 +6,11 @@
 
   <view class="timer-card">
     <view class="timer-card__head">
-      <text class="timer-card__status">
-        {{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}
-      </text>
+      <view class="timer-card__status">
+        <text class="timer-card__status-label">
+          {{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}
+        </text>
+      </view>
       <view class="timer-card__meta">
         <text>今日 {{todayMinutesText}}</text>
         <text>连续 {{streakText}}</text>
