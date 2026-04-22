@@ -3,8 +3,11 @@ import { randomUUID } from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 
+import { clearAdminSessionCookie, isAdminAuthenticated, resolveAdminAuthConfig, setAdminSessionCookie } from "./admin/auth";
+import { renderAdminDashboardPage, renderAdminLoginPage } from "./admin/render";
+import { buildAdminDateRows, buildAdminSelectedUser, buildAdminUserSummaries } from "./admin/view-models";
 import { SUBJECTS, TAGS, type SessionTag, type Subject } from "./constants";
-import { monthBounds, formatShanghaiDate } from "./domain/date-utils";
+import { addShanghaiDays, monthBounds, formatShanghaiDate } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
@@ -64,8 +67,10 @@ export function createApp(options: CreateAppOptions = {}) {
   const store = options.store ?? createDataStore();
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
+  const adminAuthConfig = resolveAdminAuthConfig(process.env);
 
   app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
   app.use((request, response, next) => {
     const requestId = randomUUID();
     const openid = getOpenId(request) || "-";
@@ -82,6 +87,83 @@ export function createApp(options: CreateAppOptions = {}) {
       );
     });
     next();
+  });
+
+  app.get("/admin/login", (request, response) => {
+    if (!adminAuthConfig.enabled) {
+      response.status(503).type("html").send(renderAdminLoginPage({ disabled: true }));
+      return;
+    }
+
+    if (isAdminAuthenticated(request, adminAuthConfig, clock.now())) {
+      response.redirect("/admin");
+      return;
+    }
+
+    response.type("html").send(renderAdminLoginPage());
+  });
+
+  app.post("/admin/login", (request, response) => {
+    if (!adminAuthConfig.enabled) {
+      response.status(503).type("html").send(renderAdminLoginPage({ disabled: true }));
+      return;
+    }
+
+    const password = typeof request.body?.password === "string" ? request.body.password.trim() : "";
+    if (password !== adminAuthConfig.password) {
+      response.status(401).type("html").send(renderAdminLoginPage({ error: "密码错误" }));
+      return;
+    }
+
+    setAdminSessionCookie(response, adminAuthConfig, clock.now(), isSecureRequest(request));
+    response.redirect("/admin");
+  });
+
+  app.post("/admin/logout", (request, response) => {
+    if (adminAuthConfig.enabled) {
+      clearAdminSessionCookie(response, adminAuthConfig, isSecureRequest(request));
+    }
+    response.redirect("/admin/login");
+  });
+
+  app.get("/admin", async (request, response, next) => {
+    if (!adminAuthConfig.enabled) {
+      response.status(503).type("html").send(renderAdminLoginPage({ disabled: true }));
+      return;
+    }
+
+    if (!isAdminAuthenticated(request, adminAuthConfig, clock.now())) {
+      response.redirect("/admin/login");
+      return;
+    }
+
+    try {
+      const todayKey = formatShanghaiDate(clock.now());
+      const activeView = request.query.view === "date" ? "date" : "users";
+      const search = typeof request.query.search === "string" ? request.query.search : "";
+      const selectedDate = normalizeAdminDateQuery(request.query.date, todayKey);
+      const users = await buildAdminUserSummaries(store, todayKey, 7, search);
+      const selectedUserKey =
+        typeof request.query.user === "string" && request.query.user.trim()
+          ? request.query.user.trim()
+          : users[0]?.userId ?? "";
+
+      response.type("html").send(
+        renderAdminDashboardPage({
+          activeView,
+          selectedDate,
+          search,
+          users,
+          selectedUser:
+            activeView === "users" && selectedUserKey
+              ? await buildAdminSelectedUser(store, storage, selectedUserKey, todayKey, 7)
+              : null,
+          dateRows: activeView === "date" ? await buildAdminDateRows(store, storage, selectedDate) : []
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/me/bootstrap", withUser(store, clock, async (_request, response, context) => {
@@ -136,7 +218,7 @@ export function createApp(options: CreateAppOptions = {}) {
       today,
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
-        currentStreakDays: getCurrentStreak(dailyStats),
+        currentStreakDays: getCurrentStreak(dailyStats, todayKey),
         lastSummary: latestCompleted?.summary ?? ""
       }
     });
@@ -173,7 +255,7 @@ export function createApp(options: CreateAppOptions = {}) {
       profile: serializeProfile(context.user, context.publicProfile),
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
-        currentStreakDays: getCurrentStreak(dailyStats)
+        currentStreakDays: getCurrentStreak(dailyStats, formatShanghaiDate(clock.now()))
       },
       subjects: subjectTotals,
       bestDay
@@ -377,7 +459,7 @@ export function createApp(options: CreateAppOptions = {}) {
       profile: serializeProfile(context.user, context.publicProfile),
       summary: {
         totalMinutes: [...stats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
-        currentStreakDays: getCurrentStreak(stats)
+        currentStreakDays: getCurrentStreak(stats, formatShanghaiDate(clock.now()))
       }
     });
   }));
@@ -419,7 +501,7 @@ export function createApp(options: CreateAppOptions = {}) {
       profile: serializeProfile(record.user, record.publicProfile),
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
-        currentStreakDays: getCurrentStreak(dailyStats)
+        currentStreakDays: getCurrentStreak(dailyStats, formatShanghaiDate(clock.now()))
       },
       calendar: [...dailyStats.values()],
       photos: recentPhotos.map((photo) => ({
@@ -539,9 +621,12 @@ async function abandonLingeringPausedSession(store: DataStore, userId: string, n
   return session;
 }
 
-function getCurrentStreak(stats: Map<string, DailyStat>) {
+function getCurrentStreak(stats: Map<string, DailyStat>, todayKey: string) {
   const latest = [...stats.values()].sort((left, right) => right.date.localeCompare(left.date))[0];
-  return latest?.streakDays ?? 0;
+  if (!latest) {
+    return 0;
+  }
+  return latest.date === todayKey || addShanghaiDays(latest.date, 1) === todayKey ? latest.streakDays : 0;
 }
 
 function serializeProfile(
@@ -602,6 +687,14 @@ function parse<T>(schema: z.ZodType<T>, body: unknown) {
 
 function resolveQuoteEvent(value: unknown) {
   return value === "peek" ? "peek" : "advance";
+}
+
+function normalizeAdminDateQuery(value: unknown, fallback: string) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
+}
+
+function isSecureRequest(request: Request) {
+  return request.secure || request.header("x-forwarded-proto") === "https";
 }
 
 function createDataStore(): DataStore {

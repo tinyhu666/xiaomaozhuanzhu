@@ -21,11 +21,11 @@ type SessionRow = RowDataPacket & {
   started_at: string;
   ended_at: string | null;
   current_pause_started_at: string | null;
-  pause_segments_json: string | null;
+  pause_segments_json: unknown;
   duration_minutes: number;
   summary: string;
   subject: string | null;
-  tags_json: string | null;
+  tags_json: unknown;
   created_at: string;
   updated_at: string;
 };
@@ -94,6 +94,13 @@ export class MySQLStore {
         namedPlaceholders: true
       })
     );
+  }
+
+  async listUsers() {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT * FROM users ORDER BY last_login_at DESC, created_at DESC"
+    );
+    return rows.map(mapUserRow);
   }
 
   async ensureUser(openid: string, now: string) {
@@ -504,14 +511,43 @@ function mapSessionRow(row: SessionRow): StudySession {
     startedAt: fromMySqlDateTime(row.started_at) ?? "",
     endedAt: fromMySqlDateTime(row.ended_at),
     currentPauseStartedAt: fromMySqlDateTime(row.current_pause_started_at),
-    pauseSegments: row.pause_segments_json ? JSON.parse(row.pause_segments_json) : [],
+    pauseSegments: parseJsonArray(row.pause_segments_json),
     durationMinutes: row.duration_minutes,
     summary: row.summary,
     subject: (row.subject as StudySession["subject"]) ?? null,
-    tags: row.tags_json ? JSON.parse(row.tags_json) : [],
+    tags: parseJsonArray(row.tags_json),
     createdAt: fromMySqlDateTime(row.created_at) ?? "",
     updatedAt: fromMySqlDateTime(row.updated_at) ?? ""
   };
+}
+
+function parseJsonArray(value: unknown) {
+  if (value == null) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Buffer.isBuffer(value)) {
+    return parseJsonArray(value.toString("utf8"));
+  }
+
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  if (!value.trim()) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 function mapPhotoRow(row: RowDataPacket): SessionPhoto {

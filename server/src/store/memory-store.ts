@@ -25,6 +25,12 @@ export class MemoryStore {
   private userDailyQuotes = new Map<string, UserDailyQuote[]>();
   private userDailyQuoteStates = new Map<string, UserDailyQuoteState>();
 
+  listUsers() {
+    return [...this.users.values()].sort(
+      (left, right) => right.lastLoginAt.localeCompare(left.lastLoginAt) || right.createdAt.localeCompare(left.createdAt)
+    );
+  }
+
   ensureUser(openid: string, now: string) {
     const existingId = this.userByOpenId.get(openid);
     if (existingId) {

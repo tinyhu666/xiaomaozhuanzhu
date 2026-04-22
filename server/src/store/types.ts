@@ -11,6 +11,7 @@ import type {
 } from "../types";
 
 export type DataStore = {
+  listUsers(): User[] | Promise<User[]>;
   ensureUser(openid: string, now: string):
     | { user: User; publicProfile: PublicProfileSettings }
     | Promise<{ user: User; publicProfile: PublicProfileSettings }>;

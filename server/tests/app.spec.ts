@@ -391,6 +391,80 @@ describe("CPA study check-in API", () => {
       }
     ]);
   });
+  it("resets the current streak after the user misses more than one Shanghai day", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "streak-gap-user")
+      .send({
+        nickname: "断更考生",
+        avatarUrl: "https://example.com/streak-gap.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    const first = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "streak-gap-user")
+      .expect(200);
+
+    clock.advanceMinutes(45);
+    await request(app)
+      .post(`/api/sessions/${first.body.session.id}/complete`)
+      .set("x-wx-openid", "streak-gap-user")
+      .send({
+        summary: "第一天完成公司战略复盘",
+        subject: "战略",
+        tags: ["复习"],
+        photos: [
+          {
+            fileId: "cloud://demo/streak-gap-1.jpg",
+            objectKey: "checkins/2026/04/streak-gap-1.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    clock.advanceMinutes(24 * 60);
+
+    const second = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "streak-gap-user")
+      .expect(200);
+
+    clock.advanceMinutes(50);
+    await request(app)
+      .post(`/api/sessions/${second.body.session.id}/complete`)
+      .set("x-wx-openid", "streak-gap-user")
+      .send({
+        summary: "第二天完成财管公式默写",
+        subject: "财管",
+        tags: ["刷题"],
+        photos: [
+          {
+            fileId: "cloud://demo/streak-gap-2.jpg",
+            objectKey: "checkins/2026/04/streak-gap-2.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    clock.advanceMinutes(2 * 24 * 60);
+
+    const home = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "streak-gap-user")
+      .expect(200);
+
+    const dashboard = await request(app)
+      .get("/api/me/dashboard")
+      .set("x-wx-openid", "streak-gap-user")
+      .expect(200);
+
+    expect(home.body.summary.currentStreakDays).toBe(0);
+    expect(dashboard.body.summary.currentStreakDays).toBe(0);
+  });
+
   it("does not advance the daily quote when home uses peek mode", async () => {
     await request(app)
       .post("/api/me/profile")

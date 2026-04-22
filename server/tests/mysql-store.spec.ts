@@ -123,4 +123,68 @@ describe("MySQLStore", () => {
       updatedAt: "2026-04-21T14:36:37.123Z"
     });
   });
+
+  it("falls back to empty arrays when historical session JSON fields are malformed", async () => {
+    const pool = {
+      query: vi.fn().mockResolvedValue([
+        [
+          {
+            id: "session-bad-json",
+            user_id: "user-1",
+            status: "completed",
+            started_at: "2026-04-21 14:36:37.123",
+            ended_at: "2026-04-21 15:06:37.123",
+            current_pause_started_at: null,
+            pause_segments_json: "",
+            duration_minutes: 30,
+            summary: "done",
+            subject: "audit",
+            tags_json: "[",
+            created_at: "2026-04-21 14:36:37.123",
+            updated_at: "2026-04-21 15:06:37.123"
+          }
+        ]
+      ])
+    } as unknown as Pool;
+    const store = new MySQLStore(pool);
+
+    const session = await store.getSession("session-bad-json");
+
+    expect(session).toMatchObject({
+      pauseSegments: [],
+      tags: []
+    });
+  });
+
+  it("accepts arrays returned directly from MySQL JSON columns", async () => {
+    const pool = {
+      query: vi.fn().mockResolvedValue([
+        [
+          {
+            id: "session-native-json",
+            user_id: "user-1",
+            status: "completed",
+            started_at: "2026-04-21 14:36:37.123",
+            ended_at: "2026-04-21 15:06:37.123",
+            current_pause_started_at: null,
+            pause_segments_json: [{ startedAt: "2026-04-21T14:50:00.000Z", endedAt: "2026-04-21T14:55:00.000Z" }],
+            duration_minutes: 25,
+            summary: "native",
+            subject: "audit",
+            tags_json: ["chapter-1", "notes"],
+            created_at: "2026-04-21 14:36:37.123",
+            updated_at: "2026-04-21 15:06:37.123"
+          }
+        ]
+      ])
+    } as unknown as Pool;
+    const store = new MySQLStore(pool);
+
+    const session = await store.getSession("session-native-json");
+
+    expect(session).toMatchObject({
+      pauseSegments: [{ startedAt: "2026-04-21T14:50:00.000Z", endedAt: "2026-04-21T14:55:00.000Z" }],
+      tags: ["chapter-1", "notes"]
+    });
+  });
 });
