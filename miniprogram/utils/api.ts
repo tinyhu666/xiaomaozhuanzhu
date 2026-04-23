@@ -31,8 +31,11 @@ type TempUrlResponse = {
   items: Array<{ objectKey: string; url: string; expiresAt: string }>;
 };
 
-function requestApi<T>({ path, method = "GET", data, skipAuth = false }: RequestOptions) {
+async function callContainer<T>({ path, method = "GET", data, skipAuth = false }: RequestOptions) {
+  ensureCloudReady();
+
   const header: Record<string, string> = {
+    "X-WX-SERVICE": runtimeConfig.service
   };
   if (!skipAuth) {
     const token = getSessionToken();
@@ -44,43 +47,38 @@ function requestApi<T>({ path, method = "GET", data, skipAuth = false }: Request
     header["content-type"] = "application/json";
   }
 
-  return new Promise<T>((resolve, reject) => {
-    wx.request({
-      url: `${runtimeConfig.apiBaseUrl}${path}`,
-      method,
-      header,
-      data: method === "POST" ? data ?? {} : data,
-      success(response) {
-        const payload = response.data as
-          | {
-              error?: {
-                code: string;
-                message: string;
-              };
-            }
-          | string
-          | null
-          | undefined;
-
-        if (payload && typeof payload === "object" && "error" in payload && payload.error) {
-          reject(new Error(payload.error.message));
-          return;
-        }
-
-        const statusCode = response.statusCode;
-        if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
-          const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${statusCode}`;
-          reject(new Error(`${method} ${path} failed: ${fallback}`));
-          return;
-        }
-
-        resolve(payload as T);
-      },
-      fail(error) {
-        reject(new Error(error.errMsg || `${method} ${path} failed`));
-      }
-    });
+  const response = await wx.cloud.callContainer({
+    config: {
+      env: runtimeConfig.cloudEnv
+    },
+    path: `${runtimeConfig.basePath}${path}`,
+    method,
+    header,
+    data: method === "POST" ? data ?? {} : data
   });
+
+  const payload = response.data as
+    | {
+        error?: {
+          code: string;
+          message: string;
+        };
+      }
+    | string
+    | null
+    | undefined;
+
+  if (payload && typeof payload === "object" && "error" in payload && payload.error) {
+    throw new Error(payload.error.message);
+  }
+
+  const statusCode = (response as { statusCode?: number }).statusCode;
+  if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
+    const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${statusCode}`;
+    throw new Error(`${method} ${path} failed: ${fallback}`);
+  }
+
+  return response.data as T;
 }
 
 export function hydrateSessionToken() {
@@ -116,7 +114,7 @@ export function setSessionToken(token: string | null) {
 }
 
 export function bootstrapProfile() {
-  return requestApi<{
+  return callContainer<{
     profile: UserProfile;
     needsOnboarding: boolean;
     serverTime: string;
@@ -127,7 +125,7 @@ export function bootstrapProfile() {
 }
 
 export async function loginWithWechatCode(code: string) {
-  const result = await requestApi<{
+  const result = await callContainer<{
     token: string;
     profile: UserProfile;
     needsOnboarding: boolean;
@@ -149,7 +147,7 @@ export function saveProfile(payload: {
   isPublic?: boolean;
   requireWechatAuth?: boolean;
 }) {
-  return requestApi<{
+  return callContainer<{
     profile: UserProfile;
   }>({
     path: "/me/profile",
@@ -159,27 +157,27 @@ export function saveProfile(payload: {
 }
 
 export function getHome(quoteEvent: "advance" | "peek" = "advance") {
-  return requestApi<HomeResponse>({
+  return callContainer<HomeResponse>({
     path: `/home?quoteEvent=${quoteEvent}`
   });
 }
 
 export function startSession() {
-  return requestApi<{ session: HomeResponse["activeSession"]; reused: boolean }>({
+  return callContainer<{ session: HomeResponse["activeSession"]; reused: boolean }>({
     path: "/sessions/start",
     method: "POST"
   });
 }
 
 export function pauseSession(sessionId: string) {
-  return requestApi<{ session: HomeResponse["activeSession"] }>({
+  return callContainer<{ session: HomeResponse["activeSession"] }>({
     path: `/sessions/${sessionId}/pause`,
     method: "POST"
   });
 }
 
 export function resumeSession(sessionId: string) {
-  return requestApi<{ session: HomeResponse["activeSession"] }>({
+  return callContainer<{ session: HomeResponse["activeSession"] }>({
     path: `/sessions/${sessionId}/resume`,
     method: "POST"
   });
@@ -194,7 +192,7 @@ export function completeSession(
     photos: SessionPhoto[];
   }
 ) {
-  return requestApi<{
+  return callContainer<{
     session: {
       id: string;
       durationMinutes: number;
@@ -213,7 +211,7 @@ export function completeSession(
 }
 
 export function getCalendar(month: string) {
-  return requestApi<{
+  return callContainer<{
     month: string;
     days: Record<string, HomeResponse["today"]>;
   }>({
@@ -222,13 +220,13 @@ export function getCalendar(month: string) {
 }
 
 export function getCalendarDay(date: string) {
-  return requestApi<CalendarDayResponse>({
+  return callContainer<CalendarDayResponse>({
     path: `/calendar/${date}`
   });
 }
 
 export function getProfileDashboard() {
-  return requestApi<ProfileDashboardResponse>({
+  return callContainer<ProfileDashboardResponse>({
     path: "/me/dashboard"
   });
 }
@@ -242,7 +240,7 @@ export async function getTempUrls(objectKeys: string[]) {
   const responses: TempUrlResponse[] = [];
   for (let index = 0; index < uniqueKeys.length; index += 30) {
     responses.push(
-      await requestApi<TempUrlResponse>({
+      await callContainer<TempUrlResponse>({
         path: "/storage/temp-urls",
         method: "POST",
         data: { objectKeys: uniqueKeys.slice(index, index + 30) }

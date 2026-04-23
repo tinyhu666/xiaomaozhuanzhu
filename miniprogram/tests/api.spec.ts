@@ -7,29 +7,22 @@ describe("miniprogram api helpers", () => {
   });
 
   it("batches temp-url requests in groups of 30 and merges the response", async () => {
-    const request = vi.fn(
-      ({
-        data,
-        success
-      }: {
-        data: { objectKeys: string[] };
-        success: (response: unknown) => void;
-      }) => {
-        success({
-          statusCode: 200,
-          data: {
-            items: data.objectKeys.map((objectKey) => ({
-              objectKey,
-              url: `https://example.com/${objectKey}`,
-              expiresAt: "2026-04-21T12:00:00.000Z"
-            }))
-          }
-        });
+    const init = vi.fn();
+    const callContainer = vi.fn(async ({ data }: { data: { objectKeys: string[] } }) => ({
+      data: {
+        items: data.objectKeys.map((objectKey) => ({
+          objectKey,
+          url: `https://example.com/${objectKey}`,
+          expiresAt: "2026-04-21T12:00:00.000Z"
+        }))
       }
-    );
+    }));
 
     vi.stubGlobal("wx", {
-      request
+      cloud: {
+        init,
+        callContainer
+      }
     });
 
     const { getTempUrls } = await import("../utils/api");
@@ -37,8 +30,9 @@ describe("miniprogram api helpers", () => {
 
     const response = await getTempUrls(objectKeys);
 
-    expect(request).toHaveBeenCalledTimes(3);
-    expect(request.mock.calls.map(([payload]) => payload.data.objectKeys.length)).toEqual([30, 30, 1]);
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(callContainer).toHaveBeenCalledTimes(3);
+    expect(callContainer.mock.calls.map(([payload]) => payload.data.objectKeys.length)).toEqual([30, 30, 1]);
     expect(response.items).toHaveLength(61);
     expect(response.items.at(0)).toEqual({
       objectKey: "checkins/0.jpg",
@@ -48,30 +42,31 @@ describe("miniprogram api helpers", () => {
     expect(response.items.at(-1)?.objectKey).toBe("checkins/60.jpg");
   });
 
-  it("adds a bearer token to authenticated https requests", async () => {
-    const request = vi.fn(({ success }: { success: (response: unknown) => void }) => {
-      success({
-        statusCode: 200,
-        data: {
-          profile: {
-            id: "user-1",
-            nickname: "Token User",
-            avatarUrl: "",
-            profileCompleted: false,
-            shareSlug: "slug-1",
-            isPublic: false,
-            requireWechatAuth: true
-          },
-          needsOnboarding: true,
-          serverTime: "2026-04-21T12:00:00.000Z"
-        }
-      });
-    });
+  it("adds a bearer token to authenticated container requests", async () => {
+    const init = vi.fn();
+    const callContainer = vi.fn(async () => ({
+      data: {
+        profile: {
+          id: "user-1",
+          nickname: "Token User",
+          avatarUrl: "",
+          profileCompleted: false,
+          shareSlug: "slug-1",
+          isPublic: false,
+          requireWechatAuth: true
+        },
+        needsOnboarding: true,
+        serverTime: "2026-04-21T12:00:00.000Z"
+      }
+    }));
     const setStorageSync = vi.fn();
 
     vi.stubGlobal("wx", {
-      request,
-      setStorageSync
+      setStorageSync,
+      cloud: {
+        init,
+        callContainer
+      }
     });
 
     const { bootstrapProfile, setSessionToken } = await import("../utils/api");
@@ -79,10 +74,12 @@ describe("miniprogram api helpers", () => {
     await bootstrapProfile();
 
     expect(setStorageSync).toHaveBeenCalledWith("cpa.sessionToken", "session-token");
-    expect(request).toHaveBeenCalledWith(
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(callContainer).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "https://api.lofttt.com/api/me/bootstrap",
+        path: "/api/me/bootstrap",
         header: expect.objectContaining({
+          "X-WX-SERVICE": "cpa-study-checkin",
           Authorization: "Bearer session-token"
         })
       })
@@ -90,42 +87,45 @@ describe("miniprogram api helpers", () => {
   });
 
   it("posts the WeChat login code without a bearer token and stores the returned session token", async () => {
-    const request = vi.fn(({ success }: { success: (response: unknown) => void }) => {
-      success({
-        statusCode: 200,
-        data: {
-          token: "fresh-session-token",
-          profile: {
-            id: "user-1",
-            nickname: "",
-            avatarUrl: "",
-            profileCompleted: false,
-            shareSlug: "slug-1",
-            isPublic: false,
-            requireWechatAuth: true
-          },
-          needsOnboarding: true,
-          serverTime: "2026-04-21T12:00:00.000Z"
-        }
-      });
-    });
+    const init = vi.fn();
+    const callContainer = vi.fn(async () => ({
+      data: {
+        token: "fresh-session-token",
+        profile: {
+          id: "user-1",
+          nickname: "",
+          avatarUrl: "",
+          profileCompleted: false,
+          shareSlug: "slug-1",
+          isPublic: false,
+          requireWechatAuth: true
+        },
+        needsOnboarding: true,
+        serverTime: "2026-04-21T12:00:00.000Z"
+      }
+    }));
     const setStorageSync = vi.fn();
 
     vi.stubGlobal("wx", {
-      request,
-      setStorageSync
+      setStorageSync,
+      cloud: {
+        init,
+        callContainer
+      }
     });
 
     const { getSessionToken, loginWithWechatCode } = await import("../utils/api");
     const response = await loginWithWechatCode("wechat-code");
 
-    expect(request).toHaveBeenCalledWith(
+    expect(init).toHaveBeenCalledTimes(1);
+    expect(callContainer).toHaveBeenCalledWith(
       expect.objectContaining({
-        url: "https://api.lofttt.com/api/auth/login",
+        path: "/api/auth/login",
         data: {
           code: "wechat-code"
         },
         header: {
+          "X-WX-SERVICE": "cpa-study-checkin",
           "content-type": "application/json"
         }
       })
