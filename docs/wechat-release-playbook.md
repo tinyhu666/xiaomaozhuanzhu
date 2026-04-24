@@ -2,10 +2,10 @@
 
 ## Current Status
 
-- Current uploaded version: `0.1.11`
+- Current uploaded version: `0.1.12`
 - Upload time: `2026-04-24` (Asia/Shanghai)
-- Uploaded commit: `1ed3150`
-- Current backend state: development version `0.1.11` has been uploaded and is waiting for manual review submission in Version Management.
+- Uploaded commit: `70faab7`
+- Current backend state: development version `0.1.12` has been uploaded and is waiting for manual review submission in Version Management.
 - Current repo upload command:
 
 ```bash
@@ -15,14 +15,14 @@ npm run upload:miniprogram -- <version> "<description>"
 ## What To Do Right Now
 
 1. Open the WeChat mini program backend Version Management page.
-2. Find development version `0.1.11`.
-3. Confirm the description is `Fix request-domain startup and calendar fallback`.
-4. Submit `0.1.11` for review manually.
+2. Find development version `0.1.12`.
+3. Confirm the description is `Center home ready status label`.
+4. Submit `0.1.12` for review manually.
 
 ## If The Review Is Approved
 
 1. Open the WeChat mini program backend Version Management page.
-2. Confirm version `0.1.11` is marked as approved.
+2. Confirm version `0.1.12` is marked as approved.
 3. Click the publish or release action for the approved version.
 4. Verify the online version by opening the mini program from WeChat and checking:
    - home timer page loads correctly
