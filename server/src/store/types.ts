@@ -1,12 +1,17 @@
 import type {
   DailyStat,
+  Quote,
+  QuoteSource,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
+  UserDailyQuote,
+  UserDailyQuoteState,
   User
 } from "../types";
 
 export type DataStore = {
+  listUsers(): User[] | Promise<User[]>;
   ensureUser(openid: string, now: string):
     | { user: User; publicProfile: PublicProfileSettings }
     | Promise<{ user: User; publicProfile: PublicProfileSettings }>;
@@ -33,5 +38,16 @@ export type DataStore = {
   getPhotosBySessionIds(sessionIds: string[]): SessionPhoto[] | Promise<SessionPhoto[]>;
   replaceDailyStats(userId: string, dailyStats: Map<string, DailyStat>): void | Promise<void>;
   getDailyStats(userId: string): Map<string, DailyStat> | Promise<Map<string, DailyStat>>;
+  saveQuoteSources(sources: QuoteSource[]): void | Promise<void>;
+  getActiveQuoteSources(): QuoteSource[] | Promise<QuoteSource[]>;
+  saveQuotes(quotes: Quote[]): void | Promise<void>;
+  getActiveQuotes(): Quote[] | Promise<Quote[]>;
+  getQuotesByIds(quoteIds: string[]): Quote[] | Promise<Quote[]>;
+  replaceUserDailyQuotes(userId: string, quoteDate: string, quotes: UserDailyQuote[]): void | Promise<void>;
+  getUserDailyQuotes(userId: string, quoteDate: string): UserDailyQuote[] | Promise<UserDailyQuote[]>;
+  getUserDailyQuoteState(
+    userId: string,
+    quoteDate: string
+  ): UserDailyQuoteState | null | Promise<UserDailyQuoteState | null>;
+  saveUserDailyQuoteState(state: UserDailyQuoteState): void | Promise<void>;
 };
-

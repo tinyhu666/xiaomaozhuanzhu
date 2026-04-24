@@ -5,4 +5,3 @@ export type Subject = (typeof SUBJECTS)[number];
 export type SessionTag = (typeof TAGS)[number];
 
 export const SHANGHAI_OFFSET_MINUTES = 8 * 60;
-

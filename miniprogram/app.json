@@ -12,14 +12,10 @@
     {
       "root": "package-calendar",
       "pages": ["day/index"]
-    },
-    {
-      "root": "package-profile",
-      "pages": ["onboarding/index"]
     }
   ],
   "window": {
-    "navigationBarTitleText": "CPA 首页",
+    "navigationBarTitleText": "CPA 自习室",
     "navigationBarBackgroundColor": "#F4FFF9",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F7FFF8",

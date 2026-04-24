@@ -8,7 +8,8 @@ type DayPageData = {
   sessions: Array<{
     id: string;
     summary: string;
-    subject: string | null;
+    subjects: string[];
+    subjectText: string;
     tags: string[];
     totalMinutes: number;
     photos: Array<{ objectKey: string; url: string }>;
@@ -32,7 +33,17 @@ Page<{}, DayPageData>({
     try {
       const result = await getCalendarDay(date);
       const objectKeys = result.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
-      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      let tempUrls: Awaited<ReturnType<typeof getTempUrls>> = { items: [] };
+      if (objectKeys.length) {
+        try {
+          tempUrls = await getTempUrls(objectKeys);
+        } catch (error) {
+          wx.showToast({
+            title: error instanceof Error ? error.message : "图片加载失败，已显示记录",
+            icon: "none"
+          });
+        }
+      }
       const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
 
       this.setData({
@@ -40,12 +51,13 @@ Page<{}, DayPageData>({
         sessions: result.sessions.map((session) => ({
           id: session.id,
           summary: session.summary,
-          subject: session.subject,
+          subjects: session.subjects,
+          subjectText: session.subjects.length ? session.subjects.join("、") : "未选择科目",
           tags: session.tags,
           totalMinutes: session.totalMinutes,
           photos: session.photos.map((photo) => ({
             objectKey: photo.objectKey,
-            url: urlMap.get(photo.objectKey) || ""
+            url: urlMap.get(photo.objectKey) || photo.fileId || ""
           }))
         }))
       });

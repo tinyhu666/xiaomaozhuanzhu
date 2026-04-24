@@ -8,7 +8,7 @@
   <block wx:if="{{sessions.length}}">
     <view wx:for="{{sessions}}" wx:key="id" class="surface-card" style="margin-top: 20rpx;">
       <view style="display: flex; align-items: center; justify-content: space-between;">
-        <view class="section-title" style="margin-bottom: 0;">{{item.subject || '未选择科目'}}</view>
+        <view class="section-title" style="margin-bottom: 0;">{{item.subjectText}}</view>
         <view class="badge">{{item.totalMinutes}} 分钟</view>
       </view>
       <view class="subtitle">{{item.summary}}</view>

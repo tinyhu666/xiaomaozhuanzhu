@@ -11,27 +11,50 @@ type LocalPhoto = {
   localPath: string;
 };
 
+type SelectableOption = {
+  value: string;
+  active: boolean;
+};
+
 type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
-  selectedSubject: string;
+  selectedSubjects: string[];
   selectedTags: string[];
-  subjects: string[];
-  tags: string[];
+  subjectOptions: SelectableOption[];
+  tagOptions: SelectableOption[];
   photos: LocalPhoto[];
   submitting: boolean;
 };
+
+function buildSelectableOptions(values: string[], selectedValues: string[]) {
+  const selected = new Set(selectedValues);
+  return values.map((value) => ({
+    value,
+    active: selected.has(value)
+  }));
+}
+
+function toggleSelection(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+function buildSelectionState(selectedSubjects: string[], selectedTags: string[]) {
+  return {
+    selectedSubjects,
+    selectedTags,
+    subjectOptions: buildSelectableOptions(SUBJECTS, selectedSubjects),
+    tagOptions: buildSelectableOptions(TAGS, selectedTags)
+  };
+}
 
 Page<{}, CompletePageData>({
   data: {
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
-    selectedSubject: "",
-    selectedTags: [],
-    subjects: SUBJECTS,
-    tags: TAGS,
+    ...buildSelectionState([], []),
     photos: [],
     submitting: false
   },
@@ -52,45 +75,68 @@ Page<{}, CompletePageData>({
 
   toggleSubject(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    this.setData({
-      selectedSubject: this.data.selectedSubject === value ? "" : value
-    });
+    this.setData(buildSelectionState(toggleSelection(this.data.selectedSubjects, value), this.data.selectedTags));
   },
 
   toggleTag(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    const exists = this.data.selectedTags.includes(value);
-    this.setData({
-      selectedTags: exists
-        ? this.data.selectedTags.filter((tag) => tag !== value)
-        : [...this.data.selectedTags, value]
-    });
+    this.setData(buildSelectionState(this.data.selectedSubjects, toggleSelection(this.data.selectedTags, value)));
   },
 
   async choosePhotos() {
     const remain = 3 - this.data.photos.length;
     if (remain <= 0) return;
 
-    const chooser = await wx.chooseMedia({
-      count: remain,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"]
-    });
+    let chooser: WechatMiniprogram.ChooseMediaSuccessCallbackResult;
+    try {
+      chooser = await wx.chooseMedia({
+        count: remain,
+        mediaType: ["image"],
+        sourceType: ["album", "camera"]
+      });
+    } catch (error) {
+      const message = typeof error === "object" && error && "errMsg" in error ? String(error.errMsg) : "";
+      if (!message.includes("cancel")) {
+        wx.showToast({
+          title: error instanceof Error ? error.message : "选择图片失败，请重试",
+          icon: "none"
+        });
+      }
+      return;
+    }
+
+    if (!chooser.tempFiles.length) return;
 
     wx.showLoading({
       title: "上传中"
     });
+
+    const originalCount = this.data.photos.length;
+    const nextPhotos = [...this.data.photos];
+    let failedCount = 0;
+
     try {
-      const uploaded: LocalPhoto[] = [];
       for (const file of chooser.tempFiles) {
-        const result = await uploadCheckinPhoto(file.tempFilePath);
-        uploaded.push(result);
+        try {
+          const result = await uploadCheckinPhoto(file.tempFilePath);
+          nextPhotos.push(result);
+          this.setData({
+            photos: [...nextPhotos]
+          });
+        } catch {
+          failedCount += 1;
+        }
       }
-      this.setData({
-        photos: [...this.data.photos, ...uploaded]
-      });
     } finally {
       wx.hideLoading();
+    }
+
+    if (failedCount > 0) {
+      const successCount = nextPhotos.length - originalCount;
+      wx.showToast({
+        title: successCount > 0 ? `已上传${successCount}张，${failedCount}张失败` : "图片上传失败，请重试",
+        icon: "none"
+      });
     }
   },
 
@@ -119,7 +165,7 @@ Page<{}, CompletePageData>({
     try {
       await completeSession(this.data.sessionId, {
         summary: this.data.summary,
-        subject: this.data.selectedSubject || null,
+        subjects: this.data.selectedSubjects,
         tags: this.data.selectedTags,
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,

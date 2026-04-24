@@ -5,10 +5,11 @@
 }
 
 .profile-card,
-.metric-card {
-  padding: 26rpx;
+.auth-card,
+.status-card {
+  padding: 28rpx;
   border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.9);
   border: 2rpx solid rgba(46, 169, 133, 0.08);
   box-shadow: 0 18rpx 42rpx rgba(46, 169, 133, 0.08);
 }
@@ -20,29 +21,35 @@
 }
 
 .profile-card__avatar {
-  width: 104rpx;
-  height: 104rpx;
+  width: 108rpx;
+  height: 108rpx;
   border-radius: 50%;
   flex-shrink: 0;
+  background: rgba(233, 244, 239, 0.8);
 }
 
 .profile-card__avatar--placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(99, 203, 168, 0.16) 0%, rgba(46, 169, 133, 0.22) 100%);
   color: var(--mint-600);
-  font-size: 34rpx;
+  font-size: 38rpx;
   font-weight: 700;
+  background: linear-gradient(135deg, rgba(99, 203, 168, 0.16) 0%, rgba(46, 169, 133, 0.22) 100%);
 }
 
 .profile-card__content {
-  min-width: 0;
   flex: 1;
+  min-width: 0;
 }
 
 .profile-card__name,
-.profile-card__hint {
+.profile-card__hint,
+.auth-card__badge,
+.auth-card__title,
+.auth-card__desc,
+.status-card__title,
+.status-card__desc {
   display: block;
 }
 
@@ -52,100 +59,87 @@
   line-height: 1.2;
 }
 
-.profile-card__hint {
+.profile-card__hint,
+.auth-card__desc,
+.status-card__desc {
   margin-top: 10rpx;
   color: var(--text-sub);
   font-size: 24rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
-.metric-card--primary {
+.auth-card {
   background:
     radial-gradient(circle at top right, rgba(94, 195, 157, 0.16), transparent 42%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(237, 251, 245, 0.96) 100%);
 }
 
-.metric-card__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16rpx;
+.auth-card__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  color: var(--mint-600);
+  font-size: 22rpx;
+  font-weight: 700;
 }
 
-.metric-card__label,
-.metric-card__value,
-.metric-card__sub {
-  display: block;
+.auth-card__title,
+.status-card__title {
+  margin-top: 20rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-.metric-card__label {
-  font-size: 24rpx;
-  color: var(--text-sub);
-}
-
-.metric-card__value {
-  margin-top: 12rpx;
-  font-size: 60rpx;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.metric-card__value--small {
-  font-size: 42rpx;
-}
-
-.metric-card__sub {
-  font-size: 24rpx;
-  color: var(--text-sub);
-}
-
-.metric-card__sub--spaced {
-  margin-top: 10rpx;
-}
-
-.subject-list {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: 18rpx;
-  margin-top: 24rpx;
+  margin-top: 28rpx;
 }
 
-.subject-row__top {
+.auth-avatar-picker {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.subject-row__name {
-  font-size: 26rpx;
-  font-weight: 700;
-}
-
-.subject-row__value {
-  font-size: 24rpx;
-  color: var(--mint-600);
-  font-weight: 700;
-}
-
-.subject-row__track {
-  margin-top: 10rpx;
-  height: 16rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
+  justify-content: center;
+  width: 100%;
+  height: 220rpx;
+  padding: 0;
+  border: 0;
+  border-radius: 28rpx;
+  background: rgba(233, 244, 239, 0.88);
   overflow: hidden;
 }
 
-.subject-row__fill {
+.auth-avatar-picker::after {
+  border: 0;
+}
+
+.auth-avatar-picker__preview {
+  width: 100%;
   height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
 }
 
-.profile-actions {
-  margin-top: 4rpx;
+.auth-avatar-picker__placeholder {
+  color: var(--mint-600);
+  font-size: 28rpx;
+  font-weight: 600;
 }
 
-.profile-actions__button {
+.auth-input {
+  width: 100%;
+  height: 96rpx;
+  padding: 0 28rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-sizing: border-box;
+}
+
+.auth-card__button {
   width: 100%;
 }
