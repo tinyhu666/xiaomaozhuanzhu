@@ -86,6 +86,75 @@ describe("miniprogram api helpers", () => {
     );
   });
 
+  it("uses cloud container calls instead of request-domain HTTP calls", async () => {
+    const init = vi.fn();
+    const request = vi.fn(() => {
+      throw new Error("wx.request should not be used by production API helpers");
+    });
+    const callContainer = vi.fn(async () => ({
+      data: {
+        profile: {
+          id: "user-1",
+          nickname: "Cloud User",
+          avatarUrl: "",
+          profileCompleted: true,
+          shareSlug: "slug-1",
+          isPublic: false,
+          requireWechatAuth: true
+        },
+        activeSession: null,
+        quote: {
+          id: "quote-1",
+          en: "Keep going.",
+          zh: "Continue.",
+          author: "System",
+          topic: "study",
+          dailyIndex: 1,
+          dailyLimit: 3
+        },
+        today: {
+          userId: "user-1",
+          date: "2026-04-24",
+          totalMinutes: 0,
+          sessionCount: 0,
+          heatLevel: 0,
+          streakDays: 0,
+          updatedAt: "2026-04-24T00:00:00.000Z"
+        },
+        summary: {
+          totalMinutes: 0,
+          currentStreakDays: 0,
+          lastSummary: ""
+        }
+      }
+    }));
+
+    vi.stubGlobal("wx", {
+      request,
+      cloud: {
+        init,
+        callContainer
+      }
+    });
+
+    const { getHome } = await import("../utils/api");
+    await expect(getHome("peek")).resolves.toMatchObject({
+      profile: {
+        id: "user-1"
+      }
+    });
+
+    expect(request).not.toHaveBeenCalled();
+    expect(callContainer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: "/api/home?quoteEvent=peek",
+        header: {
+          "X-WX-SERVICE": "cpa-study-checkin"
+        }
+      })
+    );
+  });
+
   it("posts the WeChat login code without a bearer token and stores the returned session token", async () => {
     const init = vi.fn();
     const callContainer = vi.fn(async () => ({

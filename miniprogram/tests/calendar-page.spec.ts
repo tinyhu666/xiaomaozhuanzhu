@@ -12,6 +12,7 @@ vi.mock("../utils/api", () => apiMocks);
 
 type CalendarPageDefinition = {
   data: Record<string, unknown>;
+  loadDay(date: string): Promise<void>;
   pickSelectedDate(grid: ReturnType<typeof buildMonthGrid>): string;
   [key: string]: unknown;
 };
@@ -54,6 +55,9 @@ describe("calendar page selection", () => {
     vi.resetModules();
     vi.clearAllMocks();
     vi.setSystemTime(new Date("2026-05-01T10:00:00+08:00"));
+    vi.stubGlobal("wx", {
+      showToast: vi.fn()
+    });
   });
 
   afterEach(() => {
@@ -77,5 +81,57 @@ describe("calendar page selection", () => {
     });
 
     expect(page.pickSelectedDate(grid)).toBe("2026-04-18");
+  });
+
+  it("shows day detail with stored file ids when temp-url lookup fails", async () => {
+    apiMocks.getCalendarDay.mockResolvedValue({
+      date: "2026-04-22",
+      totalMinutes: 95,
+      sessionCount: 1,
+      heatLevel: 2,
+      sessions: [
+        {
+          id: "session-1",
+          summary: "Finished audit drills.",
+          subjects: ["Audit"],
+          tags: ["steady"],
+          totalMinutes: 95,
+          photos: [
+            {
+              objectKey: "checkins/a.jpg",
+              fileId: "cloud://demo/checkins/a.jpg"
+            }
+          ]
+        }
+      ]
+    });
+    apiMocks.getTempUrls.mockRejectedValue(new Error("temp url service unavailable"));
+
+    const definition = await loadCalendarPageDefinition();
+    const page = instantiatePage(definition);
+
+    await page.loadDay("2026-04-22");
+
+    expect(page.data.selectedDetail).toEqual(
+      expect.objectContaining({
+        sessions: [
+          expect.objectContaining({
+            id: "session-1",
+            photos: [
+              expect.objectContaining({
+                objectKey: "checkins/a.jpg",
+                tempUrl: "cloud://demo/checkins/a.jpg"
+              })
+            ]
+          })
+        ]
+      })
+    );
+    expect(wx.showToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "temp url service unavailable",
+        icon: "none"
+      })
+    );
   });
 });

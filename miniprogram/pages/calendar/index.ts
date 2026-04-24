@@ -80,7 +80,17 @@ Page<{}, CalendarPageData>({
     try {
       const detail = await getCalendarDay(date);
       const objectKeys = detail.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
-      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      let tempUrls: Awaited<ReturnType<typeof getTempUrls>> = { items: [] };
+      if (objectKeys.length) {
+        try {
+          tempUrls = await getTempUrls(objectKeys);
+        } catch (error) {
+          wx.showToast({
+            title: error instanceof Error ? error.message : "图片加载失败，已显示记录",
+            icon: "none"
+          });
+        }
+      }
       const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
 
       this.setData({
@@ -94,7 +104,7 @@ Page<{}, CalendarPageData>({
             subjectText: session.subjects.length ? session.subjects.join("、") : "学习记录",
             photos: session.photos.map((photo) => ({
               ...photo,
-              tempUrl: urlMap.get(photo.objectKey) || photo.tempUrl || ""
+              tempUrl: urlMap.get(photo.objectKey) || photo.tempUrl || photo.fileId || ""
             }))
           }))
         }

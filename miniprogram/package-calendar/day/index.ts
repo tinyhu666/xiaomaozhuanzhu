@@ -33,7 +33,17 @@ Page<{}, DayPageData>({
     try {
       const result = await getCalendarDay(date);
       const objectKeys = result.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
-      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      let tempUrls: Awaited<ReturnType<typeof getTempUrls>> = { items: [] };
+      if (objectKeys.length) {
+        try {
+          tempUrls = await getTempUrls(objectKeys);
+        } catch (error) {
+          wx.showToast({
+            title: error instanceof Error ? error.message : "图片加载失败，已显示记录",
+            icon: "none"
+          });
+        }
+      }
       const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
 
       this.setData({

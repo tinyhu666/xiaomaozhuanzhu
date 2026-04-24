@@ -118,4 +118,52 @@ describe("calendar day page", () => {
       })
     ]);
   });
+
+  it("keeps showing day sessions when temp-url lookup fails", async () => {
+    apiMocks.getCalendarDay.mockResolvedValue({
+      date: "2026-04-22",
+      totalMinutes: 95,
+      sessionCount: 1,
+      heatLevel: 2,
+      sessions: [
+        {
+          id: "session-1",
+          summary: "Finished audit drills.",
+          subjects: ["Audit"],
+          tags: ["steady"],
+          totalMinutes: 95,
+          photos: [
+            {
+              objectKey: "checkins/a.jpg",
+              fileId: "cloud://demo/checkins/a.jpg"
+            }
+          ]
+        }
+      ]
+    });
+    apiMocks.getTempUrls.mockRejectedValue(new Error("temp url service unavailable"));
+
+    const definition = await loadDayPageDefinition();
+    const page = instantiatePage(definition);
+
+    await page.loadDay("2026-04-22");
+
+    expect(page.data.sessions).toEqual([
+      expect.objectContaining({
+        id: "session-1",
+        photos: [
+          {
+            objectKey: "checkins/a.jpg",
+            url: "cloud://demo/checkins/a.jpg"
+          }
+        ]
+      })
+    ]);
+    expect(wx.showToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "temp url service unavailable",
+        icon: "none"
+      })
+    );
+  });
 });
