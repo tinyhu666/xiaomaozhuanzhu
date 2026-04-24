@@ -43,12 +43,12 @@
 }
 
 .timer-card__status {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10rpx 18rpx;
+  padding: 0 22rpx;
   min-width: 148rpx;
-  min-height: 72rpx;
+  height: 72rpx;
   border-radius: 999rpx;
   background: rgba(46, 169, 133, 0.1);
   color: var(--mint-600);
@@ -57,9 +57,10 @@
 }
 
 .timer-card__status-label {
+  display: block;
   font-size: 22rpx;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1;
 }
 
 .timer-card__meta {
