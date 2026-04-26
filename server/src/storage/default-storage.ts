@@ -19,23 +19,44 @@ export class DefaultStorageClient implements StorageClient {
   }
 }
 
+type WechatAuthMode =
+  | { kind: "cloudrun" }
+  | { kind: "token"; appId: string; appSecret: string };
+
 export class WechatHttpStorageClient implements StorageClient {
   private cachedToken: { value: string; expiresAt: number } | null = null;
 
   constructor(
-    private readonly appId: string,
-    private readonly appSecret: string,
-    private readonly env: string
+    private readonly env: string,
+    private readonly auth: WechatAuthMode
   ) {}
 
+  private get baseUrl() {
+    return this.auth.kind === "cloudrun"
+      ? "http://api.weixin.qq.com"
+      : "https://api.weixin.qq.com";
+  }
+
+  private async resolveUrlWithAuth(path: string) {
+    if (this.auth.kind === "cloudrun") {
+      return `${this.baseUrl}${path}`;
+    }
+    const token = await this.getAccessToken();
+    const separator = path.includes("?") ? "&" : "?";
+    return `${this.baseUrl}${path}${separator}access_token=${encodeURIComponent(token)}`;
+  }
+
   private async getAccessToken(): Promise<string> {
+    if (this.auth.kind !== "token") {
+      throw new Error("getAccessToken called in cloudrun mode");
+    }
     const now = Date.now();
     if (this.cachedToken && now < this.cachedToken.expiresAt - 60_000) {
       return this.cachedToken.value;
     }
     const url =
-      "https://api.weixin.qq.com/cgi-bin/token" +
-      `?grant_type=client_credential&appid=${encodeURIComponent(this.appId)}&secret=${encodeURIComponent(this.appSecret)}`;
+      `${this.baseUrl}/cgi-bin/token` +
+      `?grant_type=client_credential&appid=${encodeURIComponent(this.auth.appId)}&secret=${encodeURIComponent(this.auth.appSecret)}`;
     const response = await fetch(url);
     const data = (await response.json()) as {
       access_token?: string;
@@ -60,21 +81,18 @@ export class WechatHttpStorageClient implements StorageClient {
       return items.map((item) => ({ objectKey: item.objectKey, url: "", expiresAt }));
     }
 
-    const accessToken = await this.getAccessToken();
-    const response = await fetch(
-      `https://api.weixin.qq.com/tcb/batchdownloadfile?access_token=${encodeURIComponent(accessToken)}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          env: this.env,
-          file_list: resolvable.map((item) => ({
-            fileid: item.fileId,
-            max_age: 7200
-          }))
-        })
-      }
-    );
+    const url = await this.resolveUrlWithAuth("/tcb/batchdownloadfile");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        env: this.env,
+        file_list: resolvable.map((item) => ({
+          fileid: item.fileId,
+          max_age: 7200
+        }))
+      })
+    });
     const data = (await response.json()) as {
       errcode?: number;
       errmsg?: string;
@@ -100,16 +118,20 @@ export class WechatHttpStorageClient implements StorageClient {
 }
 
 export function createStorageClient(): StorageClient {
+  if (process.env.WECHAT_OPENAPI_INTERNAL === "1" && process.env.WECHAT_CLOUD_ENV) {
+    return new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, { kind: "cloudrun" });
+  }
+
   if (
     process.env.WECHAT_APP_ID &&
     process.env.WECHAT_APP_SECRET &&
     process.env.WECHAT_CLOUD_ENV
   ) {
-    return new WechatHttpStorageClient(
-      process.env.WECHAT_APP_ID,
-      process.env.WECHAT_APP_SECRET,
-      process.env.WECHAT_CLOUD_ENV
-    );
+    return new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, {
+      kind: "token",
+      appId: process.env.WECHAT_APP_ID,
+      appSecret: process.env.WECHAT_APP_SECRET
+    });
   }
 
   if (
