@@ -6,9 +6,12 @@
 
   <view class="timer-card">
     <view class="timer-card__head">
-      <text class="timer-card__status">
-        {{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}
-      </text>
+      <view class="timer-card__status-wrap">
+        <text class="timer-card__status">
+          {{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}
+        </text>
+        <text wx:if="{{activeSession && activeSession.status === 'paused' && pausedMinutes > 0}}" class="timer-card__pause-hint">已暂停 {{pausedMinutes}} 分钟</text>
+      </view>
       <view class="timer-card__meta">
         <text>今日 {{todayMinutesText}}</text>
         <text>连续 {{streakText}}</text>
@@ -55,6 +58,20 @@
         结束
       </button>
     </view>
+  </view>
+
+  <view class="goal-card">
+    <view class="goal-card__head">
+      <view class="goal-card__title-wrap">
+        <text class="goal-card__title">今日目标</text>
+        <text class="goal-card__sub">建议每天专注 1.5 小时</text>
+      </view>
+      <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
+    </view>
+    <view class="goal-card__track">
+      <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
+    </view>
+    <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成，继续保持！</text>
   </view>
 
   <view class="mini-calendar">

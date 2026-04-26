@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildAuthorizedProfile,
   buildMonthGrid,
   buildSubjectSummary,
   formatDuration,
@@ -94,15 +93,4 @@ describe("miniprogram view models", () => {
     ]);
   });
 
-  it("normalizes authorized wechat profile data", () => {
-    expect(
-      buildAuthorizedProfile({
-        nickName: "  小猫专注  ",
-        avatarUrl: "https://wx.qlogo.cn/mmopen/vi_32/demo/132"
-      })
-    ).toEqual({
-      nickname: "小猫专注",
-      avatarUrl: "https://wx.qlogo.cn/mmopen/vi_32/demo/0"
-    });
-  });
 });

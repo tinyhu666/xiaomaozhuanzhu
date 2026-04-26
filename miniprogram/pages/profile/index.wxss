@@ -103,11 +103,91 @@
   margin-top: 10rpx;
 }
 
+.metric-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.metric-card__chip {
+  flex: 1 1 0;
+  min-width: 152rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 22rpx;
+  background: rgba(46, 169, 133, 0.08);
+}
+
+.metric-card__chip-label {
+  display: block;
+  color: var(--text-sub);
+  font-size: 22rpx;
+}
+
+.metric-card__chip-value {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--mint-600);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.badge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22rpx 14rpx 20rpx;
+  border-radius: 24rpx;
+  background: rgba(46, 169, 133, 0.06);
+  border: 2rpx solid rgba(46, 169, 133, 0.08);
+}
+
+.badge-tile.is-unlocked {
+  background: linear-gradient(180deg, rgba(99, 203, 168, 0.18) 0%, rgba(46, 169, 133, 0.12) 100%);
+  border-color: rgba(46, 169, 133, 0.3);
+}
+
+.badge-tile.is-locked {
+  opacity: 0.45;
+}
+
+.badge-tile__icon {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.badge-tile__name {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.badge-tile__desc {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  text-align: center;
+  line-height: 1.4;
+}
+
 .subject-list {
   display: flex;
   flex-direction: column;
   gap: 18rpx;
   margin-top: 24rpx;
+}
+
+.subject-row {
+  min-width: 0;
 }
 
 .subject-row__top {
@@ -118,11 +198,17 @@
 }
 
 .subject-row__name {
+  flex: 1;
+  min-width: 0;
   font-size: 26rpx;
   font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .subject-row__value {
+  flex-shrink: 0;
   font-size: 24rpx;
   color: var(--mint-600);
   font-weight: 700;

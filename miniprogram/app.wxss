@@ -24,7 +24,18 @@ page {
 }
 
 .page-shell {
-  padding: 28rpx 28rpx 180rpx;
+  padding: 28rpx 28rpx calc(200rpx + env(safe-area-inset-bottom));
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  background: none;
+  line-height: 1.2;
+}
+
+button::after {
+  border: none;
 }
 
 .hero-card,
@@ -86,13 +97,25 @@ page {
 .cta-button,
 .ghost-button,
 .danger-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: 999rpx;
   padding: 0 32rpx;
+  min-height: 84rpx;
   height: 84rpx;
-  line-height: 84rpx;
   font-size: 28rpx;
   font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.cta-button[disabled],
+.ghost-button[disabled],
+.danger-button[disabled] {
+  opacity: 0.6;
 }
 
 .cta-button {
@@ -214,14 +237,17 @@ page {
   position: absolute;
   top: 10rpx;
   right: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   color: #fff;
-  line-height: 40rpx;
   text-align: center;
   font-size: 24rpx;
+  line-height: 1;
 }
 
 .calendar-grid {

@@ -67,8 +67,10 @@ Page<{}, CalendarPageData>({
   async loadDay(date: string) {
     try {
       const detail = await getCalendarDay(date);
-      const objectKeys = detail.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
-      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      const photoRefs = detail.sessions.flatMap((session) =>
+        session.photos.map((photo) => ({ objectKey: photo.objectKey, fileId: photo.fileId }))
+      );
+      const tempUrls = photoRefs.length ? await getTempUrls(photoRefs) : { items: [] };
       const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
 
       this.setData({

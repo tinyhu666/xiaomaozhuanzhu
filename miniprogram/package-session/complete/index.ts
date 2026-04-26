@@ -71,14 +71,26 @@ Page<{}, CompletePageData>({
     const remain = 3 - this.data.photos.length;
     if (remain <= 0) return;
 
-    const chooser = await wx.chooseMedia({
-      count: remain,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"]
-    });
+    let chooser: WechatMiniprogram.ChooseMediaSuccessCallbackResult;
+    try {
+      chooser = await wx.chooseMedia({
+        count: remain,
+        mediaType: ["image"],
+        sourceType: ["album", "camera"]
+      });
+    } catch (error) {
+      const message = typeof error === "object" && error && "errMsg" in error ? String(error.errMsg) : "";
+      if (!message.includes("cancel")) {
+        wx.showToast({ title: "选择照片失败", icon: "none" });
+      }
+      return;
+    }
+
+    if (!chooser?.tempFiles?.length) return;
 
     wx.showLoading({
-      title: "上传中"
+      title: "上传中",
+      mask: true
     });
     try {
       const uploaded: LocalPhoto[] = [];
@@ -88,6 +100,11 @@ Page<{}, CompletePageData>({
       }
       this.setData({
         photos: [...this.data.photos, ...uploaded]
+      });
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : "照片上传失败",
+        icon: "none"
       });
     } finally {
       wx.hideLoading();

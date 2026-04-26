@@ -1,24 +1,46 @@
 <view class="page-shell onboarding-page">
   <view class="hero-card">
     <view class="badge">{{mode === 'edit' ? '更新资料' : '首次设置'}}</view>
-    <view class="title onboarding-page__title">用微信昵称和头像完成你的学习主页</view>
-    <view class="subtitle">只保留必要信息，点一次授权，就能把微信昵称和头像同步到“我的”页面。</view>
+    <view class="title onboarding-page__title">设置你的学习昵称和头像</view>
+    <view class="subtitle">点击头像选择微信头像，再填写昵称，让你的学习主页更有归属感。</view>
   </view>
 
   <view class="surface-card onboarding-preview">
-    <view class="field-label">当前资料预览</view>
-    <view class="onboarding-preview__row">
-      <image wx:if="{{avatarUrl}}" class="onboarding-preview__avatar" src="{{avatarUrl}}" mode="aspectFill" />
-      <view wx:else class="onboarding-preview__avatar onboarding-preview__avatar--placeholder">我</view>
-
-      <view class="onboarding-preview__content">
-        <text class="onboarding-preview__name">{{nickname || '等待同步微信昵称'}}</text>
-        <text class="onboarding-preview__hint">授权后会自动更新头像和昵称</text>
+    <view class="field-label">头像</view>
+    <button
+      class="onboarding-avatar-btn"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+    >
+      <image
+        wx:if="{{avatarUrl}}"
+        class="onboarding-avatar-btn__img"
+        src="{{avatarUrl}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="onboarding-avatar-btn__placeholder">
+        <text class="onboarding-avatar-btn__plus">+</text>
+        <text class="onboarding-avatar-btn__hint">选择头像</text>
       </view>
-    </view>
+    </button>
+
+    <view class="field-label onboarding-preview__nick-label">昵称</view>
+    <input
+      class="text-input"
+      type="nickname"
+      placeholder="点击使用微信昵称"
+      value="{{nickname}}"
+      bindinput="onNicknameInput"
+      bindblur="onNicknameBlur"
+    />
   </view>
 
-  <button class="cta-button onboarding-page__button" loading="{{saving}}" disabled="{{saving}}" bindtap="authorizeProfile">
-    {{mode === 'edit' ? '同步微信昵称头像' : '微信授权并开始使用'}}
+  <button
+    class="cta-button onboarding-page__button"
+    loading="{{saving}}"
+    disabled="{{saving}}"
+    bindtap="handleSave"
+  >
+    {{mode === 'edit' ? '保存资料' : '完成设置并开始'}}
   </button>
 </view>

@@ -11,7 +11,7 @@ const uploadMiniprogramDir = path.join(uploadRoot, "miniprogram");
 const uploadInfoPath = path.join(projectRoot, "output", "mini-upload.json");
 const packageJson = readJson(path.join(projectRoot, "package.json"));
 const projectConfig = readJson(path.join(projectRoot, "project.config.json"));
-const npxPath = resolveNpxPath();
+const isWindows = process.platform === "win32";
 
 const cliOptions = parseCliArgs(process.argv.slice(2));
 const appId = cliOptions.appid || process.env.MINIPROGRAM_APPID || projectConfig.appid;
@@ -26,7 +26,7 @@ const uploadDescription =
   process.env.MINIPROGRAM_UPLOAD_DESC ||
   `Upload ${uploadVersion}`;
 const robot = cliOptions.robot || process.env.MINIPROGRAM_UPLOAD_ROBOT || "1";
-const devtoolsDir = resolveDevtoolsDir(cliOptions.devtoolsDir || process.env.WECHAT_DEVTOOLS_DIR);
+const devtoolsDir = isWindows ? resolveWindowsDevtoolsDir(cliOptions.devtoolsDir || process.env.WECHAT_DEVTOOLS_DIR) : "";
 
 if (!appId) {
   fail("Missing appid. Set MINIPROGRAM_APPID or keep appid in project.config.json.");
@@ -34,7 +34,7 @@ if (!appId) {
 if (!privateKeyPath || !fs.existsSync(privateKeyPath)) {
   fail("Missing upload private key. Set MINIPROGRAM_PRIVATE_KEY_PATH or pass --private-key-path.");
 }
-if (!devtoolsDir) {
+if (isWindows && !devtoolsDir) {
   fail("Cannot find 微信开发者工具 installation. Set WECHAT_DEVTOOLS_DIR or pass --devtools-dir.");
 }
 
@@ -77,13 +77,13 @@ function copyProjectAssets() {
 }
 
 function upload() {
-  const env = {
-    ...process.env,
-    PATH: `${devtoolsDir}${path.delimiter}${process.env.PATH ?? ""}`
-  };
+  const env = { ...process.env };
+  if (isWindows && devtoolsDir) {
+    env.PATH = `${devtoolsDir}${path.delimiter}${process.env.PATH ?? ""}`;
+  }
 
+  const npxCommand = isWindows ? "npx.cmd" : "npx";
   const args = [
-    npxPath,
     "--yes",
     "miniprogram-ci",
     "upload",
@@ -106,11 +106,11 @@ function upload() {
     uploadInfoPath
   ];
 
-  const result = spawnSync(args.join(" "), {
+  const result = spawnSync(npxCommand, args, {
     cwd: projectRoot,
     stdio: "inherit",
     env,
-    shell: true
+    shell: isWindows
   });
 
   if (result.error) {
@@ -147,7 +147,7 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function resolveDevtoolsDir(explicitPath) {
+function resolveWindowsDevtoolsDir(explicitPath) {
   const candidates = [
     explicitPath,
     "D:\\Program Files (x86)\\Tencent\\微信web开发者工具",
@@ -155,15 +155,6 @@ function resolveDevtoolsDir(explicitPath) {
   ].filter(Boolean);
 
   return candidates.find((candidate) => fs.existsSync(path.join(candidate, "node.exe"))) || "";
-}
-
-function resolveNpxPath() {
-  const localNpx = path.join(path.dirname(process.execPath), "npx.cmd");
-  if (fs.existsSync(localNpx)) {
-    return localNpx;
-  }
-
-  return "npx.cmd";
 }
 
 function runOrThrow(command, args) {

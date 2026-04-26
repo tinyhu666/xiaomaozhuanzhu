@@ -30,10 +30,10 @@ describe("CPA study check-in API", () => {
         now: () => clock.now()
       },
       storage: {
-        async getTemporaryUrls(objectKeys: string[]) {
-          return objectKeys.map((objectKey) => ({
-            objectKey,
-            url: `https://temp.example.com/${objectKey}`,
+        async getTemporaryUrls(items: Array<{ objectKey: string; fileId?: string }>) {
+          return items.map((item) => ({
+            objectKey: item.objectKey,
+            url: `https://temp.example.com/${item.objectKey}`,
             expiresAt: "2026-04-16T12:00:00+08:00"
           }));
         }
@@ -142,7 +142,7 @@ describe("CPA study check-in API", () => {
     expect(calendar.body.days["2026-04-16"].heatLevel).toBe(3);
   });
 
-  it("abandons a paused session instead of restoring it on a new home fetch", async () => {
+  it("preserves a paused session on home re-fetch within the TTL but reaps it after 24h", async () => {
     await request(app)
       .post("/api/me/profile")
       .set("x-wx-openid", "user-2")
@@ -172,7 +172,18 @@ describe("CPA study check-in API", () => {
       .set("x-wx-openid", "user-2")
       .expect(200);
 
-    expect(home.body.activeSession).toBeNull();
+    expect(home.body.activeSession).not.toBeNull();
+    expect(home.body.activeSession.id).toBe(sessionId);
+    expect(home.body.activeSession.status).toBe("paused");
+
+    clock.advanceMinutes(24 * 60 + 5);
+
+    const homeStale = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "user-2")
+      .expect(200);
+
+    expect(homeStale.body.activeSession).toBeNull();
 
     const details = await request(app)
       .get("/api/calendar/2026-04-16")
@@ -189,10 +200,10 @@ describe("CPA study check-in API", () => {
         now: () => clock.now()
       },
       storage: {
-        async getTemporaryUrls(objectKeys: string[]) {
-          return objectKeys.map((objectKey) => ({
-            objectKey,
-            url: `https://temp.example.com/${objectKey}`,
+        async getTemporaryUrls(items: Array<{ objectKey: string; fileId?: string }>) {
+          return items.map((item) => ({
+            objectKey: item.objectKey,
+            url: `https://temp.example.com/${item.objectKey}`,
             expiresAt: "2026-04-17T12:00:00+08:00"
           }));
         }
@@ -272,6 +283,28 @@ describe("CPA study check-in API", () => {
     expect(publicProfile.body.summary.totalMinutes).toBe(105);
     expect(publicProfile.body.photos).toHaveLength(1);
     expect(publicProfile.body.recentSummaries[0].summary).toBe("跨夜把财管公式重新梳理了一遍。");
+  });
+
+  it("resolves cloud:// avatar fileIDs to web-renderable temp URLs on the public profile", async () => {
+    const profile = await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "cloud-avatar-owner")
+      .send({
+        nickname: "云头像考生",
+        avatarUrl: "cloud://prod-test.6e69-prod-test/avatars/abc-123.jpg",
+        isPublic: true,
+        requireWechatAuth: false
+      })
+      .expect(200);
+
+    const slug = profile.body.publicProfile.shareSlug as string;
+
+    const publicProfile = await request(app)
+      .get(`/api/public/${slug}`)
+      .expect(200);
+
+    expect(publicProfile.body.profile.avatarUrl).toBe("https://temp.example.com/avatars/abc-123.jpg");
+    expect(publicProfile.body.profile.avatarUrl.startsWith("cloud://")).toBe(false);
   });
 
   it("validates completion payload requirements", async () => {
@@ -372,6 +405,8 @@ describe("CPA study check-in API", () => {
     expect(dashboard.body.profile.nickname).toBe("统计考生");
     expect(dashboard.body.summary.totalMinutes).toBe(225);
     expect(dashboard.body.summary.currentStreakDays).toBe(1);
+    expect(dashboard.body.summary.longestStreakDays).toBe(1);
+    expect(dashboard.body.summary.completedSessionCount).toBe(2);
     expect(dashboard.body.bestDay).toEqual({
       date: "2026-04-16",
       totalMinutes: 225
@@ -386,5 +421,14 @@ describe("CPA study check-in API", () => {
         totalMinutes: 90
       }
     ]);
+
+    const badgeMap = new Map(
+      (dashboard.body.badges as Array<{ key: string; unlocked: boolean }>).map((badge) => [badge.key, badge.unlocked])
+    );
+    expect(badgeMap.get("first_checkin")).toBe(true);
+    expect(badgeMap.get("streak_7")).toBe(false);
+    expect(badgeMap.get("total_10h")).toBe(false);
+    expect(badgeMap.get("single_day_4h")).toBe(false);
+    expect(badgeMap.get("all_six_subjects")).toBe(false);
   });
 });

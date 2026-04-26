@@ -209,13 +209,13 @@ export function getPublicProfile(slug: string) {
   });
 }
 
-export function getTempUrls(objectKeys: string[]) {
+export function getTempUrls(items: Array<{ objectKey: string; fileId?: string }>) {
   return callContainer<{
     items: Array<{ objectKey: string; url: string; expiresAt: string }>;
   }>({
     path: "/storage/temp-urls",
     method: "POST",
-    data: { objectKeys }
+    data: { items }
   });
 }
 
@@ -236,5 +236,24 @@ export async function uploadCheckinPhoto(localPath: string) {
     fileId: result.fileID,
     objectKey,
     localPath
+  };
+}
+
+export async function uploadAvatar(localPath: string) {
+  ensureCloudReady();
+  const timestamp = Date.now();
+  const extension = localPath.split(".").pop()?.split("?")[0] || "jpg";
+  const cloudPath = `avatars/${timestamp}.${extension}`;
+  const result = await wx.cloud.uploadFile({
+    cloudPath,
+    filePath: localPath,
+    config: {
+      env: runtimeConfig.cloudEnv
+    }
+  });
+
+  return {
+    fileId: result.fileID,
+    objectKey: cloudPath
   };
 }

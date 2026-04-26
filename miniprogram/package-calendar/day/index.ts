@@ -31,8 +31,10 @@ Page<{}, DayPageData>({
   async loadDay(date: string) {
     try {
       const result = await getCalendarDay(date);
-      const objectKeys = result.sessions.flatMap((session) => session.photos.map((photo) => photo.objectKey));
-      const tempUrls = objectKeys.length ? await getTempUrls(objectKeys) : { items: [] };
+      const photoRefs = result.sessions.flatMap((session) =>
+        session.photos.map((photo) => ({ objectKey: photo.objectKey, fileId: photo.fileId }))
+      );
+      const tempUrls = photoRefs.length ? await getTempUrls(photoRefs) : { items: [] };
       const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
 
       this.setData({
@@ -45,7 +47,8 @@ Page<{}, DayPageData>({
           totalMinutes: session.totalMinutes,
           photos: session.photos.map((photo) => ({
             objectKey: photo.objectKey,
-            url: urlMap.get(photo.objectKey) || ""
+            fileId: photo.fileId,
+            url: urlMap.get(photo.objectKey) || photo.fileId || ""
           }))
         }))
       });
@@ -60,10 +63,12 @@ Page<{}, DayPageData>({
   previewImage(event: WechatMiniprogram.BaseEvent) {
     const { sessionIndex, photoIndex } = event.currentTarget.dataset as { sessionIndex: string; photoIndex: string };
     const session = this.data.sessions[Number(sessionIndex)];
-    const urls = session.photos.map((photo) => photo.url);
-    const current = urls[Number(photoIndex)];
+    if (!session) return;
+    const urls = session.photos.map((photo) => photo.url).filter((url) => Boolean(url));
+    if (!urls.length) return;
+    const current = session.photos[Number(photoIndex)]?.url;
     wx.previewImage({
-      current,
+      current: current && urls.includes(current) ? current : urls[0],
       urls
     });
   }

@@ -54,9 +54,23 @@ const shareSchema = z.object({
   requireWechatAuth: z.boolean().optional()
 });
 
-const tempUrlSchema = z.object({
-  objectKeys: z.array(z.string().min(1)).min(1).max(30)
-});
+const tempUrlSchema = z
+  .object({
+    objectKeys: z.array(z.string().min(1)).max(30).optional(),
+    items: z
+      .array(
+        z.object({
+          objectKey: z.string().min(1),
+          fileId: z.string().min(1).optional()
+        })
+      )
+      .max(30)
+      .optional()
+  })
+  .refine(
+    (value) => (value.objectKeys?.length ?? 0) + (value.items?.length ?? 0) > 0,
+    { message: "objectKeys or items required" }
+  );
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
@@ -113,7 +127,7 @@ export function createApp(options: CreateAppOptions = {}) {
   }));
 
   app.get("/api/home", withUser(store, clock, async (_request, response, context) => {
-    const activeSession = await abandonLingeringPausedSession(store, context.user.id, clock.now().toISOString());
+    const activeSession = await reapStalePausedSession(store, context.user.id, clock.now());
     const todayKey = formatShanghaiDate(clock.now());
     const dailyStats = await store.getDailyStats(context.user.id);
     const today = dailyStats.get(todayKey) ?? emptyDailyStat(context.user.id, todayKey, clock.now().toISOString());
@@ -158,14 +172,30 @@ export function createApp(options: CreateAppOptions = {}) {
       }
     );
 
+    const totalMinutes = [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0);
+    const currentStreakDays = getCurrentStreak(dailyStats);
+    const longestStreakDays = getLongestStreak(dailyStats);
+    const completedSubjects = new Set(sessions.map((session) => session.subject).filter((subject): subject is Subject => Boolean(subject)));
+
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
       summary: {
-        totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
-        currentStreakDays: getCurrentStreak(dailyStats)
+        totalMinutes,
+        currentStreakDays,
+        longestStreakDays,
+        completedSessionCount: sessions.length
       },
       subjects: subjectTotals,
-      bestDay
+      bestDay,
+      badges: computeBadges({
+        totalMinutes,
+        currentStreakDays,
+        longestStreakDays,
+        bestDayMinutes: bestDay.totalMinutes,
+        completedCount: sessions.length,
+        subjectTotals,
+        completedSubjectCount: completedSubjects.size
+      })
     });
   }));
 
@@ -401,11 +431,16 @@ export function createApp(options: CreateAppOptions = {}) {
       .filter((session) => session.status === "completed")
       .slice(0, 10);
     const recentPhotos = (await store.getPhotosBySessionIds(recentSessions.map((session) => session.id))).slice(0, 9);
-    const tempUrls = await storage.getTemporaryUrls(recentPhotos.map((photo) => photo.objectKey));
+    const tempUrls = await storage.getTemporaryUrls(
+      recentPhotos.map((photo) => ({ objectKey: photo.objectKey, fileId: photo.fileId }))
+    );
     const urlMap = new Map(tempUrls.map((item) => [item.objectKey, item.url]));
 
+    const profileSerialized = serializeProfile(record.user, record.publicProfile);
+    profileSerialized.avatarUrl = await resolvePublicAvatarUrl(storage, profileSerialized.avatarUrl);
+
     response.json({
-      profile: serializeProfile(record.user, record.publicProfile),
+      profile: profileSerialized,
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
         currentStreakDays: getCurrentStreak(dailyStats)
@@ -427,8 +462,12 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);
+    const queries = [
+      ...(payload.items ?? []),
+      ...(payload.objectKeys ?? []).map((objectKey) => ({ objectKey }))
+    ];
     response.json({
-      items: await storage.getTemporaryUrls(payload.objectKeys)
+      items: await storage.getTemporaryUrls(queries)
     });
   }));
 
@@ -513,18 +552,112 @@ async function abandonSession(store: DataStore, session: StudySession, now: stri
   await store.saveSession(session);
 }
 
-async function abandonLingeringPausedSession(store: DataStore, userId: string, now: string) {
+const PAUSED_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+async function reapStalePausedSession(store: DataStore, userId: string, now: Date) {
   const session = await store.getCurrentSession(userId);
-  if (session?.status === "paused") {
-    await abandonSession(store, session, now);
-    return null;
+  if (!session) return null;
+  if (session.status === "paused" && session.currentPauseStartedAt) {
+    const pausedAt = new Date(session.currentPauseStartedAt).getTime();
+    if (Number.isFinite(pausedAt) && now.getTime() - pausedAt > PAUSED_SESSION_TTL_MS) {
+      await abandonSession(store, session, now.toISOString());
+      return null;
+    }
   }
   return session;
+}
+
+function extractCloudObjectKey(value: string): string | null {
+  if (!value || !value.startsWith("cloud://")) return null;
+  try {
+    const url = new URL(value);
+    const key = url.pathname.replace(/^\//, "");
+    return key || null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePublicAvatarUrl(storage: StorageClient, avatarUrl: string) {
+  const objectKey = extractCloudObjectKey(avatarUrl);
+  if (!objectKey) return avatarUrl;
+  const [resolved] = await storage.getTemporaryUrls([
+    { objectKey, fileId: avatarUrl }
+  ]);
+  return resolved?.url || avatarUrl;
 }
 
 function getCurrentStreak(stats: Map<string, DailyStat>) {
   const latest = [...stats.values()].sort((left, right) => right.date.localeCompare(left.date))[0];
   return latest?.streakDays ?? 0;
+}
+
+function getLongestStreak(stats: Map<string, DailyStat>) {
+  let longest = 0;
+  for (const stat of stats.values()) {
+    if (stat.streakDays > longest) longest = stat.streakDays;
+  }
+  return longest;
+}
+
+type BadgeKey =
+  | "first_checkin"
+  | "streak_7"
+  | "streak_30"
+  | "total_10h"
+  | "total_50h"
+  | "total_100h"
+  | "single_day_4h"
+  | "subject_50h"
+  | "all_six_subjects";
+
+const BADGE_DEFINITIONS: Array<{
+  key: BadgeKey;
+  name: string;
+  description: string;
+  icon: string;
+}> = [
+  { key: "first_checkin", name: "初次打卡", description: "完成第一次学习记录", icon: "🌱" },
+  { key: "streak_7", name: "连签 7 日", description: "连续 7 天保持打卡", icon: "🔥" },
+  { key: "streak_30", name: "连签 30 日", description: "连续 30 天稳如老狗", icon: "💎" },
+  { key: "total_10h", name: "积少成多", description: "累计学习满 10 小时", icon: "📚" },
+  { key: "total_50h", name: "稳扎稳打", description: "累计学习满 50 小时", icon: "📖" },
+  { key: "total_100h", name: "百时备考", description: "累计学习满 100 小时", icon: "🏆" },
+  { key: "single_day_4h", name: "高强度日", description: "单日学习满 4 小时", icon: "⚡" },
+  { key: "subject_50h", name: "科目专家", description: "单科累计满 50 小时", icon: "🎯" },
+  { key: "all_six_subjects", name: "六科齐学", description: "六门科目都有学习记录", icon: "🌈" }
+];
+
+function computeBadges(args: {
+  totalMinutes: number;
+  currentStreakDays: number;
+  longestStreakDays: number;
+  bestDayMinutes: number;
+  completedCount: number;
+  subjectTotals: Array<{ subject: Subject; totalMinutes: number }>;
+  completedSubjectCount: number;
+}) {
+  const peakStreak = Math.max(args.currentStreakDays, args.longestStreakDays);
+  const maxSubjectMinutes = args.subjectTotals.reduce(
+    (max, item) => (item.totalMinutes > max ? item.totalMinutes : max),
+    0
+  );
+  const unlockMap: Record<BadgeKey, boolean> = {
+    first_checkin: args.completedCount >= 1,
+    streak_7: peakStreak >= 7,
+    streak_30: peakStreak >= 30,
+    total_10h: args.totalMinutes >= 600,
+    total_50h: args.totalMinutes >= 3000,
+    total_100h: args.totalMinutes >= 6000,
+    single_day_4h: args.bestDayMinutes >= 240,
+    subject_50h: maxSubjectMinutes >= 3000,
+    all_six_subjects: args.completedSubjectCount >= SUBJECTS.length
+  };
+
+  return BADGE_DEFINITIONS.map((badge) => ({
+    ...badge,
+    unlocked: unlockMap[badge.key]
+  }));
 }
 
 function serializeProfile(

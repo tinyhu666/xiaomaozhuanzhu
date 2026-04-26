@@ -84,11 +84,21 @@ export type PublicProfileResponse = {
   }>;
 };
 
+export type Badge = {
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+};
+
 export type ProfileDashboardResponse = {
   profile: UserProfile;
   summary: {
     totalMinutes: number;
     currentStreakDays: number;
+    longestStreakDays?: number;
+    completedSessionCount?: number;
   };
   subjects: Array<{
     subject: string;
@@ -98,4 +108,5 @@ export type ProfileDashboardResponse = {
     date: string | null;
     totalMinutes: number;
   };
+  badges?: Badge[];
 };

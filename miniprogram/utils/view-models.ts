@@ -91,10 +91,3 @@ export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes
       durationText: formatDuration(item.totalMinutes)
     }));
 }
-
-export function buildAuthorizedProfile(profile: { nickName: string; avatarUrl: string }) {
-  return {
-    nickname: profile.nickName.trim() || "CPA考生",
-    avatarUrl: profile.avatarUrl.replace(/\/132$/, "/0")
-  };
-}

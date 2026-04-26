@@ -34,7 +34,7 @@
 .calendar-hero__nav {
   padding: 0;
   height: 72rpx;
-  line-height: 72rpx;
+  min-height: 72rpx;
   font-size: 24rpx;
 }
 

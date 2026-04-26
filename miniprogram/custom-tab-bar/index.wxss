@@ -2,7 +2,7 @@
   position: fixed;
   left: 28rpx;
   right: 28rpx;
-  bottom: 24rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16rpx;
@@ -11,6 +11,7 @@
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 24rpx 56rpx rgba(46, 169, 133, 0.16);
   backdrop-filter: blur(20rpx);
+  z-index: 100;
 }
 
 .tab-item {

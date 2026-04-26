@@ -10,13 +10,45 @@
 
     <view class="profile-card__content">
       <text class="profile-card__name">{{profile ? (profile.nickname || 'CPA考生') : 'CPA考生'}}</text>
-      <text class="profile-card__hint">微信昵称和头像会同步到这里，学习成果也会持续累积。</text>
+      <text class="profile-card__hint">学习记录会持续累积，按节奏推进就好。</text>
     </view>
   </view>
 
   <view class="metric-card metric-card--primary">
     <text class="metric-card__label">累计学习时长</text>
     <text class="metric-card__value">{{totalMinutesText}}</text>
+    <view class="metric-card__row">
+      <view class="metric-card__chip">
+        <text class="metric-card__chip-label">当前连签</text>
+        <text class="metric-card__chip-value">{{streakText}}</text>
+      </view>
+      <view class="metric-card__chip">
+        <text class="metric-card__chip-label">最长连签</text>
+        <text class="metric-card__chip-value">{{longestStreakText}}</text>
+      </view>
+      <view class="metric-card__chip">
+        <text class="metric-card__chip-label">完成次数</text>
+        <text class="metric-card__chip-value">{{completedCountText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="metric-card" wx:if="{{badges.length}}">
+    <view class="metric-card__header">
+      <text class="metric-card__label">里程碑徽章</text>
+      <text class="metric-card__sub">{{unlockedBadgeCount}}/{{badges.length}}</text>
+    </view>
+    <view class="badge-grid">
+      <view
+        wx:for="{{badges}}"
+        wx:key="key"
+        class="badge-tile {{item.unlocked ? 'is-unlocked' : 'is-locked'}}"
+      >
+        <text class="badge-tile__icon">{{item.icon}}</text>
+        <text class="badge-tile__name">{{item.name}}</text>
+        <text class="badge-tile__desc">{{item.description}}</text>
+      </view>
+    </view>
   </view>
 
   <view class="metric-card">
