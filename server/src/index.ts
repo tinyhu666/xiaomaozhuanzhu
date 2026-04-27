@@ -16,18 +16,31 @@ if (envPath) {
   loadEnv({ path: envPath });
 }
 
-async function main() {
-  await ensureMySqlSchema(process.env);
+const port = Number(process.env.PORT ?? 3000);
+const app = createApp();
 
-  const port = Number(process.env.PORT ?? 3000);
-  const app = createApp();
+// Listen first so the cloud-run health check passes; bootstrap MySQL in the
+// background so a slow / misconfigured DB does not abort startup.
+app.listen(port, () => {
+  console.log(`CPA study check-in server listening on port ${port}`);
+});
 
-  app.listen(port, () => {
-    console.log(`CPA study check-in server listening on port ${port}`);
+ensureMySqlSchema(process.env)
+  .then((bootstrapped) => {
+    if (bootstrapped) {
+      console.log("MySQL schema bootstrap complete");
+    } else {
+      console.warn("MySQL bootstrap skipped (using in-memory store)");
+    }
+  })
+  .catch((error) => {
+    console.error("MySQL bootstrap failed (continuing in degraded state)", error);
   });
-}
 
-main().catch((error) => {
-  console.error("Failed to start CPA study check-in server", error);
-  process.exit(1);
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled promise rejection", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception", error);
 });

@@ -78,7 +78,13 @@ export function createApp(options: CreateAppOptions = {}) {
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
 
-  app.use(express.json());
+  app.use(express.json({ limit: "1mb" }));
+
+  // Health probes for 微信云托管 — must respond 200 quickly without auth.
+  app.get(["/", "/health", "/healthz", "/readiness"], (_request, response) => {
+    response.json({ status: "ok", time: clock.now().toISOString() });
+  });
+
   app.use((request, response, next) => {
     const requestId = randomUUID();
     const openid = getOpenId(request) || "-";
