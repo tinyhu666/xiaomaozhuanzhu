@@ -37,9 +37,13 @@ export function buildMonthGrid(
   month: string,
   dailyStats: Record<string, { totalMinutes: number; heatLevel: number }>
 ) {
-  const [yearText, monthText] = month.split("-");
+  const safeMonth = typeof month === "string" ? month : "";
+  const [yearText, monthText] = safeMonth.split("-");
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) {
+    return [] as Array<{ date: string; day: number; inMonth: boolean; heatLevel: number; totalMinutes: number }>;
+  }
   const firstDay = new Date(Date.UTC(year, monthIndex, 1));
   const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0));
   const leading = (firstDay.getUTCDay() + 6) % 7;
@@ -79,8 +83,11 @@ export function formatDuration(totalMinutes: number) {
 }
 
 export function getDailyQuote(dateKey: string) {
-  const day = Number(dateKey.split("-")[2] ?? "1");
-  return DAILY_QUOTES[Math.max(day, 1) % DAILY_QUOTES.length];
+  const safe = typeof dateKey === "string" ? dateKey : "";
+  const parts = safe.split("-");
+  const day = Number(parts[2] ?? "1");
+  const safeDay = Number.isFinite(day) && day > 0 ? day : 1;
+  return DAILY_QUOTES[safeDay % DAILY_QUOTES.length];
 }
 
 export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes: number }>) {

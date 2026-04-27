@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { createPool, type Pool, type RowDataPacket } from "mysql2/promise";
 
+import { formatShanghaiDate } from "../domain/date-utils";
 import type {
   DailyStat,
   PublicProfileSettings,
@@ -8,6 +9,40 @@ import type {
   StudySession,
   User
 } from "../types";
+
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (typeof value === "string" && value) {
+    // mysql2 with dateStrings: true returns DATETIME as "YYYY-MM-DD HH:mm:ss"
+    // assumed to be in Shanghai timezone (timezone: "+08:00")
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(value)) {
+      const normalized = value.replace(" ", "T") + (value.includes("Z") || /[+-]\d{2}:?\d{2}$/.test(value) ? "" : "+08:00");
+      const date = new Date(normalized);
+      if (!Number.isNaN(date.getTime())) return date.toISOString();
+    }
+    return value;
+  }
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+function toDateKey(value: unknown): string {
+  if (value instanceof Date) {
+    return formatShanghaiDate(value);
+  }
+  if (typeof value === "string") {
+    if (value.length >= 10 && value[4] === "-") return value.slice(0, 10);
+    return value;
+  }
+  return String(value ?? "");
+}
+
+function toNullableIsoString(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  return toIsoString(value);
+}
 
 type SessionRow = RowDataPacket & {
   id: string;
@@ -43,7 +78,9 @@ export class MySQLStore {
       createPool({
         uri: connectionString,
         connectionLimit: 10,
-        namedPlaceholders: true
+        namedPlaceholders: true,
+        dateStrings: true,
+        timezone: "+08:00"
       })
     );
   }
@@ -281,7 +318,12 @@ export class MySQLStore {
       "SELECT user_id, stat_date, total_minutes, session_count, heat_level, streak_snapshot, updated_at FROM daily_stats WHERE user_id = ? ORDER BY stat_date ASC",
       [userId]
     );
-    return new Map(rows.map((row) => [row.stat_date, mapDailyStatRow(row)]));
+    return new Map(
+      rows.map((row) => {
+        const stat = mapDailyStatRow(row);
+        return [stat.date, stat] as const;
+      })
+    );
   }
 
   private async getUserByOpenid(openid: string) {
@@ -294,29 +336,39 @@ function mapUserRow(row: RowDataPacket): User {
   return {
     id: String(row.id),
     openid: String(row.openid),
-    nickname: String(row.nickname),
-    avatarUrl: String(row.avatar_url),
+    nickname: String(row.nickname ?? ""),
+    avatarUrl: String(row.avatar_url ?? ""),
     profileCompleted: Boolean(row.profile_completed),
-    createdAt: String(row.created_at),
-    lastLoginAt: String(row.last_login_at)
+    createdAt: toIsoString(row.created_at),
+    lastLoginAt: toIsoString(row.last_login_at)
   };
 }
 
 function mapSessionRow(row: SessionRow): StudySession {
+  const pauseSegments = row.pause_segments_json
+    ? typeof row.pause_segments_json === "string"
+      ? JSON.parse(row.pause_segments_json)
+      : (row.pause_segments_json as unknown as StudySession["pauseSegments"])
+    : [];
+  const tags = row.tags_json
+    ? typeof row.tags_json === "string"
+      ? JSON.parse(row.tags_json)
+      : (row.tags_json as unknown as StudySession["tags"])
+    : [];
   return {
-    id: row.id,
-    userId: row.user_id,
+    id: String(row.id),
+    userId: String(row.user_id),
     status: row.status,
-    startedAt: row.started_at,
-    endedAt: row.ended_at,
-    currentPauseStartedAt: row.current_pause_started_at,
-    pauseSegments: row.pause_segments_json ? JSON.parse(row.pause_segments_json) : [],
-    durationMinutes: row.duration_minutes,
-    summary: row.summary,
+    startedAt: toIsoString(row.started_at),
+    endedAt: toNullableIsoString(row.ended_at),
+    currentPauseStartedAt: toNullableIsoString(row.current_pause_started_at),
+    pauseSegments,
+    durationMinutes: Number(row.duration_minutes ?? 0),
+    summary: String(row.summary ?? ""),
     subject: (row.subject as StudySession["subject"]) ?? null,
-    tags: row.tags_json ? JSON.parse(row.tags_json) : [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
+    tags,
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at)
   };
 }
 
@@ -327,18 +379,18 @@ function mapPhotoRow(row: RowDataPacket): SessionPhoto {
     fileId: String(row.file_id),
     objectKey: String(row.object_key),
     sortOrder: Number(row.sort_order),
-    createdAt: String(row.created_at)
+    createdAt: toIsoString(row.created_at)
   };
 }
 
 function mapDailyStatRow(row: DailyStatRow): DailyStat {
   return {
-    userId: row.user_id,
-    date: row.stat_date,
-    totalMinutes: row.total_minutes,
-    sessionCount: row.session_count,
-    heatLevel: row.heat_level,
-    streakDays: row.streak_snapshot,
-    updatedAt: row.updated_at
+    userId: String(row.user_id),
+    date: toDateKey(row.stat_date),
+    totalMinutes: Number(row.total_minutes ?? 0),
+    sessionCount: Number(row.session_count ?? 0),
+    heatLevel: Number(row.heat_level ?? 0),
+    streakDays: Number(row.streak_snapshot ?? 0),
+    updatedAt: toIsoString(row.updated_at)
   };
 }

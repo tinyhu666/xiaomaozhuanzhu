@@ -35,15 +35,27 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
     header["content-type"] = "application/json";
   }
 
-  const response = await wx.cloud.callContainer({
-    config: {
-      env: runtimeConfig.cloudEnv
-    },
-    path: `${runtimeConfig.basePath}${path}`,
-    method,
-    header,
-    data: method === "POST" ? data ?? {} : data
-  });
+  let response: { data: unknown; statusCode?: number };
+  try {
+    response = await wx.cloud.callContainer({
+      config: {
+        env: runtimeConfig.cloudEnv
+      },
+      path: `${runtimeConfig.basePath}${path}`,
+      method,
+      header,
+      data: method === "POST" ? data ?? {} : data
+    });
+  } catch (error) {
+    const errMsg = typeof error === "object" && error && "errMsg" in error ? String((error as { errMsg: string }).errMsg) : String(error);
+    if (errMsg.includes("102002")) {
+      throw new Error(`后端服务未部署或服务名不匹配，请检查云托管服务名是否为 "${runtimeConfig.service}"`);
+    }
+    if (errMsg.includes("100002")) {
+      throw new Error("云托管环境 ID 不正确，请检查 runtime.ts 的 cloudEnv");
+    }
+    throw new Error(errMsg || "网络请求失败");
+  }
 
   const payload = response.data as
     | {
