@@ -1,8 +1,18 @@
 // @ts-nocheck
-import type { ActiveSession, HomeResponse } from "../../types/models";
-import { getCalendar, getHome, pauseSession, resumeSession, startSession } from "../../utils/api";
+import type { ActiveSession, HomeResponse, MakeupOpportunity, WeeklyReview } from "../../types/models";
+import { getCalendar, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
 import { buildMonthGrid, formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
+
+type WeeklyReviewView = {
+  weekRangeText: string;
+  thisWeekText: string;
+  lastWeekText: string;
+  bestDayText: string;
+  topSubjectText: string;
+  changeText: string;
+  changeDirection: "up" | "down" | "flat";
+};
 
 type HomePageData = {
   profile: HomeResponse["profile"] | null;
@@ -21,6 +31,9 @@ type HomePageData = {
   goalText: string;
   goalReached: boolean;
   pausedMinutes: number;
+  weekly: WeeklyReviewView | null;
+  makeup: MakeupOpportunity | null;
+  makeupLoading: boolean;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -44,7 +57,10 @@ Page<{}, HomePageData>({
     goalProgress: 0,
     goalText: `0m / ${formatDuration(DAILY_TARGET_MINUTES)}`,
     goalReached: false,
-    pausedMinutes: 0
+    pausedMinutes: 0,
+    weekly: null,
+    makeup: null,
+    makeupLoading: false
   },
 
   async onShow() {
@@ -96,7 +112,9 @@ Page<{}, HomePageData>({
         streakText: `${home.summary.currentStreakDays}天`,
         goalProgress,
         goalText: `${formatDuration(todayMinutes)} / ${formatDuration(DAILY_TARGET_MINUTES)}`,
-        goalReached: todayMinutes >= DAILY_TARGET_MINUTES
+        goalReached: todayMinutes >= DAILY_TARGET_MINUTES,
+        weekly: this.buildWeeklyView(home.weeklyReview ?? null),
+        makeup: home.makeupAvailable ?? null
       });
       this.applyActiveSession(home.activeSession ?? null);
     } catch (error) {
@@ -105,6 +123,60 @@ Page<{}, HomePageData>({
         title: error instanceof Error ? error.message : "加载主页数据失败",
         icon: "none"
       });
+    }
+  },
+
+  buildWeeklyView(weekly: WeeklyReview | null): WeeklyReviewView | null {
+    if (!weekly) return null;
+    if (weekly.thisWeekMinutes === 0 && weekly.lastWeekMinutes === 0) return null;
+    const formatRange = (start: string, end: string) => `${start.slice(5).replace("-", ".")} – ${end.slice(5).replace("-", ".")}`;
+    const diff = weekly.thisWeekMinutes - weekly.lastWeekMinutes;
+    let changeDirection: "up" | "down" | "flat" = "flat";
+    let changeText = "持平上周";
+    if (weekly.lastWeekMinutes === 0 && weekly.thisWeekMinutes > 0) {
+      changeDirection = "up";
+      changeText = "比上周多了 " + formatDuration(weekly.thisWeekMinutes);
+    } else if (diff > 0) {
+      changeDirection = "up";
+      const ratio = Math.round((diff / Math.max(weekly.lastWeekMinutes, 1)) * 100);
+      changeText = `比上周多 ${formatDuration(diff)}（+${ratio}%）`;
+    } else if (diff < 0) {
+      changeDirection = "down";
+      const ratio = Math.round((Math.abs(diff) / Math.max(weekly.lastWeekMinutes, 1)) * 100);
+      changeText = `比上周少 ${formatDuration(Math.abs(diff))}（-${ratio}%）`;
+    }
+    const bestDayText = weekly.bestDay.date
+      ? `${weekly.bestDay.date.slice(5).replace("-", ".")} · ${formatDuration(weekly.bestDay.totalMinutes)}`
+      : "本周还没开始记录";
+    const topSubjectText = weekly.topSubject
+      ? `${weekly.topSubject.subject} · ${formatDuration(weekly.topSubject.totalMinutes)}`
+      : "尚无主科";
+    return {
+      weekRangeText: formatRange(weekly.weekStart, weekly.weekEnd),
+      thisWeekText: formatDuration(weekly.thisWeekMinutes),
+      lastWeekText: formatDuration(weekly.lastWeekMinutes),
+      bestDayText,
+      topSubjectText,
+      changeText,
+      changeDirection
+    };
+  },
+
+  async handleMakeup() {
+    if (!this.data.makeup || this.data.makeupLoading) return;
+    this.setData({ makeupLoading: true });
+    try {
+      const result = await makeupSession();
+      wx.showToast({ title: `补签成功，连签 ${result.streakDays} 天`, icon: "success" });
+      this.refreshAll();
+    } catch (error) {
+      console.error("[home] makeup failed", error);
+      wx.showToast({
+        title: error instanceof Error ? error.message : "补签失败，稍后再试",
+        icon: "none"
+      });
+    } finally {
+      this.setData({ makeupLoading: false });
     }
   },
 

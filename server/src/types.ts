@@ -1,6 +1,6 @@
 import type { SessionTag, Subject } from "./constants";
 
-export type SessionStatus = "running" | "paused" | "completed" | "abandoned";
+export type SessionStatus = "running" | "paused" | "completed" | "abandoned" | "makeup";
 
 export interface User {
   id: string;

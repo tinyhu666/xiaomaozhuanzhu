@@ -411,16 +411,15 @@ describe("CPA study check-in API", () => {
       date: "2026-04-16",
       totalMinutes: 225
     });
-    expect(dashboard.body.subjects).toEqual([
-      {
-        subject: "审计",
-        totalMinutes: 135
-      },
-      {
-        subject: "会计",
-        totalMinutes: 90
-      }
+    expect(dashboard.body.subjects).toMatchObject([
+      { subject: "审计", totalMinutes: 135, targetMinutes: 13200 },
+      { subject: "会计", totalMinutes: 90, targetMinutes: 16800 }
     ]);
+    expect(dashboard.body.subjectTargets).toHaveLength(6);
+    const accounting = (dashboard.body.subjectTargets as Array<{ subject: string; targetMinutes: number }>).find(
+      (item) => item.subject === "会计"
+    );
+    expect(accounting?.targetMinutes).toBe(16800);
 
     const badgeMap = new Map(
       (dashboard.body.badges as Array<{ key: string; unlocked: boolean }>).map((badge) => [badge.key, badge.unlocked])
@@ -430,5 +429,66 @@ describe("CPA study check-in API", () => {
     expect(badgeMap.get("total_10h")).toBe(false);
     expect(badgeMap.get("single_day_4h")).toBe(false);
     expect(badgeMap.get("all_six_subjects")).toBe(false);
+  });
+
+  it("recovers a one-day streak gap via makeup and refuses again within 7 days", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "makeup-user")
+      .send({
+        nickname: "补签同学",
+        avatarUrl: "https://example.com/makeup.png",
+        isPublic: false,
+        requireWechatAuth: true
+      })
+      .expect(200);
+
+    // Day 1 (2026-04-16): a completed session
+    const sessionOne = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "makeup-user")
+      .expect(200);
+    clock.advanceMinutes(60);
+    await request(app)
+      .post(`/api/sessions/${sessionOne.body.session.id}/complete`)
+      .set("x-wx-openid", "makeup-user")
+      .send({
+        summary: "第一天",
+        subject: "会计",
+        tags: [],
+        photos: [
+          { fileId: "cloud://demo/m1.jpg", objectKey: "checkins/2026/04/m1.jpg" }
+        ]
+      })
+      .expect(200);
+
+    // Skip Day 2 (2026-04-17) entirely, jump to Day 3 (2026-04-18)
+    clock.advanceMinutes(60 * 47); // 47h forward → 2026-04-18 ~11:00
+    const home = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "makeup-user")
+      .expect(200);
+    expect(home.body.makeupAvailable).not.toBeNull();
+    expect(home.body.makeupAvailable.date).toBe("2026-04-17");
+    expect(home.body.weeklyReview.thisWeekMinutes).toBe(60);
+
+    const makeupResponse = await request(app)
+      .post("/api/sessions/makeup")
+      .set("x-wx-openid", "makeup-user")
+      .expect(200);
+    expect(makeupResponse.body.makeupDate).toBe("2026-04-17");
+
+    const homeAfter = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "makeup-user")
+      .expect(200);
+    expect(homeAfter.body.makeupAvailable).toBeNull();
+    expect(homeAfter.body.summary.currentStreakDays).toBe(2);
+
+    // Within 7 days, second attempt should fail
+    await request(app)
+      .post("/api/sessions/makeup")
+      .set("x-wx-openid", "makeup-user")
+      .expect(409);
   });
 });

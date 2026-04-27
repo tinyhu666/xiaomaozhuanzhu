@@ -91,3 +91,24 @@ export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes
       durationText: formatDuration(item.totalMinutes)
     }));
 }
+
+export function buildSubjectProgress(items: Array<{ subject: string; totalMinutes: number; targetMinutes?: number }>) {
+  return [...items]
+    .sort((left, right) => {
+      const leftProgress = left.targetMinutes ? left.totalMinutes / left.targetMinutes : 0;
+      const rightProgress = right.targetMinutes ? right.totalMinutes / right.targetMinutes : 0;
+      return rightProgress - leftProgress;
+    })
+    .map((item) => {
+      const target = item.targetMinutes ?? 0;
+      const progress = target > 0 ? Math.min(1, item.totalMinutes / target) : 0;
+      return {
+        ...item,
+        progress,
+        progressPercent: Math.round(progress * 100),
+        durationText: formatDuration(item.totalMinutes),
+        targetText: target > 0 ? `${Math.round(target / 60)}h` : "",
+        reached: target > 0 && item.totalMinutes >= target
+      };
+    });
+}

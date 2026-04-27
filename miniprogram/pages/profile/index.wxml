@@ -61,10 +61,13 @@
       <view wx:for="{{subjectRows}}" wx:key="subject" class="subject-row">
         <view class="subject-row__top">
           <text class="subject-row__name">{{item.subject}}</text>
-          <text class="subject-row__value">{{item.durationText}}</text>
+          <view class="subject-row__meta">
+            <text class="subject-row__value {{item.reached ? 'is-reached' : ''}}">{{item.ratioText}}</text>
+            <text wx:if="{{item.targetMinutes}}" class="subject-row__percent">{{item.progressPercent}}%</text>
+          </view>
         </view>
         <view class="subject-row__track">
-          <view class="subject-row__fill" style="{{item.barStyle}}"></view>
+          <view class="subject-row__fill {{item.reached ? 'is-reached' : ''}}" style="{{item.barStyle}}"></view>
         </view>
       </view>
     </view>

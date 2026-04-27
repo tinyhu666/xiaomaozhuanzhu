@@ -174,6 +174,129 @@
   font-weight: 600;
 }
 
+.makeup-banner {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(135deg, rgba(255, 230, 191, 0.85) 0%, rgba(255, 207, 138, 0.95) 100%);
+  border: 2rpx solid rgba(229, 158, 87, 0.32);
+  box-shadow: 0 16rpx 36rpx rgba(229, 158, 87, 0.18);
+}
+
+.makeup-banner__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.makeup-banner__title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #6b3f15;
+}
+
+.makeup-banner__sub {
+  font-size: 22rpx;
+  color: #8a5a2b;
+  line-height: 1.5;
+}
+
+.makeup-banner__btn {
+  flex-shrink: 0;
+  min-height: 72rpx;
+  height: 72rpx;
+  padding: 0 28rpx;
+  font-size: 26rpx;
+  background: linear-gradient(135deg, #f4a93f 0%, #e58932 100%);
+  box-shadow: 0 12rpx 28rpx rgba(229, 137, 50, 0.32);
+}
+
+.weekly-card {
+  padding: 26rpx;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.86);
+  border: 2rpx solid rgba(46, 169, 133, 0.08);
+  box-shadow: 0 16rpx 36rpx rgba(46, 169, 133, 0.06);
+}
+
+.weekly-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.weekly-card__title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.weekly-card__title {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.weekly-card__range {
+  font-size: 22rpx;
+  color: var(--text-sub);
+}
+
+.weekly-card__total {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--mint-600);
+}
+
+.weekly-card__change {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.weekly-card__change--up {
+  color: var(--mint-600);
+}
+
+.weekly-card__change--down {
+  color: #c2654a;
+}
+
+.weekly-card__change--flat {
+  color: var(--text-sub);
+}
+
+.weekly-card__rows {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.weekly-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 24rpx;
+}
+
+.weekly-card__row-label {
+  color: var(--text-sub);
+}
+
+.weekly-card__row-value {
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 .mini-calendar {
   padding: 26rpx;
   border-radius: 34rpx;

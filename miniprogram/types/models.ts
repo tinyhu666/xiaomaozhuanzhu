@@ -41,6 +41,20 @@ export type SessionPhoto = {
   tempUrl?: string;
 };
 
+export type WeeklyReview = {
+  weekStart: string;
+  weekEnd: string;
+  thisWeekMinutes: number;
+  lastWeekMinutes: number;
+  bestDay: { date: string | null; totalMinutes: number };
+  topSubject: { subject: string; totalMinutes: number } | null;
+};
+
+export type MakeupOpportunity = {
+  date: string;
+  streakIfRecovered: number;
+};
+
 export type HomeResponse = {
   profile: UserProfile;
   activeSession: ActiveSession | null;
@@ -50,6 +64,8 @@ export type HomeResponse = {
     currentStreakDays: number;
     lastSummary: string;
   };
+  weeklyReview?: WeeklyReview;
+  makeupAvailable?: MakeupOpportunity | null;
 };
 
 export type CalendarDayResponse = {
@@ -92,6 +108,13 @@ export type Badge = {
   unlocked: boolean;
 };
 
+export type SubjectProgress = {
+  subject: string;
+  totalMinutes: number;
+  targetMinutes?: number;
+  progress?: number;
+};
+
 export type ProfileDashboardResponse = {
   profile: UserProfile;
   summary: {
@@ -100,10 +123,8 @@ export type ProfileDashboardResponse = {
     longestStreakDays?: number;
     completedSessionCount?: number;
   };
-  subjects: Array<{
-    subject: string;
-    totalMinutes: number;
-  }>;
+  subjects: SubjectProgress[];
+  subjectTargets?: SubjectProgress[];
   bestDay: {
     date: string | null;
     totalMinutes: number;

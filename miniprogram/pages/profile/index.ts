@@ -1,10 +1,11 @@
 // @ts-nocheck
 import type { Badge, ProfileDashboardResponse } from "../../types/models";
 import { getProfileDashboard } from "../../utils/api";
-import { buildSubjectSummary, formatDuration } from "../../utils/view-models";
+import { buildSubjectProgress, formatDuration } from "../../utils/view-models";
 
-type SubjectSummaryRow = ReturnType<typeof buildSubjectSummary>[number] & {
+type SubjectProgressRow = ReturnType<typeof buildSubjectProgress>[number] & {
   barStyle: string;
+  ratioText: string;
 };
 
 type ProfilePageData = {
@@ -15,7 +16,7 @@ type ProfilePageData = {
   completedCountText: string;
   bestDayDateText: string;
   bestDayDurationText: string;
-  subjectRows: SubjectSummaryRow[];
+  subjectRows: SubjectProgressRow[];
   badges: Badge[];
   unlockedBadgeCount: number;
 };
@@ -45,8 +46,12 @@ Page<{}, ProfilePageData>({
   async loadProfile() {
     try {
       const dashboard = await getProfileDashboard();
-      const subjectRows = buildSubjectSummary(dashboard.subjects);
-      const maxMinutes = subjectRows[0]?.totalMinutes ?? 0;
+      const sourceSubjects = dashboard.subjectTargets ?? dashboard.subjects;
+      const subjectRows = buildSubjectProgress(sourceSubjects).map((item) => ({
+        ...item,
+        barStyle: `width: ${Math.max(item.progressPercent, item.totalMinutes > 0 ? 6 : 0)}%`,
+        ratioText: item.targetText ? `${item.durationText} / ${item.targetText}` : item.durationText
+      }));
       const badges = dashboard.badges ?? [];
       const unlockedBadgeCount = badges.filter((badge) => badge.unlocked).length;
 
@@ -58,10 +63,7 @@ Page<{}, ProfilePageData>({
         completedCountText: `${dashboard.summary.completedSessionCount ?? 0}次`,
         bestDayDateText: dashboard.bestDay.date ? dashboard.bestDay.date.replace(/-/g, ".") : "暂无",
         bestDayDurationText: dashboard.bestDay.totalMinutes > 0 ? formatDuration(dashboard.bestDay.totalMinutes) : "还没有学习记录",
-        subjectRows: subjectRows.map((item) => ({
-          ...item,
-          barStyle: `width: ${maxMinutes ? Math.max((item.totalMinutes / maxMinutes) * 100, 18) : 0}%`
-        })),
+        subjectRows,
         badges,
         unlockedBadgeCount
       });

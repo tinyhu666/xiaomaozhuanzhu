@@ -36,3 +36,11 @@ export function addShanghaiDays(dateKey: string, amount: number) {
   return formatShanghaiDate(new Date(raw.getTime() - OFFSET_MS));
 }
 
+export function startOfShanghaiWeek(dateKey: string) {
+  const [yearText, monthText, dayText] = dateKey.split("-");
+  const utcMidnight = Date.UTC(Number(yearText), Number(monthText) - 1, Number(dayText));
+  const dayOfWeek = new Date(utcMidnight).getUTCDay();
+  const offsetToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  return addShanghaiDays(dateKey, -offsetToMonday);
+}
+

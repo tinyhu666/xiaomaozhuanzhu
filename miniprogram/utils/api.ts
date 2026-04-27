@@ -129,6 +129,13 @@ export function abandonSession(sessionId: string) {
   });
 }
 
+export function makeupSession() {
+  return callContainer<{ makeupDate: string; streakDays: number }>({
+    path: `/sessions/makeup`,
+    method: "POST"
+  });
+}
+
 export function completeSession(
   sessionId: string,
   payload: {

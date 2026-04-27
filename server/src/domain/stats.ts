@@ -23,6 +23,9 @@ export function calculateDurationMinutes(
 }
 
 export function buildDayContributions(session: StudySession) {
+  if (session.status === "makeup" && session.endedAt) {
+    return new Map([[formatShanghaiDate(session.endedAt), 0]]);
+  }
   if (session.status !== "completed" || !session.endedAt) {
     return new Map<string, number>();
   }
@@ -55,7 +58,9 @@ export function rebuildDailyStats(userId: string, sessions: StudySession[], now:
     for (const [date, minutes] of contributions.entries()) {
       const existing = byDate.get(date) ?? { totalMinutes: 0, sessionCount: 0 };
       existing.totalMinutes += minutes;
-      existing.sessionCount += 1;
+      if (session.status === "completed") {
+        existing.sessionCount += 1;
+      }
       byDate.set(date, existing);
     }
   }

@@ -207,11 +207,27 @@
   text-overflow: ellipsis;
 }
 
-.subject-row__value {
+.subject-row__meta {
+  display: flex;
   flex-shrink: 0;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.subject-row__value {
   font-size: 24rpx;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.subject-row__value.is-reached {
   color: var(--mint-600);
+}
+
+.subject-row__percent {
+  font-size: 22rpx;
   font-weight: 700;
+  color: var(--mint-600);
 }
 
 .subject-row__track {
@@ -225,6 +241,11 @@
 .subject-row__fill {
   height: 100%;
   border-radius: inherit;
+  background: linear-gradient(135deg, #8fd9be 0%, #5ec39d 100%);
+  transition: width 0.4s ease;
+}
+
+.subject-row__fill.is-reached {
   background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
 }
 

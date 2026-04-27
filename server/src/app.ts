@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 
-import { SUBJECTS, TAGS, type SessionTag, type Subject } from "./constants";
-import { monthBounds, formatShanghaiDate } from "./domain/date-utils";
+import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
+import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
@@ -131,7 +131,8 @@ export function createApp(options: CreateAppOptions = {}) {
     const todayKey = formatShanghaiDate(clock.now());
     const dailyStats = await store.getDailyStats(context.user.id);
     const today = dailyStats.get(todayKey) ?? emptyDailyStat(context.user.id, todayKey, clock.now().toISOString());
-    const latestCompleted = (await store.listSessions(context.user.id)).find((session) => session.status === "completed") ?? null;
+    const sessions = await store.listSessions(context.user.id);
+    const latestCompleted = sessions.find((session) => session.status === "completed") ?? null;
 
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
@@ -141,21 +142,28 @@ export function createApp(options: CreateAppOptions = {}) {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
         currentStreakDays: getCurrentStreak(dailyStats),
         lastSummary: latestCompleted?.summary ?? ""
-      }
+      },
+      weeklyReview: buildWeeklyReview(dailyStats, sessions, todayKey),
+      makeupAvailable: findMakeupOpportunity(dailyStats, sessions, todayKey)
     });
   }));
 
   app.get("/api/me/dashboard", withUser(store, clock, async (_request, response, context) => {
     const dailyStats = await store.getDailyStats(context.user.id);
     const sessions = (await store.listSessions(context.user.id)).filter((session) => session.status === "completed");
-    const subjectTotals = SUBJECTS.map((subject) => ({
-      subject,
-      totalMinutes: sessions
+    const subjectTotals = SUBJECTS.map((subject) => {
+      const totalMinutes = sessions
         .filter((session) => session.subject === subject)
-        .reduce((sum, session) => sum + session.durationMinutes, 0)
-    }))
-      .filter((item) => item.totalMinutes > 0)
-      .sort((left, right) => right.totalMinutes - left.totalMinutes);
+        .reduce((sum, session) => sum + session.durationMinutes, 0);
+      const targetMinutes = SUBJECT_TARGET_MINUTES[subject];
+      return {
+        subject,
+        totalMinutes,
+        targetMinutes,
+        progress: targetMinutes > 0 ? Math.min(1, totalMinutes / targetMinutes) : 0
+      };
+    }).sort((left, right) => right.totalMinutes - left.totalMinutes);
+    const subjectsWithProgress = subjectTotals.filter((item) => item.totalMinutes > 0);
     const bestDay = [...dailyStats.values()].reduce(
       (result, stat) => {
         if (stat.totalMinutes > result.totalMinutes) {
@@ -185,7 +193,8 @@ export function createApp(options: CreateAppOptions = {}) {
         longestStreakDays,
         completedSessionCount: sessions.length
       },
-      subjects: subjectTotals,
+      subjects: subjectsWithProgress,
+      subjectTargets: subjectTotals,
       bestDay,
       badges: computeBadges({
         totalMinutes,
@@ -193,7 +202,7 @@ export function createApp(options: CreateAppOptions = {}) {
         longestStreakDays,
         bestDayMinutes: bestDay.totalMinutes,
         completedCount: sessions.length,
-        subjectTotals,
+        subjectTotals: subjectsWithProgress.map((item) => ({ subject: item.subject, totalMinutes: item.totalMinutes })),
         completedSubjectCount: completedSubjects.size
       })
     });
@@ -269,6 +278,52 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ session });
   }));
 
+  app.post("/api/sessions/makeup", withUser(store, clock, async (_request, response, context) => {
+    const todayKey = formatShanghaiDate(clock.now());
+    const dailyStats = await store.getDailyStats(context.user.id);
+    const sessions = await store.listSessions(context.user.id);
+    const opportunity = findMakeupOpportunity(dailyStats, sessions, todayKey);
+    if (!opportunity) {
+      throw new AppError(409, "INVALID_STATE", "当前没有可补签的连签缺口");
+    }
+
+    const nowIso = clock.now().toISOString();
+    const dayMidnight = new Date(`${opportunity.date}T04:00:00.000Z`);
+    const makeupSession: StudySession = {
+      id: randomUUID(),
+      userId: context.user.id,
+      status: "makeup",
+      startedAt: dayMidnight.toISOString(),
+      endedAt: new Date(dayMidnight.getTime() + 60_000).toISOString(),
+      currentPauseStartedAt: null,
+      pauseSegments: [],
+      durationMinutes: 0,
+      summary: "（补签）",
+      subject: null,
+      tags: [],
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+    await store.saveSession(makeupSession);
+
+    await store.replaceDailyStats(
+      context.user.id,
+      rebuildDailyStats(
+        context.user.id,
+        (await store.listSessions(context.user.id)).filter(
+          (item) => item.status === "completed" || item.status === "makeup"
+        ),
+        nowIso
+      )
+    );
+
+    const refreshedStats = await store.getDailyStats(context.user.id);
+    response.json({
+      makeupDate: opportunity.date,
+      streakDays: getCurrentStreak(refreshedStats)
+    });
+  }));
+
   app.post("/api/sessions/:id/complete", withUser(store, clock, async (request, response, context) => {
     const payload = parse(completeSchema, request.body);
     const session = await requireSession(store, String(request.params.id), context.user.id);
@@ -322,7 +377,9 @@ export function createApp(options: CreateAppOptions = {}) {
       context.user.id,
       rebuildDailyStats(
         context.user.id,
-        (await store.listSessions(context.user.id)).filter((item) => item.status === "completed"),
+        (await store.listSessions(context.user.id)).filter(
+          (item) => item.status === "completed" || item.status === "makeup"
+        ),
         now
       )
     );
@@ -590,6 +647,81 @@ async function resolvePublicAvatarUrl(storage: StorageClient, avatarUrl: string)
 function getCurrentStreak(stats: Map<string, DailyStat>) {
   const latest = [...stats.values()].sort((left, right) => right.date.localeCompare(left.date))[0];
   return latest?.streakDays ?? 0;
+}
+
+const MAKEUP_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+function buildWeeklyReview(
+  dailyStats: Map<string, DailyStat>,
+  sessions: StudySession[],
+  todayKey: string
+) {
+  const thisWeekStart = startOfShanghaiWeek(todayKey);
+  const lastWeekStart = addShanghaiDays(thisWeekStart, -7);
+  const lastWeekEnd = addShanghaiDays(thisWeekStart, -1);
+  const thisWeekEnd = addShanghaiDays(thisWeekStart, 6);
+
+  let thisWeekMinutes = 0;
+  let lastWeekMinutes = 0;
+  let bestDay: { date: string | null; totalMinutes: number } = { date: null, totalMinutes: 0 };
+
+  for (const stat of dailyStats.values()) {
+    if (stat.date >= thisWeekStart && stat.date <= thisWeekEnd) {
+      thisWeekMinutes += stat.totalMinutes;
+      if (stat.totalMinutes > bestDay.totalMinutes) {
+        bestDay = { date: stat.date, totalMinutes: stat.totalMinutes };
+      }
+    } else if (stat.date >= lastWeekStart && stat.date <= lastWeekEnd) {
+      lastWeekMinutes += stat.totalMinutes;
+    }
+  }
+
+  const subjectTally = new Map<string, number>();
+  for (const session of sessions) {
+    if (session.status !== "completed" || !session.endedAt || !session.subject) continue;
+    const dateKey = formatShanghaiDate(session.endedAt);
+    if (dateKey < thisWeekStart || dateKey > thisWeekEnd) continue;
+    subjectTally.set(session.subject, (subjectTally.get(session.subject) ?? 0) + session.durationMinutes);
+  }
+
+  const topSubjectEntry = [...subjectTally.entries()].sort((left, right) => right[1] - left[1])[0];
+
+  return {
+    weekStart: thisWeekStart,
+    weekEnd: thisWeekEnd,
+    thisWeekMinutes,
+    lastWeekMinutes,
+    bestDay,
+    topSubject: topSubjectEntry ? { subject: topSubjectEntry[0], totalMinutes: topSubjectEntry[1] } : null
+  };
+}
+
+function findMakeupOpportunity(
+  dailyStats: Map<string, DailyStat>,
+  sessions: StudySession[],
+  todayKey: string
+) {
+  const sortedDates = [...dailyStats.keys()].sort();
+  const lastDate = sortedDates[sortedDates.length - 1];
+  if (!lastDate) return null;
+  if (lastDate >= todayKey) return null;
+
+  const expectedYesterday = addShanghaiDays(todayKey, -1);
+  if (lastDate !== addShanghaiDays(expectedYesterday, -1)) return null;
+  if (dailyStats.has(expectedYesterday)) return null;
+
+  const recentMakeup = sessions
+    .filter((session) => session.status === "makeup" && session.createdAt)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+  if (recentMakeup) {
+    const elapsed = Date.now() - new Date(recentMakeup.createdAt).getTime();
+    if (Number.isFinite(elapsed) && elapsed < MAKEUP_COOLDOWN_MS) return null;
+  }
+
+  return {
+    date: expectedYesterday,
+    streakIfRecovered: (dailyStats.get(lastDate)?.streakDays ?? 0) + 2
+  };
 }
 
 function getLongestStreak(stats: Map<string, DailyStat>) {

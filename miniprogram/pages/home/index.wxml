@@ -1,4 +1,12 @@
 <view class="page-shell home-page">
+  <view wx:if="{{makeup}}" class="makeup-banner">
+    <view class="makeup-banner__text">
+      <text class="makeup-banner__title">昨天没打卡，今天还能补回来</text>
+      <text class="makeup-banner__sub">补签后连签可恢复到 {{makeup.streakIfRecovered}} 天，每 7 天可用一次</text>
+    </view>
+    <button class="cta-button makeup-banner__btn" loading="{{makeupLoading}}" disabled="{{makeupLoading}}" bindtap="handleMakeup">补签</button>
+  </view>
+
   <view class="quote-card">
     <text class="quote-card__en">{{quoteEn}}</text>
     <text class="quote-card__zh">{{quoteZh}}</text>
@@ -72,6 +80,31 @@
       <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
     </view>
     <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成，继续保持！</text>
+  </view>
+
+  <view wx:if="{{weekly}}" class="weekly-card">
+    <view class="weekly-card__header">
+      <view class="weekly-card__title-wrap">
+        <text class="weekly-card__title">本周复盘</text>
+        <text class="weekly-card__range">{{weekly.weekRangeText}}</text>
+      </view>
+      <text class="weekly-card__total">{{weekly.thisWeekText}}</text>
+    </view>
+    <text class="weekly-card__change weekly-card__change--{{weekly.changeDirection}}">{{weekly.changeText}}</text>
+    <view class="weekly-card__rows">
+      <view class="weekly-card__row">
+        <text class="weekly-card__row-label">最长一天</text>
+        <text class="weekly-card__row-value">{{weekly.bestDayText}}</text>
+      </view>
+      <view class="weekly-card__row">
+        <text class="weekly-card__row-label">主要科目</text>
+        <text class="weekly-card__row-value">{{weekly.topSubjectText}}</text>
+      </view>
+      <view class="weekly-card__row">
+        <text class="weekly-card__row-label">上周</text>
+        <text class="weekly-card__row-value">{{weekly.lastWeekText}}</text>
+      </view>
+    </view>
   </view>
 
   <view class="mini-calendar">
