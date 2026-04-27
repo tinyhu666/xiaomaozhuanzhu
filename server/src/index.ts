@@ -16,7 +16,8 @@ if (envPath) {
   loadEnv({ path: envPath });
 }
 
-const port = Number(process.env.PORT ?? 3000);
+// 微信云托管默认探针端口为 80，可通过 PORT 环境变量覆盖。
+const port = Number(process.env.PORT ?? 80);
 const app = createApp();
 
 // Listen first so the cloud-run health check passes; bootstrap MySQL in the

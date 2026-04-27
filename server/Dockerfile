@@ -24,6 +24,6 @@ COPY --from=builder /app/server/dist ./server/dist
 
 WORKDIR /app/server
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["node", "dist/src/index.js"]
