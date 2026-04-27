@@ -16,8 +16,8 @@ if (envPath) {
   loadEnv({ path: envPath });
 }
 
-// 微信云托管默认探针端口为 80，可通过 PORT 环境变量覆盖。
-const port = Number(process.env.PORT ?? 80);
+// 监听端口需与云托管「服务设置 → 监听端口」一致；可通过 PORT 环境变量覆盖。
+const port = Number(process.env.PORT ?? 3000);
 const app = createApp();
 
 // Listen first so the cloud-run health check passes; bootstrap MySQL in the
