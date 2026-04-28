@@ -5,13 +5,15 @@
 }
 
 .calendar-hero {
-  display: grid;
-  grid-template-columns: 128rpx 1fr 128rpx;
+  display: flex;
   align-items: center;
-  gap: 12rpx;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
 .calendar-hero__center {
+  flex: 1;
+  min-width: 0;
   text-align: center;
 }
 
@@ -32,10 +34,21 @@
 }
 
 .calendar-hero__nav {
-  padding: 0;
-  height: 72rpx;
-  min-height: 72rpx;
-  font-size: 24rpx;
+  flex: 0 0 auto;
+  padding: 0 28rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  color: var(--mint-600);
+  font-size: 26rpx;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.calendar-hero__nav--hover {
+  background: rgba(46, 169, 133, 0.2);
 }
 
 .calendar-board,

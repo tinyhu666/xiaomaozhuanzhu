@@ -109,6 +109,8 @@ button::after {
   font-weight: 700;
   line-height: 1.2;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
   box-sizing: border-box;
 }
 

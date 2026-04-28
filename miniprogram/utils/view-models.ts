@@ -82,12 +82,9 @@ export function formatDuration(totalMinutes: number) {
   return `${hours}h ${minutes}m`;
 }
 
-export function getDailyQuote(dateKey: string) {
-  const safe = typeof dateKey === "string" ? dateKey : "";
-  const parts = safe.split("-");
-  const day = Number(parts[2] ?? "1");
-  const safeDay = Number.isFinite(day) && day > 0 ? day : 1;
-  return DAILY_QUOTES[safeDay % DAILY_QUOTES.length];
+export function getDailyQuote(_dateKey?: string) {
+  const index = Math.floor(Math.random() * DAILY_QUOTES.length);
+  return DAILY_QUOTES[index];
 }
 
 export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes: number }>) {

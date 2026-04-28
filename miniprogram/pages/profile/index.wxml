@@ -10,78 +10,13 @@
 
     <view class="profile-card__content">
       <text class="profile-card__name">{{profile ? (profile.nickname || 'CPA考生') : 'CPA考生'}}</text>
-      <text class="profile-card__hint">学习记录会持续累积，按节奏推进就好。</text>
+      <text class="profile-card__hint">登录微信即可同步昵称和头像。</text>
     </view>
-  </view>
-
-  <view class="metric-card metric-card--primary">
-    <text class="metric-card__label">累计学习时长</text>
-    <text class="metric-card__value">{{totalMinutesText}}</text>
-    <view class="metric-card__row">
-      <view class="metric-card__chip">
-        <text class="metric-card__chip-label">当前连签</text>
-        <text class="metric-card__chip-value">{{streakText}}</text>
-      </view>
-      <view class="metric-card__chip">
-        <text class="metric-card__chip-label">最长连签</text>
-        <text class="metric-card__chip-value">{{longestStreakText}}</text>
-      </view>
-      <view class="metric-card__chip">
-        <text class="metric-card__chip-label">完成次数</text>
-        <text class="metric-card__chip-value">{{completedCountText}}</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="metric-card" wx:if="{{badges.length}}">
-    <view class="metric-card__header">
-      <text class="metric-card__label">里程碑徽章</text>
-      <text class="metric-card__sub">{{unlockedBadgeCount}}/{{badges.length}}</text>
-    </view>
-    <view class="badge-grid">
-      <view
-        wx:for="{{badges}}"
-        wx:key="key"
-        class="badge-tile {{item.unlocked ? 'is-unlocked' : 'is-locked'}}"
-      >
-        <text class="badge-tile__icon">{{item.icon}}</text>
-        <text class="badge-tile__name">{{item.name}}</text>
-        <text class="badge-tile__desc">{{item.description}}</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="metric-card">
-    <view class="metric-card__header">
-      <text class="metric-card__label">各科总时长</text>
-      <text class="metric-card__sub">{{subjectRows.length}}科</text>
-    </view>
-
-    <view wx:if="{{subjectRows.length}}" class="subject-list">
-      <view wx:for="{{subjectRows}}" wx:key="subject" class="subject-row">
-        <view class="subject-row__top">
-          <text class="subject-row__name">{{item.subject}}</text>
-          <view class="subject-row__meta">
-            <text class="subject-row__value {{item.reached ? 'is-reached' : ''}}">{{item.ratioText}}</text>
-            <text wx:if="{{item.targetMinutes}}" class="subject-row__percent">{{item.progressPercent}}%</text>
-          </view>
-        </view>
-        <view class="subject-row__track">
-          <view class="subject-row__fill {{item.reached ? 'is-reached' : ''}}" style="{{item.barStyle}}"></view>
-        </view>
-      </view>
-    </view>
-
-    <view wx:else class="empty-state">还没有按科目累积出学习记录</view>
-  </view>
-
-  <view class="metric-card">
-    <text class="metric-card__label">最长学习日</text>
-    <text class="metric-card__value metric-card__value--small">{{bestDayDateText}}</text>
-    <text class="metric-card__sub metric-card__sub--spaced">{{bestDayDurationText}}</text>
   </view>
 
   <view class="profile-actions">
     <button class="cta-button profile-actions__button" bindtap="syncWechatProfile">同步微信资料</button>
   </view>
+
+  <text class="profile-version">小程序版本 v{{appVersion}}</text>
 </view>

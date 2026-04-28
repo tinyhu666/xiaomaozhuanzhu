@@ -10,6 +10,28 @@ import type {
   User
 } from "../types";
 
+const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+function toMySQLDateTime(value: string | null | undefined): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  // Connection runs with timezone: "+08:00"; emit Shanghai wall-clock to match.
+  const shifted = new Date(date.getTime() + SHANGHAI_OFFSET_MS);
+  const year = shifted.getUTCFullYear();
+  const month = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(shifted.getUTCDate()).padStart(2, "0");
+  const hours = String(shifted.getUTCHours()).padStart(2, "0");
+  const minutes = String(shifted.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(shifted.getUTCSeconds()).padStart(2, "0");
+  const ms = String(shifted.getUTCMilliseconds()).padStart(3, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${ms}`;
+}
+
+function toMySQLDateTimeRequired(value: string): string {
+  return toMySQLDateTime(value) ?? value;
+}
+
 function toIsoString(value: unknown): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -86,9 +108,10 @@ export class MySQLStore {
   }
 
   async ensureUser(openid: string, now: string) {
+    const nowSql = toMySQLDateTimeRequired(now);
     const user = await this.getUserByOpenid(openid);
     if (user) {
-      await this.pool.execute("UPDATE users SET last_login_at = ? WHERE id = ?", [now, user.id]);
+      await this.pool.execute("UPDATE users SET last_login_at = ? WHERE id = ?", [nowSql, user.id]);
       const publicProfile = (await this.getPublicSettingsByUserId(user.id))!;
       return {
         user: {
@@ -103,7 +126,7 @@ export class MySQLStore {
     const shareSlug = randomUUID().slice(0, 8);
     await this.pool.execute(
       "INSERT INTO users (id, openid, nickname, avatar_url, profile_completed, created_at, last_login_at) VALUES (?, ?, '', '', 0, ?, ?)",
-      [id, openid, now, now]
+      [id, openid, nowSql, nowSql]
     );
     await this.pool.execute(
       "INSERT INTO user_public_settings (user_id, share_slug, is_public, require_wechat_auth) VALUES (?, ?, 0, 1)",
@@ -232,16 +255,16 @@ export class MySQLStore {
         session.id,
         session.userId,
         session.status,
-        session.startedAt,
-        session.endedAt,
-        session.currentPauseStartedAt,
+        toMySQLDateTimeRequired(session.startedAt),
+        toMySQLDateTime(session.endedAt),
+        toMySQLDateTime(session.currentPauseStartedAt),
         JSON.stringify(session.pauseSegments),
         session.durationMinutes,
         session.summary,
         session.subject,
         JSON.stringify(session.tags),
-        session.createdAt,
-        session.updatedAt
+        toMySQLDateTimeRequired(session.createdAt),
+        toMySQLDateTimeRequired(session.updatedAt)
       ]
     );
     return session;
@@ -267,7 +290,7 @@ export class MySQLStore {
           photo.fileId,
           photo.objectKey,
           photo.sortOrder,
-          photo.createdAt
+          toMySQLDateTimeRequired(photo.createdAt)
         ])
       ]
     );
@@ -307,7 +330,7 @@ export class MySQLStore {
           stat.sessionCount,
           stat.heatLevel,
           stat.streakDays,
-          stat.updatedAt
+          toMySQLDateTimeRequired(stat.updatedAt)
         ])
       ]
     );

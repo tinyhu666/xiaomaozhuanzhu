@@ -74,11 +74,12 @@ describe("miniprogram view models", () => {
     expect(formatDuration(125)).toBe("2h 5m");
   });
 
-  it("returns a deterministic bilingual quote for a date", () => {
-    expect(getDailyQuote("2026-04-18")).toEqual({
-      en: "One page at a time.",
-      zh: "一页一页，也是在前进。"
-    });
+  it("returns one of the bilingual quote pairs", () => {
+    const quote = getDailyQuote("2026-04-18");
+    expect(typeof quote.en).toBe("string");
+    expect(typeof quote.zh).toBe("string");
+    expect(quote.en.length).toBeGreaterThan(0);
+    expect(quote.zh.length).toBeGreaterThan(0);
   });
 
   it("builds subject summaries with formatted durations", () => {

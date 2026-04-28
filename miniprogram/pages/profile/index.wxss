@@ -256,3 +256,11 @@
 .profile-actions__button {
   width: 100%;
 }
+
+.profile-version {
+  display: block;
+  margin-top: 28rpx;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 22rpx;
+}

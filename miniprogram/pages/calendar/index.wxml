@@ -1,11 +1,11 @@
 <view class="page-shell calendar-page">
   <view class="calendar-hero">
-    <button class="ghost-button calendar-hero__nav" bindtap="handlePrevMonth">上月</button>
+    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handlePrevMonth">上月</view>
     <view class="calendar-hero__center">
       <text class="calendar-hero__title">{{monthTitle}}</text>
       <text class="calendar-hero__meta">本月 {{monthTotalText}}</text>
     </view>
-    <button class="ghost-button calendar-hero__nav" bindtap="handleNextMonth">下月</button>
+    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handleNextMonth">下月</view>
   </view>
 
   <view class="calendar-board">
