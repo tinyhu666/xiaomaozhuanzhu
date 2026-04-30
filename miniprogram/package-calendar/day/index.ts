@@ -34,8 +34,15 @@ Page<{}, DayPageData>({
       const photoRefs = result.sessions.flatMap((session) =>
         session.photos.map((photo) => ({ objectKey: photo.objectKey, fileId: photo.fileId }))
       );
-      const tempUrls = photoRefs.length ? await getTempUrls(photoRefs) : { items: [] };
-      const urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
+      let urlMap = new Map<string, string>();
+      if (photoRefs.length) {
+        try {
+          const tempUrls = await getTempUrls(photoRefs);
+          urlMap = new Map(tempUrls.items.map((item) => [item.objectKey, item.url]));
+        } catch (error) {
+          console.warn("[day] getTempUrls failed, fallback to fileId", error);
+        }
+      }
 
       this.setData({
         totalText: formatDuration(result.totalMinutes),

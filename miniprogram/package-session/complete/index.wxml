@@ -38,9 +38,7 @@
         class="tag-chip {{selectedSubject === item ? 'is-active' : ''}}"
         data-value="{{item}}"
         bindtap="toggleSubject"
-      >
-        {{item}}
-      </view>
+      >{{item}}</view>
     </view>
 
     <view class="field-label" style="margin-top: 24rpx;">标签</view>
@@ -51,9 +49,7 @@
         class="tag-chip {{selectedTags.indexOf(item) !== -1 ? 'is-active' : ''}}"
         data-value="{{item}}"
         bindtap="toggleTag"
-      >
-        {{item}}
-      </view>
+      >{{item}}</view>
     </view>
   </view>
 

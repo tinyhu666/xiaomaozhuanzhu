@@ -15,9 +15,7 @@
   <view class="timer-card">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
-        <text class="timer-card__status">
-          {{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}
-        </text>
+        <text class="timer-card__status">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}</text>
         <text wx:if="{{activeSession && activeSession.status === 'paused' && pausedMinutes > 0}}" class="timer-card__pause-hint">已暂停 {{pausedMinutes}} 分钟</text>
       </view>
       <view class="timer-card__meta">
@@ -34,9 +32,7 @@
       bindtap="handleStart"
       loading="{{actionLoading}}"
       disabled="{{actionLoading}}"
-    >
-      开始
-    </button>
+    >开始</button>
 
     <view wx:else class="timer-card__actions">
       <button
@@ -45,26 +41,20 @@
         bindtap="handlePause"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >
-        暂停
-      </button>
+      >暂停</button>
       <button
         wx:if="{{actions[0] === 'resume'}}"
         class="ghost-button timer-card__secondary"
         bindtap="handleResume"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >
-        继续
-      </button>
+      >继续</button>
       <button
         class="cta-button timer-card__secondary"
         bindtap="handleComplete"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >
-        结束
-      </button>
+      >结束</button>
     </view>
   </view>
 

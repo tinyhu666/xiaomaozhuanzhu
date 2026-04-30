@@ -25,6 +25,30 @@ type RequestOptions = {
   data?: Record<string, unknown>;
 };
 
+const COLD_START_RETRY_DELAYS = [400, 1200];
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function extractErrMsg(error: unknown): string {
+  if (typeof error === "object" && error && "errMsg" in error) {
+    return String((error as { errMsg: string }).errMsg);
+  }
+  return String(error);
+}
+
+function isLikelyColdStart(errMsg: string) {
+  return (
+    errMsg.includes("102002") ||
+    errMsg.includes("502") ||
+    errMsg.includes("503") ||
+    errMsg.includes("504") ||
+    errMsg.toLowerCase().includes("timeout") ||
+    errMsg.toLowerCase().includes("request:fail")
+  );
+}
+
 async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
   ensureCloudReady();
 
@@ -35,9 +59,8 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
     header["content-type"] = "application/json";
   }
 
-  let response: { data: unknown; statusCode?: number };
-  try {
-    response = await wx.cloud.callContainer({
+  const callOnce = () =>
+    wx.cloud.callContainer({
       config: {
         env: runtimeConfig.cloudEnv
       },
@@ -46,15 +69,41 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
       header,
       data: method === "POST" ? data ?? {} : data
     });
-  } catch (error) {
-    const errMsg = typeof error === "object" && error && "errMsg" in error ? String((error as { errMsg: string }).errMsg) : String(error);
+
+  let response: { data: unknown; statusCode?: number } | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= COLD_START_RETRY_DELAYS.length; attempt += 1) {
+    try {
+      response = await callOnce();
+      lastError = undefined;
+      break;
+    } catch (error) {
+      lastError = error;
+      const errMsg = extractErrMsg(error);
+      if (attempt < COLD_START_RETRY_DELAYS.length && isLikelyColdStart(errMsg)) {
+        await delay(COLD_START_RETRY_DELAYS[attempt]);
+        continue;
+      }
+      break;
+    }
+  }
+
+  if (lastError) {
+    const errMsg = extractErrMsg(lastError);
     if (errMsg.includes("102002")) {
-      throw new Error(`后端服务未部署或服务名不匹配，请检查云托管服务名是否为 "${runtimeConfig.service}"`);
+      throw new Error("后端正在唤醒，请稍后再试");
     }
     if (errMsg.includes("100002")) {
-      throw new Error("云托管环境 ID 不正确，请检查 runtime.ts 的 cloudEnv");
+      throw new Error("云托管环境 ID 不正确，请联系管理员");
+    }
+    if (errMsg.toLowerCase().includes("timeout")) {
+      throw new Error("网络超时，请稍后再试");
     }
     throw new Error(errMsg || "网络请求失败");
+  }
+
+  if (!response) {
+    throw new Error("网络请求失败");
   }
 
   const payload = response.data as

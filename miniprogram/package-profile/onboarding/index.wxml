@@ -40,7 +40,5 @@
     loading="{{saving}}"
     disabled="{{saving}}"
     bindtap="handleSave"
-  >
-    {{mode === 'edit' ? '保存资料' : '完成设置并开始'}}
-  </button>
+  >{{mode === 'edit' ? '保存资料' : '完成设置并开始'}}</button>
 </view>
