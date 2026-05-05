@@ -11,27 +11,32 @@ type LocalPhoto = {
   localPath: string;
 };
 
+type ChipView = {
+  value: string;
+  selected: boolean;
+};
+
 type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
-  selectedSubject: string;
-  selectedTags: string[];
-  subjects: string[];
-  tags: string[];
+  subjectChips: ChipView[];
+  tagChips: ChipView[];
   photos: LocalPhoto[];
   submitting: boolean;
 };
+
+function makeChips(values: string[]): ChipView[] {
+  return values.map((value) => ({ value, selected: false }));
+}
 
 Page<{}, CompletePageData>({
   data: {
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
-    selectedSubject: "",
-    selectedTags: [],
-    subjects: SUBJECTS,
-    tags: TAGS,
+    subjectChips: makeChips(SUBJECTS),
+    tagChips: makeChips(TAGS),
     photos: [],
     submitting: false
   },
@@ -52,19 +57,21 @@ Page<{}, CompletePageData>({
 
   toggleSubject(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    this.setData({
-      selectedSubject: this.data.selectedSubject === value ? "" : value
-    });
+    const next = this.data.subjectChips.map((chip) => ({
+      value: chip.value,
+      // single-select: tapping the active chip clears it; tapping another
+      // chip switches selection to that one.
+      selected: chip.value === value ? !chip.selected : false
+    }));
+    this.setData({ subjectChips: next });
   },
 
   toggleTag(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
-    const exists = this.data.selectedTags.includes(value);
-    this.setData({
-      selectedTags: exists
-        ? this.data.selectedTags.filter((tag) => tag !== value)
-        : [...this.data.selectedTags, value]
-    });
+    const next = this.data.tagChips.map((chip) =>
+      chip.value === value ? { value: chip.value, selected: !chip.selected } : chip
+    );
+    this.setData({ tagChips: next });
   },
 
   async choosePhotos() {
@@ -119,6 +126,9 @@ Page<{}, CompletePageData>({
   },
 
   async submit() {
+    const selectedSubjectChip = this.data.subjectChips.find((chip) => chip.selected);
+    const selectedTags = this.data.tagChips.filter((chip) => chip.selected).map((chip) => chip.value);
+
     const validation = validateCompletionDraft({
       summary: this.data.summary,
       photos: this.data.photos
@@ -136,8 +146,8 @@ Page<{}, CompletePageData>({
     try {
       await completeSession(this.data.sessionId, {
         summary: this.data.summary,
-        subject: this.data.selectedSubject || null,
-        tags: this.data.selectedTags,
+        subject: selectedSubjectChip?.value ?? null,
+        tags: selectedTags,
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,
           objectKey: photo.objectKey

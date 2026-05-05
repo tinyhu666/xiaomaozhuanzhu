@@ -351,41 +351,64 @@
 }
 
 .mini-calendar__cell {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 72rpx;
   border-radius: 18rpx;
-  background: rgba(46, 169, 133, 0.04);
+  background: rgba(46, 169, 133, 0.1);
+  border: 2rpx solid rgba(46, 169, 133, 0.16);
+  box-sizing: border-box;
 }
 
 .mini-calendar__cell.is-faded {
-  opacity: 0.28;
+  opacity: 0.32;
 }
 
 .mini-calendar__cell.level-1 {
-  background: rgba(46, 169, 133, 0.14);
+  background: rgba(46, 169, 133, 0.26);
+  border-color: rgba(46, 169, 133, 0.32);
 }
 
 .mini-calendar__cell.level-2 {
-  background: rgba(46, 169, 133, 0.24);
+  background: rgba(46, 169, 133, 0.45);
+  border-color: rgba(46, 169, 133, 0.5);
 }
 
 .mini-calendar__cell.level-3 {
-  background: rgba(46, 169, 133, 0.45);
+  background: rgba(46, 169, 133, 0.7);
+  border-color: rgba(46, 169, 133, 0.7);
 }
 
 .mini-calendar__cell.level-4 {
   background: #2ea985;
+  border-color: #238167;
 }
 
+.mini-calendar__cell.level-2 .mini-calendar__day,
 .mini-calendar__cell.level-3 .mini-calendar__day,
 .mini-calendar__cell.level-4 .mini-calendar__day {
   color: #ffffff;
 }
 
+.mini-calendar__cell.is-today {
+  border-color: var(--mint-600);
+  box-shadow: 0 0 0 3rpx rgba(46, 169, 133, 0.18);
+}
+
 .mini-calendar__day {
   font-size: 22rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-main);
+  line-height: 1;
+}
+
+.home-version {
+  display: block;
+  margin: 14rpx auto 0;
+  text-align: center;
+  font-size: 18rpx;
+  color: rgba(94, 125, 117, 0.5);
+  letter-spacing: 1rpx;
 }

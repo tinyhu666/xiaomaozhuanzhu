@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { runtimeConfig } from "../../config/runtime";
 import type { ActiveSession, HomeResponse, MakeupOpportunity, WeeklyReview } from "../../types/models";
 import { getCalendar, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
@@ -34,6 +35,7 @@ type HomePageData = {
   weekly: WeeklyReviewView | null;
   makeup: MakeupOpportunity | null;
   makeupLoading: boolean;
+  appVersion: string;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -60,17 +62,16 @@ Page<{}, HomePageData>({
     pausedMinutes: 0,
     weekly: null,
     makeup: null,
-    makeupLoading: false
+    makeupLoading: false,
+    appVersion: runtimeConfig.appVersion
   },
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 0 });
-    const ready = await getApp<IAppOption>().ensureProfile(this.route).catch((error) => {
+    await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[home] ensureProfile failed", error);
-      return true;
     });
-    if (!ready) return;
     this.refreshAll();
   },
 
@@ -256,13 +257,37 @@ Page<{}, HomePageData>({
   },
 
   async handleStart() {
-    await this.runSessionAction(async () => {
+    if (this.data.actionLoading) return;
+    // Optimistic UI: show running state immediately so the user gets
+    // instant feedback even if the cloud-run is cold-starting.
+    const optimisticSession: ActiveSession = {
+      id: "__pending__",
+      status: "running",
+      startedAt: new Date().toISOString(),
+      currentPauseStartedAt: null,
+      pauseSegments: [],
+      effectiveMinutes: 0
+    };
+    this.applyActiveSession(optimisticSession);
+
+    this.setData({ actionLoading: true });
+    try {
       const result = await startSession();
       if (result?.session) {
         this.applyActiveSession(result.session);
       }
       this.refreshStatsInBackground();
-    });
+    } catch (error) {
+      console.error("[home] start failed", error);
+      // Roll back optimistic UI
+      this.applyActiveSession(null);
+      wx.showToast({
+        title: error instanceof Error ? error.message : "开始失败，请稍后再试",
+        icon: "none"
+      });
+    } finally {
+      this.setData({ actionLoading: false });
+    }
   },
 
   async handlePause() {

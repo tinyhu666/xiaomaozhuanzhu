@@ -33,23 +33,23 @@
     <view class="field-label">可选科目</view>
     <view class="tag-list">
       <view
-        wx:for="{{subjects}}"
-        wx:key="*this"
-        class="tag-chip {{selectedSubject === item ? 'is-active' : ''}}"
-        data-value="{{item}}"
+        wx:for="{{subjectChips}}"
+        wx:key="value"
+        class="tag-chip {{item.selected ? 'is-active' : ''}}"
+        data-value="{{item.value}}"
         bindtap="toggleSubject"
-      >{{item}}</view>
+      >{{item.value}}</view>
     </view>
 
     <view class="field-label" style="margin-top: 24rpx;">标签</view>
     <view class="tag-list">
       <view
-        wx:for="{{tags}}"
-        wx:key="*this"
-        class="tag-chip {{selectedTags.indexOf(item) !== -1 ? 'is-active' : ''}}"
-        data-value="{{item}}"
+        wx:for="{{tagChips}}"
+        wx:key="value"
+        class="tag-chip {{item.selected ? 'is-active' : ''}}"
+        data-value="{{item.value}}"
         bindtap="toggleTag"
-      >{{item}}</view>
+      >{{item.value}}</view>
     </view>
   </view>
 

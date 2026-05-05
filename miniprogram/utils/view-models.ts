@@ -35,14 +35,22 @@ export function validateCompletionDraft(draft: { summary: string; photos: Comple
 
 export function buildMonthGrid(
   month: string,
-  dailyStats: Record<string, { totalMinutes: number; heatLevel: number }>
+  dailyStats: Record<string, { totalMinutes: number; heatLevel: number }>,
+  todayDate?: string
 ) {
   const safeMonth = typeof month === "string" ? month : "";
   const [yearText, monthText] = safeMonth.split("-");
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
   if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) {
-    return [] as Array<{ date: string; day: number; inMonth: boolean; heatLevel: number; totalMinutes: number }>;
+    return [] as Array<{
+      date: string;
+      day: number;
+      inMonth: boolean;
+      heatLevel: number;
+      totalMinutes: number;
+      isToday: boolean;
+    }>;
   }
   const firstDay = new Date(Date.UTC(year, monthIndex, 1));
   const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0));
@@ -50,12 +58,21 @@ export function buildMonthGrid(
   const trailing = (7 - ((lastDay.getUTCDay() + 6) % 7) - 1 + 7) % 7;
   const totalCells = leading + lastDay.getUTCDate() + trailing;
   const cursor = new Date(Date.UTC(year, monthIndex, 1 - leading));
+  const today =
+    todayDate ??
+    (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+        now.getDate()
+      ).padStart(2, "0")}`;
+    })();
   const items: Array<{
     date: string;
     day: number;
     inMonth: boolean;
     heatLevel: number;
     totalMinutes: number;
+    isToday: boolean;
   }> = [];
 
   for (let index = 0; index < totalCells; index += 1) {
@@ -66,7 +83,8 @@ export function buildMonthGrid(
       day: cursor.getUTCDate(),
       inMonth: cursor.getUTCMonth() === monthIndex,
       heatLevel: stat?.heatLevel ?? 0,
-      totalMinutes: stat?.totalMinutes ?? 0
+      totalMinutes: stat?.totalMinutes ?? 0,
+      isToday: date === today
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }

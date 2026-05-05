@@ -120,7 +120,7 @@
       <view
         wx:for="{{monthGrid}}"
         wx:key="date"
-        class="mini-calendar__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}}"
+        class="mini-calendar__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}} {{item.isToday ? 'is-today' : ''}}"
         data-date="{{item.date}}"
         data-inmonth="{{item.inMonth}}"
         bindtap="handlePreviewDay"
@@ -129,4 +129,6 @@
       </view>
     </view>
   </view>
+
+  <text class="home-version">v{{appVersion}}</text>
 </view>

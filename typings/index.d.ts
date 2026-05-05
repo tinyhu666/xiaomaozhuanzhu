@@ -5,5 +5,5 @@ declare interface IAppOption {
     profile: import("../miniprogram/types/models").UserProfile | null;
     bootstrapped: boolean;
   };
-  ensureProfile(route?: string): Promise<boolean>;
+  ensureProfile(): Promise<boolean>;
 }

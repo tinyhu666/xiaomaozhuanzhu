@@ -29,8 +29,9 @@ Page<{}, CalendarPageData>({
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 1 });
-    const ready = await getApp<IAppOption>().ensureProfile(this.route);
-    if (!ready) return;
+    await getApp<IAppOption>().ensureProfile().catch((error) => {
+      console.error("[calendar] ensureProfile failed", error);
+    });
     if (!this.data.month) {
       const now = new Date();
       this.setData({

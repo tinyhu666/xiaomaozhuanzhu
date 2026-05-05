@@ -130,6 +130,25 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
   return response.data as T;
 }
 
+export async function warmUpBackend() {
+  ensureCloudReady();
+  try {
+    await wx.cloud.callContainer({
+      config: {
+        env: runtimeConfig.cloudEnv
+      },
+      path: "/health",
+      method: "GET",
+      header: {
+        "X-WX-SERVICE": runtimeConfig.service
+      }
+    });
+  } catch (error) {
+    // Best-effort warmup. Swallow errors so app launch never fails.
+    console.info("[api] warmup failed (will retry on real call)", error);
+  }
+}
+
 export function bootstrapProfile() {
   return callContainer<{
     profile: UserProfile;

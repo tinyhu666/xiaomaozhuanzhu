@@ -1,8 +1,7 @@
 {
   "pages": [
     "pages/home/index",
-    "pages/calendar/index",
-    "pages/profile/index"
+    "pages/calendar/index"
   ],
   "subpackages": [
     {
@@ -39,10 +38,6 @@
       {
         "pagePath": "pages/calendar/index",
         "text": "日历"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的"
       }
     ]
   },

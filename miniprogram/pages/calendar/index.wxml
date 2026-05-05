@@ -23,7 +23,7 @@
       <view
         wx:for="{{grid}}"
         wx:key="date"
-        class="calendar-board__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}} {{selectedDate === item.date ? 'is-selected' : ''}}"
+        class="calendar-board__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}} {{selectedDate === item.date ? 'is-selected' : ''}} {{item.isToday ? 'is-today' : ''}}"
         data-date="{{item.date}}"
         data-inmonth="{{item.inMonth}}"
         bindtap="openDay"
