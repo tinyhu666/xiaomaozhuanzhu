@@ -101,7 +101,9 @@ describe("CPA study check-in API", () => {
 
     expect(completed.body.session.durationMinutes).toBe(120);
     expect(completed.body.dailyStats.totalMinutes).toBe(120);
-    expect(completed.body.dailyStats.heatLevel).toBe(3);
+    // 120 min sits in level 4 under the v0.4.5 thresholds
+    // (≥120 min crosses from "around target" into "solid focus").
+    expect(completed.body.dailyStats.heatLevel).toBe(4);
     expect(completed.body.dailyStats.streakDays).toBe(1);
 
     const duplicate = await request(app)
@@ -139,7 +141,7 @@ describe("CPA study check-in API", () => {
       .expect(200);
 
     expect(calendar.body.days["2026-04-16"].totalMinutes).toBe(120);
-    expect(calendar.body.days["2026-04-16"].heatLevel).toBe(3);
+    expect(calendar.body.days["2026-04-16"].heatLevel).toBe(4);
   });
 
   it("preserves a paused session on home re-fetch within the TTL but reaps it after 24h", async () => {

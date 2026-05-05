@@ -32,7 +32,7 @@
       bindtap="handleStart"
       loading="{{actionLoading}}"
       disabled="{{actionLoading}}"
-    >开始</button>
+    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : '开始'}}</button>
 
     <view wx:else class="timer-card__actions">
       <button
@@ -41,20 +41,20 @@
         bindtap="handlePause"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >暂停</button>
+      >{{actionLoading ? (actionLoadingLabel || '正在暂停…') : '暂停'}}</button>
       <button
         wx:if="{{actions[0] === 'resume'}}"
         class="ghost-button timer-card__secondary"
         bindtap="handleResume"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >继续</button>
+      >{{actionLoading ? (actionLoadingLabel || '正在继续…') : '继续'}}</button>
       <button
         class="cta-button timer-card__secondary"
         bindtap="handleComplete"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
-      >结束</button>
+      >{{actionLoading ? (actionLoadingLabel || '正在结束…') : '结束'}}</button>
     </view>
   </view>
 

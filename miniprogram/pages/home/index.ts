@@ -28,6 +28,7 @@ type HomePageData = {
   monthGrid: ReturnType<typeof buildMonthGrid>;
   actions: string[];
   actionLoading: boolean;
+  actionLoadingLabel: string;
   goalProgress: number;
   goalText: string;
   goalReached: boolean;
@@ -56,6 +57,7 @@ Page<{}, HomePageData>({
     monthGrid: [],
     actions: ["start"],
     actionLoading: false,
+    actionLoadingLabel: "",
     goalProgress: 0,
     goalText: `0m / ${formatDuration(DAILY_TARGET_MINUTES)}`,
     goalReached: false,
@@ -240,101 +242,107 @@ Page<{}, HomePageData>({
     }
   },
 
-  async runSessionAction(task: () => Promise<void>) {
+  friendlyError(error: unknown, fallback: string) {
+    const message = error instanceof Error ? error.message : "";
+    if (message) return message;
+    if (typeof error === "object" && error && "errMsg" in error) {
+      return String((error as { errMsg: string }).errMsg);
+    }
+    return fallback;
+  },
+
+  async runSessionAction(
+    task: () => Promise<void>,
+    options: { loadingLabel?: string; errorFallback?: string } = {}
+  ) {
     if (this.data.actionLoading) return;
-    this.setData({ actionLoading: true });
+    this.setData({
+      actionLoading: true,
+      actionLoadingLabel: options.loadingLabel ?? ""
+    });
     try {
       await task();
     } catch (error) {
       console.error("[home] session action failed", error);
       wx.showToast({
-        title: error instanceof Error ? error.message : "操作失败，请稍后再试",
-        icon: "none"
+        title: this.friendlyError(error, options.errorFallback ?? "操作失败，请稍后再试"),
+        icon: "none",
+        duration: 2400
       });
     } finally {
-      this.setData({ actionLoading: false });
+      this.setData({ actionLoading: false, actionLoadingLabel: "" });
     }
   },
 
   async handleStart() {
-    if (this.data.actionLoading) return;
-    // Optimistic UI: show running state immediately so the user gets
-    // instant feedback even if the cloud-run is cold-starting.
-    const optimisticSession: ActiveSession = {
-      id: "__pending__",
-      status: "running",
-      startedAt: new Date().toISOString(),
-      currentPauseStartedAt: null,
-      pauseSegments: [],
-      effectiveMinutes: 0
-    };
-    this.applyActiveSession(optimisticSession);
-
-    this.setData({ actionLoading: true });
-    try {
-      const result = await startSession();
-      if (result?.session) {
-        this.applyActiveSession(result.session);
-      }
-      this.refreshStatsInBackground();
-    } catch (error) {
-      console.error("[home] start failed", error);
-      // Roll back optimistic UI
-      this.applyActiveSession(null);
-      wx.showToast({
-        title: error instanceof Error ? error.message : "开始失败，请稍后再试",
-        icon: "none"
-      });
-    } finally {
-      this.setData({ actionLoading: false });
-    }
+    await this.runSessionAction(
+      async () => {
+        const result = await startSession();
+        if (result?.session) {
+          this.applyActiveSession(result.session);
+        }
+        this.refreshStatsInBackground();
+      },
+      { loadingLabel: "正在开始…", errorFallback: "开始失败，请稍后再试" }
+    );
   },
 
   async handlePause() {
     if (!this.data.activeSession) return;
-    await this.runSessionAction(async () => {
-      const result = await pauseSession(this.data.activeSession!.id);
-      if (result?.session) {
-        this.applyActiveSession(result.session);
-      }
-      this.refreshStatsInBackground();
-    });
+    await this.runSessionAction(
+      async () => {
+        const result = await pauseSession(this.data.activeSession!.id);
+        if (result?.session) {
+          this.applyActiveSession(result.session);
+        }
+        this.refreshStatsInBackground();
+      },
+      { loadingLabel: "正在暂停…", errorFallback: "暂停失败，请稍后再试" }
+    );
   },
 
   async handleResume() {
     if (!this.data.activeSession) return;
-    await this.runSessionAction(async () => {
-      const result = await resumeSession(this.data.activeSession!.id);
-      if (result?.session) {
-        this.applyActiveSession(result.session);
-      }
-      this.refreshStatsInBackground();
-    });
+    await this.runSessionAction(
+      async () => {
+        const result = await resumeSession(this.data.activeSession!.id);
+        if (result?.session) {
+          this.applyActiveSession(result.session);
+        }
+        this.refreshStatsInBackground();
+      },
+      { loadingLabel: "正在继续…", errorFallback: "继续失败，请稍后再试" }
+    );
   },
 
   async handleComplete() {
     const session = this.data.activeSession;
     if (!session) return;
 
-    await this.runSessionAction(async () => {
-      let target: ActiveSession = session;
+    await this.runSessionAction(
+      async () => {
+        let target: ActiveSession = session;
 
-      if (session.status === "running") {
-        try {
-          const paused = await pauseSession(session.id);
-          if (paused?.session) {
-            target = paused.session as ActiveSession;
-            this.applyActiveSession(target);
+        if (session.status === "running") {
+          try {
+            const paused = await pauseSession(session.id);
+            if (paused?.session) {
+              target = paused.session as ActiveSession;
+              this.applyActiveSession(target);
+            }
+          } catch (error) {
+            console.warn("[home] pause-before-complete failed", error);
+            // continue without blocking — the complete page can finish a
+            // running session directly.
           }
-        } catch (error) {
-          console.error("[home] pause-before-complete failed", error);
         }
-      }
 
-      wx.navigateTo({
-        url: `/package-session/complete/index?sessionId=${target.id}&minutes=${Math.max(1, target.effectiveMinutes)}`
-      });
-    });
+        wx.navigateTo({
+          url: `/package-session/complete/index?sessionId=${target.id}&minutes=${Math.max(1, target.effectiveMinutes)}`
+        });
+      },
+      { loadingLabel: "正在结束…", errorFallback: "结束失败，请稍后再试" }
+    );
   },
 
   refreshStatsInBackground() {

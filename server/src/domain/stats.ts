@@ -2,12 +2,21 @@ import type { DailyStat, PauseSegment, StudySession } from "../types";
 
 import { addShanghaiDays, formatShanghaiDate, startOfNextShanghaiDay } from "./date-utils";
 
+// Heat-map levels: tuned so a typical CPA study day (1–3h) spans
+// multiple shades instead of saturating at the darkest tone.
+// 0  = no session
+// 1  =      1 –  29 min   (warm-up)
+// 2  =     30 –  59 min   (light)
+// 3  =     60 – 119 min   (around the daily target)
+// 4  =    120 – 239 min   (solid focus)
+// 5  =   ≥ 240 min        (deep work)
 export function getHeatLevel(totalMinutes: number) {
   if (totalMinutes <= 0) return 0;
-  if (totalMinutes < 60) return 1;
-  if (totalMinutes < 120) return 2;
-  if (totalMinutes < 180) return 3;
-  return 4;
+  if (totalMinutes < 30) return 1;
+  if (totalMinutes < 60) return 2;
+  if (totalMinutes < 120) return 3;
+  if (totalMinutes < 240) return 4;
+  return 5;
 }
 
 export function calculateDurationMinutes(
