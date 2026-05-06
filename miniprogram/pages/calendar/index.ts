@@ -32,11 +32,16 @@ Page<{}, CalendarPageData>({
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[calendar] ensureProfile failed", error);
     });
-    if (!this.data.month) {
-      const now = new Date();
-      this.setData({
-        month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-      });
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // First open of a session: land on the current month.
+    // If the user previously navigated into a past month (e.g. left the
+    // app open in April, came back in May), snap them back to the
+    // current month — they can step backward via the 上月 button.
+    // Only "future" months are explicitly preserved: those are the user
+    // peeking ahead and we shouldn't stomp on that.
+    if (!this.data.month || this.data.month < currentMonth) {
+      this.setData({ month: currentMonth, selectedDate: "" });
     }
     await this.loadMonth();
   },

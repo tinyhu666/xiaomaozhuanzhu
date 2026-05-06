@@ -11,10 +11,6 @@
     {
       "root": "package-calendar",
       "pages": ["day/index"]
-    },
-    {
-      "root": "package-profile",
-      "pages": ["onboarding/index"]
     }
   ],
   "window": {

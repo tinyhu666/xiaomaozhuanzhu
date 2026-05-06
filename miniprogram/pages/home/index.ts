@@ -37,6 +37,7 @@ type HomePageData = {
   makeup: MakeupOpportunity | null;
   makeupLoading: boolean;
   appVersion: string;
+  showEmptyHint: boolean;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -65,7 +66,8 @@ Page<{}, HomePageData>({
     weekly: null,
     makeup: null,
     makeupLoading: false,
-    appVersion: runtimeConfig.appVersion
+    appVersion: runtimeConfig.appVersion,
+    showEmptyHint: true
   },
 
   async onShow() {
@@ -130,6 +132,7 @@ Page<{}, HomePageData>({
         makeup: home.makeupAvailable ?? null
       });
       this.applyActiveSession(home.activeSession ?? null);
+      this.refreshEmptyHint();
     } catch (error) {
       console.error("[home] loadHomeStats failed", error);
       // Surface a compact human message; the raw API path / HTML body
@@ -229,7 +232,16 @@ Page<{}, HomePageData>({
       timerText: session ? formatStopwatch(getElapsedMs(session, now)) : "00:00:00",
       pausedMinutes: this.computePausedMinutes(session, now)
     });
+    this.refreshEmptyHint();
     this.syncTimer(session);
+  },
+
+  refreshEmptyHint() {
+    const todayText = this.data.todayMinutesText || "0m";
+    const todayHasZero = todayText === "0m";
+    this.setData({
+      showEmptyHint: !this.data.activeSession && todayHasZero
+    });
   },
 
   computePausedMinutes(session: ActiveSession | null, now: Date) {
@@ -281,10 +293,29 @@ Page<{}, HomePageData>({
     options: { loadingLabel?: string; errorFallback?: string } = {}
   ) {
     if (this.data.actionLoading) return;
+    const baseLabel = options.loadingLabel ?? "";
     this.setData({
       actionLoading: true,
-      actionLoadingLabel: options.loadingLabel ?? ""
+      actionLoadingLabel: baseLabel
     });
+    // Progressive label updates so the user knows the request is still
+    // alive when a cold container takes the full retry budget. We only
+    // mutate state if the action is still in flight.
+    const updates: number[] = [];
+    if (baseLabel) {
+      updates.push(
+        setTimeout(() => {
+          if (this.data.actionLoading) {
+            this.setData({ actionLoadingLabel: "服务启动中…" });
+          }
+        }, 2500) as unknown as number,
+        setTimeout(() => {
+          if (this.data.actionLoading) {
+            this.setData({ actionLoadingLabel: "马上就好，请稍候…" });
+          }
+        }, 5000) as unknown as number
+      );
+    }
     try {
       await task();
     } catch (error) {
@@ -295,6 +326,7 @@ Page<{}, HomePageData>({
         duration: 2400
       });
     } finally {
+      for (const handle of updates) clearTimeout(handle);
       this.setData({ actionLoading: false, actionLoadingLabel: "" });
     }
   },

@@ -25,6 +25,7 @@
     </view>
 
     <text class="timer-card__clock">{{timerText}}</text>
+    <text wx:if="{{showEmptyHint}}" class="timer-card__hint">点击下方按钮，开始今天第一次专注</text>
 
     <button
       wx:if="{{actions[0] === 'start'}}"

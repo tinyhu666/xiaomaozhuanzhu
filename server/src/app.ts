@@ -643,6 +643,10 @@ async function abandonSession(store: DataStore, session: StudySession, now: stri
 }
 
 const PAUSED_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+// A single focus session that's been running for 12+ hours is almost
+// certainly abandoned (user closed the app, fell asleep, etc.). We
+// auto-reap rather than letting the timer accumulate fake hours.
+const RUNNING_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 async function reapStalePausedSession(store: DataStore, userId: string, now: Date) {
   const session = await store.getCurrentSession(userId);
@@ -650,6 +654,13 @@ async function reapStalePausedSession(store: DataStore, userId: string, now: Dat
   if (session.status === "paused" && session.currentPauseStartedAt) {
     const pausedAt = new Date(session.currentPauseStartedAt).getTime();
     if (Number.isFinite(pausedAt) && now.getTime() - pausedAt > PAUSED_SESSION_TTL_MS) {
+      await abandonSession(store, session, now.toISOString());
+      return null;
+    }
+  }
+  if (session.status === "running") {
+    const startedAt = new Date(session.startedAt).getTime();
+    if (Number.isFinite(startedAt) && now.getTime() - startedAt > RUNNING_SESSION_TTL_MS) {
       await abandonSession(store, session, now.toISOString());
       return null;
     }

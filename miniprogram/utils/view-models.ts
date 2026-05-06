@@ -12,7 +12,25 @@ const DAILY_QUOTES = [
   { en: "Small progress is still progress.", zh: "学得慢一点，也是往前。" },
   { en: "Calm work adds up.", zh: "安静地学，分数会慢慢长出来。" },
   { en: "Keep the promise to today.", zh: "先把今天答应自己的事情做完。" },
-  { en: "Focus makes the page lighter.", zh: "专注一点，书页就没那么重了。" }
+  { en: "Focus makes the page lighter.", zh: "专注一点，书页就没那么重了。" },
+  { en: "Show up first, the rest follows.", zh: "先坐下来，状态才会找上你。" },
+  { en: "Tired is fine. Quitting is not.", zh: "累没关系，停了就可惜。" },
+  { en: "The best time to start is the next 25 minutes.", zh: "下一个 25 分钟，就是最好的开始。" },
+  { en: "Trust the long arc.", zh: "相信长期主义，分数不会辜负时间。" },
+  { en: "Confused now, clearer later.", zh: "今天看不懂没关系，明天会再亮一点。" },
+  { en: "Slow is smooth, smooth is fast.", zh: "慢就是稳，稳就是快。" },
+  { en: "Done beats perfect.", zh: "完成比完美重要。" },
+  { en: "Today's hour, tomorrow's confidence.", zh: "今天多一小时，明天就多一分底气。" },
+  { en: "Forget the noise. Start the next problem.", zh: "别管别人，把下一题做完。" },
+  { en: "Knowledge compounds. So does effort.", zh: "知识会复利，努力也会。" },
+  { en: "You don't need to feel ready.", zh: "别等准备好，先开始。" },
+  { en: "Tiny streaks beat heroic days.", zh: "每天一点点，比偶尔一大把更顶用。" },
+  { en: "Mistakes today are progress tomorrow.", zh: "今天写错的，明天就是会的。" },
+  { en: "Sit down. Open the book. The rest is easy.", zh: "坐下，翻开书，剩下的事自然会发生。" },
+  { en: "Be the calm one.", zh: "做那个稳得住的人。" },
+  { en: "Discipline is freedom in disguise.", zh: "规律是你换来自由的代价，也是奖励。" },
+  { en: "Tired, but still here.", zh: "再累，也还在自己的位置上。" },
+  { en: "Quiet effort, loud results.", zh: "默默用功，分数会替你说话。" }
 ] as const;
 
 export function getSessionActions(state: SessionState): SessionAction[] {
