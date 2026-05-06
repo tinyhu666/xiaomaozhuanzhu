@@ -51,6 +51,21 @@ export function validateCompletionDraft(draft: { summary: string; photos: Comple
   };
 }
 
+/**
+ * Compact label for inside heat-map cells (small space):
+ *   < 60 min  → "Xm"  (e.g. "45m")
+ *   ≥ 60 min  → "Xh"  for whole hours, otherwise "X.Yh" (e.g. "1h", "2.5h")
+ */
+export function formatHeatLabel(totalMinutes: number) {
+  if (!totalMinutes || totalMinutes <= 0) return "";
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = totalMinutes / 60;
+  if (Number.isInteger(hours)) return `${hours}h`;
+  if (hours >= 10) return `${Math.round(hours)}h`;
+  // One decimal for sub-10h (e.g. 1.5h, 2.3h).
+  return `${Math.round(hours * 10) / 10}h`;
+}
+
 export function buildMonthGrid(
   month: string,
   dailyStats: Record<string, { totalMinutes: number; heatLevel: number }>,
@@ -67,6 +82,7 @@ export function buildMonthGrid(
       inMonth: boolean;
       heatLevel: number;
       totalMinutes: number;
+      heatLabel: string;
       isToday: boolean;
     }>;
   }
@@ -90,18 +106,21 @@ export function buildMonthGrid(
     inMonth: boolean;
     heatLevel: number;
     totalMinutes: number;
+    heatLabel: string;
     isToday: boolean;
   }> = [];
 
   for (let index = 0; index < totalCells; index += 1) {
     const date = `${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, "0")}-${String(cursor.getUTCDate()).padStart(2, "0")}`;
     const stat = dailyStats[date];
+    const totalMinutes = stat?.totalMinutes ?? 0;
     items.push({
       date,
       day: cursor.getUTCDate(),
       inMonth: cursor.getUTCMonth() === monthIndex,
       heatLevel: stat?.heatLevel ?? 0,
-      totalMinutes: stat?.totalMinutes ?? 0,
+      totalMinutes,
+      heatLabel: formatHeatLabel(totalMinutes),
       isToday: date === today
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);

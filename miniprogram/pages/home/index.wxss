@@ -358,62 +358,66 @@
   margin-top: 14rpx;
 }
 
-/* Heat-map palette tuned for clear lightness steps so the gradient is
-   obvious at-a-glance, not just a row of pale tints. Each level drops
-   ~14% lightness from the previous one, which roughly matches
-   GitHub-style contribution graphs (人眼感知顺滑). */
+/* Heat-map palette: 6 distinct lightness steps with deliberately wider
+   gaps on the light end so level-0 and level-1 are never confused.
+   Lightness sequence ≈ 96% / 84% / 70% / 50% / 35% / 22%. */
 .mini-calendar__cell {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 72rpx;
+  height: 76rpx;
   border-radius: 16rpx;
-  background: #ecf3ef;
-  border: 2rpx solid #d3e6dd;
+  background: #f0f6f3;
+  border: 2rpx solid #d8e8e0;
   box-sizing: border-box;
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
 
 .mini-calendar__cell.is-faded {
-  opacity: 0.3;
+  opacity: 0.32;
 }
 
 .mini-calendar__cell.level-1 {
-  background: #b9e6d2;
-  border-color: #99d4bb;
+  background: #b3e3c7;
+  border-color: #8fd1ad;
 }
 
 .mini-calendar__cell.level-2 {
-  background: #7fcfa6;
-  border-color: #62b88c;
+  background: #6fc99a;
+  border-color: #4eb27e;
 }
 
 .mini-calendar__cell.level-3 {
-  background: #44b377;
-  border-color: #379163;
+  background: #2ea985;
+  border-color: #228168;
 }
 
 .mini-calendar__cell.level-4 {
-  background: #237c56;
-  border-color: #1c6447;
+  background: #1a7558;
+  border-color: #135a43;
 }
 
 .mini-calendar__cell.level-5 {
-  background: #0d4d35;
-  border-color: #093a28;
+  background: #0a4631;
+  border-color: #073323;
 }
 
+/* White day number whenever bg is dark enough to lose dark text. */
 .mini-calendar__cell.level-3 .mini-calendar__day,
 .mini-calendar__cell.level-4 .mini-calendar__day,
 .mini-calendar__cell.level-5 .mini-calendar__day {
   color: #ffffff;
 }
 
+/* Today indicator: outer ring via box-shadow + bold number. NO transform —
+   transform/scale on iOS WeChat can trigger compositing glitches that
+   leave the cell content blank. */
 .mini-calendar__cell.is-today {
   border-color: var(--mint-600);
-  box-shadow: 0 0 0 3rpx rgba(46, 169, 133, 0.22);
-  transform: translateZ(0) scale(1.02);
+  box-shadow:
+    0 0 0 3rpx #ffffff,
+    0 0 0 6rpx var(--mint-600);
 }
 
 .mini-calendar__cell.is-today .mini-calendar__day {
@@ -421,7 +425,7 @@
 }
 
 .mini-calendar__day {
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1;
@@ -456,33 +460,33 @@
 }
 
 .mini-calendar__legend-swatch.level-0 {
-  background: #ecf3ef;
-  border-color: #d3e6dd;
+  background: #f0f6f3;
+  border-color: #d8e8e0;
 }
 
 .mini-calendar__legend-swatch.level-1 {
-  background: #b9e6d2;
-  border-color: #99d4bb;
+  background: #b3e3c7;
+  border-color: #8fd1ad;
 }
 
 .mini-calendar__legend-swatch.level-2 {
-  background: #7fcfa6;
-  border-color: #62b88c;
+  background: #6fc99a;
+  border-color: #4eb27e;
 }
 
 .mini-calendar__legend-swatch.level-3 {
-  background: #44b377;
-  border-color: #379163;
+  background: #2ea985;
+  border-color: #228168;
 }
 
 .mini-calendar__legend-swatch.level-4 {
-  background: #237c56;
-  border-color: #1c6447;
+  background: #1a7558;
+  border-color: #135a43;
 }
 
 .mini-calendar__legend-swatch.level-5 {
-  background: #0d4d35;
-  border-color: #093a28;
+  background: #0a4631;
+  border-color: #073323;
 }
 
 .home-version {

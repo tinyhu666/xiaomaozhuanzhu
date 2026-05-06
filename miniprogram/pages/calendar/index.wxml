@@ -29,6 +29,7 @@
         bindtap="openDay"
       >
         <text class="calendar-board__day">{{item.day}}</text>
+        <text wx:if="{{item.totalMinutes > 0}}" class="calendar-board__minutes">{{item.heatLabel}}</text>
       </view>
     </view>
 
