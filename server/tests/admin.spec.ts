@@ -377,6 +377,54 @@ describe("Admin dashboard", () => {
       .expect(410);
   });
 
+  it("returns an inline SVG placeholder when the storage backend is the default fallback", async () => {
+    // Build a valid signature against a fileId that the default storage
+    // client will resolve to an unreachable temp.example.com URL.
+    const { createHmac } = await import("node:crypto");
+    const fileId = "cloud://demo/missing.jpg";
+    const exp = Math.floor(Date.now() / 1000) + 600;
+    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${fileId}:${exp}`).digest("hex");
+
+    // Re-create app without the test storage stub so it falls back to
+    // the default placeholder client.
+    delete process.env.WECHAT_OPENAPI_INTERNAL;
+    delete process.env.WECHAT_CLOUD_ENV;
+    const fallbackApp = createApp({ clock: { now: () => clock.now() } });
+
+    const res = await request(fallbackApp)
+      .get(`/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`)
+      .buffer(true)
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.on("end", () => callback(null, Buffer.concat(chunks).toString("utf-8")));
+      })
+      .expect(200);
+
+    expect(res.headers["content-type"]).toContain("image/svg+xml");
+    const body = String(res.body);
+    expect(body).toContain("<svg");
+    expect(body).toContain("图片暂不可用");
+    // Hint visible to user: missing OpenAPI env or unresolvable.
+    expect(body).toMatch(/未配置 WeChat OpenAPI|无法解析 fileId/);
+  });
+
+  it("exposes a /diag endpoint reporting storage mode + env flags", async () => {
+    const res = await request(app)
+      .get("/admin/api/diag")
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    expect(res.body).toHaveProperty("storageMode");
+    expect(res.body).toHaveProperty("envFlags");
+    expect(res.body).toHaveProperty("probe");
+    // envFlags should report booleans / null only, never raw values.
+    expect(typeof res.body.envFlags.ADMIN_TOKEN).toBe("boolean");
+    expect(res.body.envFlags.ADMIN_TOKEN).toBe(true);
+    // No raw secret leakage.
+    expect(JSON.stringify(res.body)).not.toContain(ADMIN_TOKEN);
+  });
+
   it("exposes subject + tag breakdown on the user detail endpoint", async () => {
     const bootstrap = await request(app)
       .post("/api/me/bootstrap")

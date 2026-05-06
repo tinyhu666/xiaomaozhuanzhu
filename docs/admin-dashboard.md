@@ -4,6 +4,8 @@
 
 ## 启用步骤
 
+> ⚠️ **图片预览额外要求**：`ADMIN_TOKEN` 只解决登录。要让用户上传的图片能在后台显示，**还需要让服务能调用微信 OpenAPI 把 cloud:// 的 fileId 解析成 HTTP URL**。第 1 步是必须的；第 2 步只有"图片显示不出来"时才需要做。
+
 1. **设置 admin token**（云托管环境变量）
    - 微信云托管控制台 → 服务管理 → `cpa-study-checkin` → 服务设置
    - 找到 **环境变量** 区域，新增一项：
@@ -15,7 +17,16 @@
        或就是一句你能记住的长 passphrase，比如 `cpa-mama-good-luck-2026-spring`
    - 保存 → 触发滚动更新（容器会带新环境变量重启）
 
-2. **访问后台**
+2. **（图片预览必需）配置微信 OpenAPI 内部调用**
+   - 在同一个「环境变量」区域再添加两项：
+     - `WECHAT_OPENAPI_INTERNAL` = `1`
+     - `WECHAT_CLOUD_ENV` = 你的环境 ID，比如 `prod-d4g3sqnpj0acb9be5`
+   - 然后到云托管 → 服务设置 → **「微信 OpenAPI」** 区域，**开启** `wxa-business / wxopenapi` 调用权限（一般默认就开了，确认一下）
+   - 保存触发滚动更新
+
+   > 不配也能登录后台、看用户列表 / 学习时长 / 连签数据 — 唯一影响是**用户上传的照片显示不出来**（会用 SVG 占位图代替，并提示原因）。如果 admin 顶部出现红色横幅"⚠️ 存储未配置"，就说明这一步没做。
+
+3. **访问后台**
    - 浏览器打开：
      ```
      https://<your-cloud-run-domain>/admin/
@@ -23,6 +34,19 @@
      例如：`https://cpa-study-checkin-247395-5-1422934587.sh.run.tcloudbase.com/admin/`
    - 输入 `ADMIN_TOKEN` → 登录
    - Token 保存在 localStorage，下次直接进入
+
+4. **诊断接口**（如果配置后图片还是显不出来）
+   ```bash
+   curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+     https://<domain>/admin/api/diag | jq
+   ```
+   返回 JSON 直接告诉你：
+   - `storageMode`: 当前用的存储模式（`wechat-cloudrun` / `wechat-token` / `cos` / `default`）
+   - `envFlags`: 各关键 env 变量是否就绪（只显示 true/false，不暴露原值）
+   - `probe`: 一次真实的 OpenAPI 调用尝试结果（成功的 url 或错误信息）
+   - `hint`: 推断出的下一步建议
+
+   截这个 JSON 给我能直接定位问题。
 
 ## 功能
 

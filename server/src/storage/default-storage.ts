@@ -117,6 +117,15 @@ export class WechatHttpStorageClient implements StorageClient {
   }
 }
 
+export type StorageMode = "wechat-cloudrun" | "wechat-token" | "cos" | "default";
+
+export function detectStorageMode(env: Partial<Record<string, string | undefined>> = process.env): StorageMode {
+  if (env.WECHAT_OPENAPI_INTERNAL === "1" && env.WECHAT_CLOUD_ENV) return "wechat-cloudrun";
+  if (env.WECHAT_APP_ID && env.WECHAT_APP_SECRET && env.WECHAT_CLOUD_ENV) return "wechat-token";
+  if (env.COS_SECRET_ID && env.COS_SECRET_KEY && env.COS_BUCKET && env.COS_REGION) return "cos";
+  return "default";
+}
+
 export function createStorageClient(): StorageClient {
   if (process.env.WECHAT_OPENAPI_INTERNAL === "1" && process.env.WECHAT_CLOUD_ENV) {
     return new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, { kind: "cloudrun" });

@@ -311,14 +311,16 @@ export const adminIndexHtml = `<!DOCTYPE html>
   async function renderList() {
     app.innerHTML = '<div class="card"><div class="sub">加载中…</div></div>';
     try {
-      const [stats, usersResp, recentResp] = await Promise.all([
+      const [stats, usersResp, recentResp, diag] = await Promise.all([
         api("/stats"),
         api("/users"),
-        api("/recent-sessions?limit=20")
+        api("/recent-sessions?limit=20"),
+        api("/diag").catch(() => null)
       ]);
       state.stats = stats;
       state.users = usersResp.users;
       state.recent = recentResp.items;
+      state.diag = diag;
       drawList();
     } catch (err) {
       if (err.message === "UNAUTHORIZED" || err.message === "NO_TOKEN") {
@@ -365,7 +367,23 @@ export const adminIndexHtml = `<!DOCTYPE html>
       '</div>';
     }).join("") : '<div class="sub">暂无打卡记录。</div>';
 
-    app.innerHTML = '\\
+    const diag = state.diag;
+    const diagBanner = (function buildDiagBanner() {
+      if (!diag) return "";
+      if (diag.storageMode === "wechat-cloudrun" && !diag.probe.error) return "";
+      if (diag.storageMode === "wechat-token" && !diag.probe.error) return "";
+      if (diag.storageMode === "cos" && !diag.probe.error) return "";
+      const reason = diag.storageMode === "default"
+        ? "存储未配置（图片代理会显示占位图）"
+        : (diag.probe.error || "存储调用失败");
+      const hint = diag.hint || "";
+      return '<div class="alert alert--err" style="margin-bottom:16px;">⚠️ ' +
+        escapeHtml(reason) +
+        (hint ? '<div class="sub" style="margin-top:4px;">' + escapeHtml(hint) + '</div>' : '') +
+        '</div>';
+    })();
+
+    app.innerHTML = diagBanner + '\\
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;">\\
         <div>\\
           <h1>CPA 学习数据 · 管理后台</h1>\\

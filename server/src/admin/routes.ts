@@ -15,7 +15,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { AppError } from "../errors";
 import { adminIndexHtml } from "./ui";
 import type { DataStore } from "../store/types";
-import type { StorageClient } from "../storage/default-storage";
+import { detectStorageMode, type StorageClient } from "../storage/default-storage";
 
 const PHOTO_URL_TTL_SECONDS = 600; // 10 minutes
 
@@ -65,14 +65,28 @@ export function registerAdminRoutes(
     // to our same-origin server. This sidesteps any CORS / referrer
     // restrictions on the upstream signed URL.
     let resolvedUrl = "";
+    let resolutionError: string | null = null;
     try {
       const [item] = await storage.getTemporaryUrls([{ objectKey: fileId, fileId }]);
       resolvedUrl = item?.url ?? "";
     } catch (error) {
+      resolutionError = error instanceof Error ? error.message : String(error);
       console.warn("[admin] photo getTemporaryUrls failed", error);
     }
-    if (!resolvedUrl) {
-      response.status(404).json({ error: { code: "NOT_FOUND", message: "Photo URL could not be resolved" } });
+    // The DefaultStorageClient hands back a placeholder URL when no
+    // real backend is configured — useful for local dev, fatal for
+    // production. Treat it as a resolution failure so the admin sees a
+    // diagnostic placeholder instead of a broken image icon.
+    const isPlaceholderUrl = resolvedUrl.startsWith("https://temp.example.com");
+    if (!resolvedUrl || isPlaceholderUrl) {
+      sendPhotoPlaceholder(
+        response,
+        "图片暂不可用",
+        resolutionError ||
+          (isPlaceholderUrl
+            ? "未配置 WeChat OpenAPI（缺 WECHAT_OPENAPI_INTERNAL=1）"
+            : "无法解析 fileId")
+      );
       return;
     }
 
@@ -81,12 +95,12 @@ export function registerAdminRoutes(
       upstream = await fetch(resolvedUrl);
     } catch (error) {
       console.warn("[admin] photo fetch failed", error);
-      response.status(502).end();
+      sendPhotoPlaceholder(response, "网络错误", error instanceof Error ? error.message : String(error));
       return;
     }
     const fetchRes = upstream as { ok: boolean; status: number; headers: { get(name: string): string | null }; arrayBuffer(): Promise<ArrayBuffer> };
     if (!fetchRes.ok) {
-      response.status(fetchRes.status || 502).end();
+      sendPhotoPlaceholder(response, "上游加载失败", `HTTP ${fetchRes.status}`);
       return;
     }
     const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
@@ -120,6 +134,53 @@ export function registerAdminRoutes(
   app.get("/admin/api/whoami", (_request, response) => {
     response.json({ ok: true, serverTime: clock.now().toISOString() });
   });
+
+  // Storage diagnostic. Reveals which mode the server is running in
+  // (wechat-cloudrun / wechat-token / cos / default) and which env
+  // vars are present. Only env names — never the values — are
+  // returned, so this is safe to call even without the OpenAPI
+  // permission set up.
+  app.get("/admin/api/diag", asyncHandler(async (_request, response) => {
+    const mode = detectStorageMode();
+    const envFlags = {
+      ADMIN_TOKEN: Boolean(process.env.ADMIN_TOKEN),
+      WECHAT_OPENAPI_INTERNAL: process.env.WECHAT_OPENAPI_INTERNAL ?? null,
+      WECHAT_CLOUD_ENV: Boolean(process.env.WECHAT_CLOUD_ENV),
+      WECHAT_APP_ID: Boolean(process.env.WECHAT_APP_ID),
+      WECHAT_APP_SECRET: Boolean(process.env.WECHAT_APP_SECRET),
+      COS_SECRET_ID: Boolean(process.env.COS_SECRET_ID),
+      COS_SECRET_KEY: Boolean(process.env.COS_SECRET_KEY),
+      COS_BUCKET: process.env.COS_BUCKET ?? null,
+      COS_REGION: process.env.COS_REGION ?? null
+    };
+
+    // Try a real round-trip with a synthetic fileId so we can report
+    // whether OpenAPI is actually reachable. Errors are caught and
+    // reported as text rather than thrown.
+    let probe: { url: string | null; error: string | null } = { url: null, error: null };
+    try {
+      const [item] = await storage.getTemporaryUrls([
+        { objectKey: "diag/probe.jpg", fileId: "cloud://diag/probe.jpg" }
+      ]);
+      probe = { url: item?.url ?? null, error: null };
+    } catch (error) {
+      probe = { url: null, error: error instanceof Error ? error.message : String(error) };
+    }
+
+    const hint =
+      mode === "default"
+        ? "Set WECHAT_OPENAPI_INTERNAL=1 and WECHAT_CLOUD_ENV in 云托管 → 服务设置 → 环境变量, then redeploy."
+        : probe.error
+          ? "Backend is configured but the call failed. Check that the cloud-run service has 微信 OpenAPI 调用权限 enabled."
+          : null;
+
+    response.json({
+      storageMode: mode,
+      envFlags,
+      probe,
+      hint
+    });
+  }));
 
   app.get("/admin/api/stats", asyncHandler(async (_request, response) => {
     const summaries = await store.listAllUsers();
@@ -397,6 +458,46 @@ function buildSignedPhotoUrl(adminToken: string, fileId: string) {
 
 function signPhotoSignature(adminToken: string, fileId: string, exp: number) {
   return createHmac("sha256", adminToken).update(`${fileId}:${exp}`).digest("hex");
+}
+
+/**
+ * Renders an inline SVG explaining why a photo couldn't load. Returned
+ * with HTTP 200 so the browser still draws it inside the admin's
+ * <img> tag — the user gets a tooltip + visible label instead of the
+ * default "broken image" glyph, which would be impossible to debug.
+ */
+function sendPhotoPlaceholder(response: Response, title: string, detail: string) {
+  const safeTitle = escapeXml(truncate(title, 28));
+  const safeDetail = escapeXml(truncate(detail, 60));
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+  <rect width="200" height="200" rx="14" fill="#f3efe6" />
+  <g transform="translate(100,72)" fill="none" stroke="#c8b58a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-26" y="-22" width="52" height="44" rx="6" />
+    <circle cx="-12" cy="-6" r="4" />
+    <path d="M-22 18 L-6 0 L8 12 L18 2 L26 22" />
+    <line x1="-30" y1="-26" x2="30" y2="30" stroke="#b8423a" />
+  </g>
+  <text x="100" y="130" text-anchor="middle" font-family="-apple-system, PingFang SC, sans-serif" font-size="14" font-weight="600" fill="#7a5a2b">${safeTitle}</text>
+  <text x="100" y="152" text-anchor="middle" font-family="-apple-system, PingFang SC, sans-serif" font-size="11" fill="#a08c66">${safeDetail}</text>
+</svg>`;
+  response.setHeader("content-type", "image/svg+xml; charset=utf-8");
+  response.setHeader("cache-control", "private, max-age=30");
+  response.status(200).send(svg);
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function truncate(value: string, max: number) {
+  if (!value) return "";
+  return value.length > max ? value.slice(0, max - 1) + "…" : value;
 }
 
 function sendCsv(response: Response, filename: string, header: string[], rows: string[][]) {
