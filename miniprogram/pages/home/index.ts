@@ -95,13 +95,23 @@ Page<{}, HomePageData>({
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const today = `${month}-${String(now.getDate()).padStart(2, "0")}`;
     const quote = getDailyQuote(today);
+    // Render the heat-map skeleton immediately so users always see the
+    // calendar grid (with day numbers + today highlight), even before the
+    // network responds. The grid is overwritten with real heat values
+    // once /api/calendar resolves.
     this.setData({
       quoteEn: quote.en,
       quoteZh: quote.zh,
-      monthLabel: `${now.getMonth() + 1}月学习热力图`
+      monthLabel: `${now.getMonth() + 1}月学习热力图`,
+      monthGrid: this.data.monthGrid.length ? this.data.monthGrid : buildMonthGrid(month, {})
     });
 
-    await Promise.all([this.loadHomeStats(), this.loadCalendar(month)]);
+    wx.showNavigationBarLoading();
+    try {
+      await Promise.all([this.loadHomeStats(), this.loadCalendar(month)]);
+    } finally {
+      wx.hideNavigationBarLoading();
+    }
   },
 
   async loadHomeStats() {
@@ -193,6 +203,11 @@ Page<{}, HomePageData>({
       });
     } catch (error) {
       console.error("[home] loadCalendar failed", error);
+      // Fall back to an empty grid so the user still sees day numbers
+      // instead of a blank panel.
+      this.setData({
+        monthGrid: buildMonthGrid(month, {})
+      });
     }
   },
 

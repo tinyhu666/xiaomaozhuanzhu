@@ -41,16 +41,32 @@ Page<{}, CalendarPageData>({
     await this.loadMonth();
   },
 
-  async loadMonth() {
+  async onPullDownRefresh() {
     try {
-      const month = this.data.month;
+      await this.loadMonth();
+    } finally {
+      wx.stopPullDownRefresh();
+    }
+  },
+
+  async loadMonth() {
+    const month = this.data.month;
+    // Render the month skeleton synchronously so the user sees day
+    // numbers immediately, even before /api/calendar responds.
+    const skeleton = buildMonthGrid(month, {});
+    this.setData({
+      monthTitle: month.replace("-", "年") + "月",
+      grid: this.data.grid.length && this.data.month === month ? this.data.grid : skeleton
+    });
+
+    wx.showNavigationBarLoading();
+    try {
       const result = await getCalendar(month);
       const totalMinutes = Object.values(result.days).reduce((sum, day) => sum + day.totalMinutes, 0);
       const grid = buildMonthGrid(month, result.days);
       const selectedDate = this.pickSelectedDate(grid);
 
       this.setData({
-        monthTitle: month.replace("-", "年") + "月",
         grid,
         monthTotalText: formatDuration(totalMinutes),
         selectedDate
@@ -62,6 +78,8 @@ Page<{}, CalendarPageData>({
         title: error instanceof Error ? error.message : "加载日历失败",
         icon: "none"
       });
+    } finally {
+      wx.hideNavigationBarLoading();
     }
   },
 

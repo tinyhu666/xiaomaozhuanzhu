@@ -25,7 +25,14 @@ type RequestOptions = {
   data?: Record<string, unknown>;
 };
 
-const COLD_START_RETRY_DELAYS = [400, 1200];
+// Two retry profiles:
+//   - cold-start: backend is up but the cloud-run instance is waking
+//     (102002 / 5xx / timeout). Retry twice with progressive backoff.
+//   - transient network: request:fail / connection reset. Retry once
+//     with a short delay so a flaky cell signal recovers, but don't
+//     punish a genuinely-offline user with multiple long waits.
+const COLD_START_RETRY_DELAYS = [300, 900];
+const NETWORK_RETRY_DELAYS = [250];
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,15 +45,14 @@ function extractErrMsg(error: unknown): string {
   return String(error);
 }
 
-function isLikelyColdStart(errMsg: string) {
-  return (
-    errMsg.includes("102002") ||
-    errMsg.includes("502") ||
-    errMsg.includes("503") ||
-    errMsg.includes("504") ||
-    errMsg.toLowerCase().includes("timeout") ||
-    errMsg.toLowerCase().includes("request:fail")
-  );
+type RetryKind = "cold-start" | "network" | "none";
+
+function classifyError(errMsg: string): RetryKind {
+  if (errMsg.includes("102002")) return "cold-start";
+  if (errMsg.includes("502") || errMsg.includes("503") || errMsg.includes("504")) return "cold-start";
+  if (errMsg.toLowerCase().includes("timeout")) return "cold-start";
+  if (errMsg.toLowerCase().includes("request:fail")) return "network";
+  return "none";
 }
 
 async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
@@ -72,7 +78,12 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
 
   let response: { data: unknown; statusCode?: number } | undefined;
   let lastError: unknown;
-  for (let attempt = 0; attempt <= COLD_START_RETRY_DELAYS.length; attempt += 1) {
+  let coldAttempts = 0;
+  let networkAttempts = 0;
+  // Keep looping until we either succeed or run out of the matching
+  // retry budget for this error kind.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
     try {
       response = await callOnce();
       lastError = undefined;
@@ -80,8 +91,15 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
     } catch (error) {
       lastError = error;
       const errMsg = extractErrMsg(error);
-      if (attempt < COLD_START_RETRY_DELAYS.length && isLikelyColdStart(errMsg)) {
-        await delay(COLD_START_RETRY_DELAYS[attempt]);
+      const kind = classifyError(errMsg);
+      if (kind === "cold-start" && coldAttempts < COLD_START_RETRY_DELAYS.length) {
+        await delay(COLD_START_RETRY_DELAYS[coldAttempts]);
+        coldAttempts += 1;
+        continue;
+      }
+      if (kind === "network" && networkAttempts < NETWORK_RETRY_DELAYS.length) {
+        await delay(NETWORK_RETRY_DELAYS[networkAttempts]);
+        networkAttempts += 1;
         continue;
       }
       break;
@@ -98,6 +116,9 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
     }
     if (errMsg.toLowerCase().includes("timeout")) {
       throw new Error("网络超时，请稍后再试");
+    }
+    if (errMsg.toLowerCase().includes("request:fail")) {
+      throw new Error("网络连接异常，请检查网络后重试");
     }
     throw new Error(errMsg || "网络请求失败");
   }

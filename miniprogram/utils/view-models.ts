@@ -100,9 +100,21 @@ export function formatDuration(totalMinutes: number) {
   return `${hours}h ${minutes}m`;
 }
 
-export function getDailyQuote(_dateKey?: string) {
-  const index = Math.floor(Math.random() * DAILY_QUOTES.length);
-  return DAILY_QUOTES[index];
+export function getDailyQuote(dateKey?: string) {
+  const key =
+    dateKey ??
+    (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+        now.getDate()
+      ).padStart(2, "0")}`;
+    })();
+  // Stable hash so the same calendar day always shows the same quote.
+  let hash = 0;
+  for (let index = 0; index < key.length; index += 1) {
+    hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
+  }
+  return DAILY_QUOTES[hash % DAILY_QUOTES.length];
 }
 
 export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes: number }>) {
