@@ -17,14 +17,38 @@
        或就是一句你能记住的长 passphrase，比如 `cpa-mama-good-luck-2026-spring`
    - 保存 → 触发滚动更新（容器会带新环境变量重启）
 
-2. **（图片预览必需）配置微信 OpenAPI 内部调用**
-   - 在同一个「环境变量」区域再添加两项：
-     - `WECHAT_OPENAPI_INTERNAL` = `1`
-     - `WECHAT_CLOUD_ENV` = 你的环境 ID，比如 `prod-d4g3sqnpj0acb9be5`
-   - 然后到云托管 → 服务设置 → **「微信 OpenAPI」** 区域，**开启** `wxa-business / wxopenapi` 调用权限（一般默认就开了，确认一下）
-   - 保存触发滚动更新
+2. **（图片预览必需）配置 WeChat OpenAPI**
 
-   > 不配也能登录后台、看用户列表 / 学习时长 / 连签数据 — 唯一影响是**用户上传的照片显示不出来**（会用 SVG 占位图代替，并提示原因）。如果 admin 顶部出现红色横幅"⚠️ 存储未配置"，就说明这一步没做。
+   有两种模式，**选一种**即可（也可以同时配，自动 fallback）：
+
+   ### 模式 A — Cloudrun 自动注入（最省事，但依赖平台权限）
+
+   在「环境变量」区域加：
+   - `WECHAT_OPENAPI_INTERNAL` = `1`
+   - `WECHAT_CLOUD_ENV` = `prod-d4g3sqnpj0acb9be5`
+
+   然后云托管会自动给 `http://api.weixin.qq.com/*` 的请求注入 access_token。**前提**是云托管 → 服务设置 → 微信 API 调用权限里 `tcb/batchdownloadfile` 已开启。
+
+   如果 `/admin/api/diag` 返回 **`access_token missing rid: ... (41001)`**，说明这个自动注入没生效。改用模式 B 即可。
+
+   ### 模式 B — Token 模式（用 AppSecret，最稳）
+
+   1. 拿到小程序 AppSecret：
+      - 打开 [https://mp.weixin.qq.com](https://mp.weixin.qq.com) → 登录
+      - **开发管理** → **开发设置** → **AppSecret**（小程序密钥）
+      - 第一次需要管理员扫码 + **生成/重置** 一次（注意：重置会让旧 secret 立即失效，如果其他服务在用要小心）
+      - 复制下来，**只显示这一次**
+
+   2. 在云托管「环境变量」加：
+      - `WECHAT_APP_ID` = `wxfb24f334e5070a82`
+      - `WECHAT_APP_SECRET` = 上一步那串
+      - `WECHAT_CLOUD_ENV` = `prod-d4g3sqnpj0acb9be5`
+
+   3. （可选）保留模式 A 的 `WECHAT_OPENAPI_INTERNAL=1`：服务会**先试 cloudrun 模式，失败再 fallback 到 token 模式**，hybrid 自动容错。
+
+   保存触发滚动更新。
+
+   > 不配模式 A 或 B 也能登录后台、看用户列表 / 学习时长 / 连签数据 — 唯一影响是**用户上传的照片显示不出来**（会用 SVG 占位图代替，并在图上写明原因）。如果 admin 顶部出现红色横幅"⚠️ 存储未配置"或"调用失败"，就说明这一步没接通。
 
 3. **访问后台**
    - 浏览器打开：

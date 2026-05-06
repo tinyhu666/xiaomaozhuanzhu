@@ -117,31 +117,78 @@ export class WechatHttpStorageClient implements StorageClient {
   }
 }
 
-export type StorageMode = "wechat-cloudrun" | "wechat-token" | "cos" | "default";
+export type StorageMode =
+  | "wechat-cloudrun"
+  | "wechat-token"
+  | "wechat-hybrid"
+  | "cos"
+  | "default";
 
-export function detectStorageMode(env: Partial<Record<string, string | undefined>> = process.env): StorageMode {
-  if (env.WECHAT_OPENAPI_INTERNAL === "1" && env.WECHAT_CLOUD_ENV) return "wechat-cloudrun";
-  if (env.WECHAT_APP_ID && env.WECHAT_APP_SECRET && env.WECHAT_CLOUD_ENV) return "wechat-token";
+export function detectStorageMode(
+  env: Partial<Record<string, string | undefined>> = process.env
+): StorageMode {
+  const cloudrunReady = env.WECHAT_OPENAPI_INTERNAL === "1" && Boolean(env.WECHAT_CLOUD_ENV);
+  const tokenReady = Boolean(env.WECHAT_APP_ID && env.WECHAT_APP_SECRET && env.WECHAT_CLOUD_ENV);
+  if (cloudrunReady && tokenReady) return "wechat-hybrid";
+  if (cloudrunReady) return "wechat-cloudrun";
+  if (tokenReady) return "wechat-token";
   if (env.COS_SECRET_ID && env.COS_SECRET_KEY && env.COS_BUCKET && env.COS_REGION) return "cos";
   return "default";
 }
 
-export function createStorageClient(): StorageClient {
-  if (process.env.WECHAT_OPENAPI_INTERNAL === "1" && process.env.WECHAT_CLOUD_ENV) {
-    return new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, { kind: "cloudrun" });
-  }
+/**
+ * Tries the primary storage client first. If it throws OR returns
+ * URL-less items (the typical "platform didn't sign my request"
+ * outcome), automatically retries via a fallback client. Used to make
+ * cloud-run + token configuration resilient: if the platform's
+ * access_token auto-injection is broken, the AppSecret-based path
+ * recovers without touching the deployment.
+ */
+export class HybridStorageClient implements StorageClient {
+  constructor(
+    private readonly primary: StorageClient,
+    private readonly fallback: StorageClient,
+    private readonly primaryLabel: string,
+    private readonly fallbackLabel: string
+  ) {}
 
-  if (
-    process.env.WECHAT_APP_ID &&
-    process.env.WECHAT_APP_SECRET &&
-    process.env.WECHAT_CLOUD_ENV
-  ) {
-    return new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, {
-      kind: "token",
-      appId: process.env.WECHAT_APP_ID,
-      appSecret: process.env.WECHAT_APP_SECRET
-    });
+  async getTemporaryUrls(items: StorageQuery[]) {
+    try {
+      const result = await this.primary.getTemporaryUrls(items);
+      const resolvable = items.filter((item) => Boolean(item.fileId));
+      const someResolved = result.some((row) => row.url);
+      if (resolvable.length === 0 || someResolved) return result;
+      throw new Error(`${this.primaryLabel} returned no URLs`);
+    } catch (error) {
+      console.warn(
+        `[storage] ${this.primaryLabel} failed, falling back to ${this.fallbackLabel}:`,
+        error instanceof Error ? error.message : error
+      );
+      return this.fallback.getTemporaryUrls(items);
+    }
   }
+}
+
+export function createStorageClient(): StorageClient {
+  const cloudrunClient =
+    process.env.WECHAT_OPENAPI_INTERNAL === "1" && process.env.WECHAT_CLOUD_ENV
+      ? new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, { kind: "cloudrun" })
+      : null;
+
+  const tokenClient =
+    process.env.WECHAT_APP_ID && process.env.WECHAT_APP_SECRET && process.env.WECHAT_CLOUD_ENV
+      ? new WechatHttpStorageClient(process.env.WECHAT_CLOUD_ENV, {
+          kind: "token",
+          appId: process.env.WECHAT_APP_ID,
+          appSecret: process.env.WECHAT_APP_SECRET
+        })
+      : null;
+
+  if (cloudrunClient && tokenClient) {
+    return new HybridStorageClient(cloudrunClient, tokenClient, "cloudrun", "token");
+  }
+  if (cloudrunClient) return cloudrunClient;
+  if (tokenClient) return tokenClient;
 
   if (
     process.env.COS_SECRET_ID &&
