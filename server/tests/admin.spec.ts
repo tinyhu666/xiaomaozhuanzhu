@@ -204,4 +204,163 @@ describe("Admin dashboard", () => {
       .set("authorization", `Bearer ${ADMIN_TOKEN}`)
       .expect(404);
   });
+
+  it("returns recent completed sessions across users in reverse chronological order", async () => {
+    // user-1 logs a session
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "rec-1")
+      .send({ nickname: "Recent One", avatarUrl: "https://example.com/r1.png" })
+      .expect(200);
+    const s1 = await request(app).post("/api/sessions/start").set("x-wx-openid", "rec-1").expect(200);
+    clock.advanceMinutes(40);
+    await request(app)
+      .post(`/api/sessions/${s1.body.session.id}/complete`)
+      .set("x-wx-openid", "rec-1")
+      .send({
+        summary: "rec1",
+        subject: "会计",
+        tags: ["顺利"],
+        photos: [{ fileId: "cloud://demo/r1.jpg", objectKey: "checkins/r1.jpg" }]
+      })
+      .expect(200);
+
+    // user-2 logs a session a few minutes later
+    clock.advanceMinutes(10);
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "rec-2")
+      .send({ nickname: "Recent Two", avatarUrl: "https://example.com/r2.png" })
+      .expect(200);
+    const s2 = await request(app).post("/api/sessions/start").set("x-wx-openid", "rec-2").expect(200);
+    clock.advanceMinutes(60);
+    await request(app)
+      .post(`/api/sessions/${s2.body.session.id}/complete`)
+      .set("x-wx-openid", "rec-2")
+      .send({
+        summary: "rec2",
+        subject: "审计",
+        tags: ["复习"],
+        photos: [{ fileId: "cloud://demo/r2.jpg", objectKey: "checkins/r2.jpg" }]
+      })
+      .expect(200);
+
+    const recent = await request(app)
+      .get("/admin/api/recent-sessions?limit=10")
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    expect(recent.body.items).toHaveLength(2);
+    // Most recent first.
+    expect(recent.body.items[0].nickname).toBe("Recent Two");
+    expect(recent.body.items[0].subject).toBe("审计");
+    expect(recent.body.items[0].identityKind).toBe("wechat");
+    expect(recent.body.items[1].nickname).toBe("Recent One");
+  });
+
+  it("exports a CSV of all users with proper UTF-8 BOM and quoting", async () => {
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "csv-1")
+      .send({ nickname: '需要"引号"的人', avatarUrl: "https://example.com/c.png" })
+      .expect(200);
+
+    const res = await request(app)
+      .get("/admin/api/export/users.csv")
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain("attachment");
+    // BOM (3 bytes for UTF-8) at start so Excel detects encoding.
+    expect(res.text.charCodeAt(0)).toBe(0xfeff);
+    // Quoted nickname with escaped inner quotes.
+    expect(res.text).toContain('"需要""引号""的人"');
+    // Header row present.
+    expect(res.text).toContain("user_id,nickname,openid,client_uid");
+  });
+
+  it("exports per-user session CSV", async () => {
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "csv-sessions")
+      .expect(200);
+    const userId = bootstrap.body.profile.id;
+
+    const session = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "csv-sessions")
+      .expect(200);
+    clock.advanceMinutes(50);
+    await request(app)
+      .post(`/api/sessions/${session.body.session.id}/complete`)
+      .set("x-wx-openid", "csv-sessions")
+      .send({
+        summary: "exported",
+        subject: "税法",
+        tags: ["顺利", "新课"],
+        photos: [{ fileId: "cloud://demo/x.jpg", objectKey: "checkins/x.jpg" }]
+      })
+      .expect(200);
+
+    const res = await request(app)
+      .get(`/admin/api/export/users/${userId}/sessions.csv`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.text).toContain("session_id,status,started_at");
+    expect(res.text).toContain("税法");
+    // Pipe-joined tags survive the round-trip.
+    expect(res.text).toContain("顺利|新课");
+  });
+
+  it("exposes subject + tag breakdown on the user detail endpoint", async () => {
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "breakdown")
+      .expect(200);
+    const userId = bootstrap.body.profile.id;
+
+    // Two sessions, different subjects + overlapping tags
+    const a = await request(app).post("/api/sessions/start").set("x-wx-openid", "breakdown").expect(200);
+    clock.advanceMinutes(60);
+    await request(app)
+      .post(`/api/sessions/${a.body.session.id}/complete`)
+      .set("x-wx-openid", "breakdown")
+      .send({
+        summary: "a",
+        subject: "会计",
+        tags: ["顺利"],
+        photos: [{ fileId: "cloud://demo/a.jpg", objectKey: "checkins/a.jpg" }]
+      })
+      .expect(200);
+
+    clock.advanceMinutes(30);
+    const b = await request(app).post("/api/sessions/start").set("x-wx-openid", "breakdown").expect(200);
+    clock.advanceMinutes(45);
+    await request(app)
+      .post(`/api/sessions/${b.body.session.id}/complete`)
+      .set("x-wx-openid", "breakdown")
+      .send({
+        summary: "b",
+        subject: "会计",
+        tags: ["顺利", "复习"],
+        photos: [{ fileId: "cloud://demo/b.jpg", objectKey: "checkins/b.jpg" }]
+      })
+      .expect(200);
+
+    const res = await request(app)
+      .get(`/admin/api/users/${userId}`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    expect(res.body.breakdown.subjects).toEqual([
+      { subject: "会计", totalMinutes: 105, count: 2 }
+    ]);
+    expect(res.body.breakdown.tags).toEqual([
+      { tag: "顺利", count: 2 },
+      { tag: "复习", count: 1 }
+    ]);
+  });
 });

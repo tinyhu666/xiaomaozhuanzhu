@@ -206,5 +206,25 @@ export class MemoryStore {
   getUserById(userId: string) {
     return this.users.get(userId) ?? null;
   }
+
+  listRecentCompletedSessions(limit: number) {
+    const sessions = [...this.sessions.values()]
+      .filter((session) => session.status === "completed" && session.endedAt)
+      .sort((a, b) => (b.endedAt ?? "").localeCompare(a.endedAt ?? ""))
+      .slice(0, Math.max(0, Math.min(limit, 200)));
+    return sessions.map((session) => {
+      const owner = this.users.get(session.userId);
+      return {
+        session,
+        user: {
+          id: session.userId,
+          nickname: owner?.nickname ?? "",
+          avatarUrl: owner?.avatarUrl ?? "",
+          openid: owner?.openid ?? null,
+          clientUid: owner?.clientUid ?? null
+        }
+      };
+    });
+  }
 }
 

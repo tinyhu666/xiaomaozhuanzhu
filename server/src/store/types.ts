@@ -39,6 +39,7 @@ export type DataStore = {
   // /admin dashboard and are not on the user-facing hot path.
   listAllUsers(): AdminUserSummary[] | Promise<AdminUserSummary[]>;
   getUserById(userId: string): User | null | Promise<User | null>;
+  listRecentCompletedSessions(limit: number): AdminSessionWithOwner[] | Promise<AdminSessionWithOwner[]>;
 };
 
 export type AdminUserSummary = {
@@ -48,5 +49,10 @@ export type AdminUserSummary = {
   currentStreakDays: number;
   longestStreakDays: number;
   lastSessionAt: string | null;
+};
+
+export type AdminSessionWithOwner = {
+  session: StudySession;
+  user: Pick<User, "id" | "nickname" | "avatarUrl" | "openid" | "clientUid">;
 };
 

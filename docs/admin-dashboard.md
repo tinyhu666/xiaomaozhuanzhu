@@ -39,12 +39,25 @@
 - 顶部搜索框：按昵称 / openid / clientUid / 内部 ID 模糊搜索
 - 整行点击进入详情页
 
+### 最近打卡（实时流）
+- 跨所有用户的最近 10 条已完成 session
+- 每条显示：用户昵称（点击跳详情）、识别符、科目、时长、起止时间、总结、标签
+- 看一眼就知道"现在大家在学什么"
+
 ### 用户详情
 - 基本信息：内部 UUID、openid、clientUid、注册时间、最近登录
 - 数据汇总：累计学习、完成打卡、当前连签、最长连签
+- **科目分布**：每个科目的次数、累计时长、占比进度条
+- **标签云**：最常用的标签（按出现次数排序）
 - **近 6 个月热力图**（与小程序色阶一致，悬停看时长）
 - **完整学习记录**：每次 session 的起止时间、时长、科目、标签、一句话总结、上传的照片缩略图
 - 照片自动通过 WeChat OpenAPI 转换为可访问的临时 URL
+
+### CSV 导出
+- 用户列表页右上「导出 CSV」 → 下载 `users.csv`（全部用户聚合数据）
+- 用户详情页右上「导出 CSV」 → 下载 `user-<uuid>-sessions.csv`（该用户全部 session 流水）
+- 文件带 UTF-8 BOM，Excel/Numbers 双击直接打开不乱码
+- 中文/逗号/换行/双引号都按 RFC 4180 正确转义
 
 ## 安全
 
@@ -65,9 +78,20 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" \
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   https://<domain>/admin/api/stats
 
-# 单用户详情
+# 单用户详情（含科目/标签分布）
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   https://<domain>/admin/api/users/<user-uuid>
+
+# 跨用户最近打卡（默认 50 条，最多 200）
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  https://<domain>/admin/api/recent-sessions?limit=20
+
+# CSV 导出
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  https://<domain>/admin/api/export/users.csv -o users.csv
+
+curl -H "Authorization: Bearer $ADMIN_TOKEN" \
+  https://<domain>/admin/api/export/users/<uuid>/sessions.csv -o sessions.csv
 ```
 
 返回 JSON。可以接 jq 做导出 / 报表。

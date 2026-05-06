@@ -203,6 +203,32 @@ export const adminIndexHtml = `<!DOCTYPE html>
     return res.json();
   }
 
+  // CSV downloads need to carry the admin token, so we fetch as a Blob
+  // and trigger a synthetic anchor click rather than relying on a
+  // plain <a download href> (which can't set headers).
+  async function downloadCsv(path, suggestedName) {
+    const token = getToken();
+    if (!token) { renderLogin("请先登录"); return; }
+    try {
+      const res = await fetch("/admin/api" + path, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (res.status === 401) { clearToken(); renderLogin("Token 已失效，请重新登录"); return; }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = suggestedName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      alert("下载失败：" + err.message);
+    }
+  }
+
   function formatMinutes(min) {
     if (!min || min <= 0) return "0m";
     if (min < 60) return min + "m";
@@ -285,9 +311,14 @@ export const adminIndexHtml = `<!DOCTYPE html>
   async function renderList() {
     app.innerHTML = '<div class="card"><div class="sub">加载中…</div></div>';
     try {
-      const [stats, usersResp] = await Promise.all([api("/stats"), api("/users")]);
+      const [stats, usersResp, recentResp] = await Promise.all([
+        api("/stats"),
+        api("/users"),
+        api("/recent-sessions?limit=20")
+      ]);
       state.stats = stats;
       state.users = usersResp.users;
+      state.recent = recentResp.items;
       drawList();
     } catch (err) {
       if (err.message === "UNAUTHORIZED" || err.message === "NO_TOKEN") {
@@ -316,13 +347,34 @@ export const adminIndexHtml = `<!DOCTYPE html>
       return String(av).localeCompare(String(bv)) * dir;
     });
 
+    const recent = state.recent || [];
+    const recentHtml = recent.length ? recent.slice(0, 10).map((item) => {
+      const tagsHtml = (item.tags || []).map((t) => '<span class="tag">' + escapeHtml(t) + '</span>').join("");
+      const userLink = '#/users/' + encodeURIComponent(item.userId);
+      return '<div class="session" style="padding:10px 0;">\\
+        <div class="session__head">\\
+          <div>\\
+            <div class="session__when"><a href="' + userLink + '" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--mint-300);">' + escapeHtml(item.nickname || "（未设置昵称）") + '</a> ' +
+              (item.identityKind === "wechat" ? '<span class="badge badge--wechat">wechat</span>' : '<span class="badge badge--anon">anon</span>') + '</div>\\
+            <div class="session__sub">' + escapeHtml(item.subject || "—") + ' · ' + formatDate(item.endedAt) + '</div>\\
+          </div>\\
+          <div class="session__dur">' + item.durationMinutes + ' 分钟</div>\\
+        </div>' +
+        (item.summary ? '<div class="session__summary">' + escapeHtml(item.summary) + '</div>' : '') +
+        (tagsHtml ? '<div class="tags">' + tagsHtml + '</div>' : '') +
+      '</div>';
+    }).join("") : '<div class="sub">暂无打卡记录。</div>';
+
     app.innerHTML = '\\
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;">\\
         <div>\\
           <h1>CPA 学习数据 · 管理后台</h1>\\
           <p class="sub">共 ' + s.totalUsers + ' 位用户 · 数据时间 ' + formatDate(s.generatedAt) + '</p>\\
         </div>\\
-        <button class="ghost" onclick="window.__admin.logout()">退出登录</button>\\
+        <div style="display:flex;gap:8px;">\\
+          <button class="ghost" id="exportUsers">导出 CSV</button>\\
+          <button class="ghost" onclick="window.__admin.logout()">退出登录</button>\\
+        </div>\\
       </div>\\
       \\
       <div class="card">\\
@@ -334,6 +386,11 @@ export const adminIndexHtml = `<!DOCTYPE html>
           <div class="stat"><div class="stat__label">累计学习时长</div><div class="stat__value">' + formatMinutes(s.totalMinutes) + '</div></div>\\
           <div class="stat"><div class="stat__label">累计打卡次数</div><div class="stat__value">' + s.totalSessions + '</div></div>\\
         </div>\\
+      </div>\\
+      \\
+      <div class="card">\\
+        <h2 style="margin-top:0;">最近打卡（' + recent.length + '）</h2>\\
+        ' + recentHtml + '\\
       </div>\\
       \\
       <div class="card">\\
@@ -371,6 +428,11 @@ export const adminIndexHtml = `<!DOCTYPE html>
         '<td>' + ident + '</td>' +
       '</tr>';
     }).join("");
+
+    const exportBtn = document.getElementById("exportUsers");
+    if (exportBtn) {
+      exportBtn.onclick = () => downloadCsv("/export/users.csv", "users.csv");
+    }
 
     document.getElementById("filter").oninput = (e) => {
       state.filter = e.target.value;
@@ -456,8 +518,31 @@ export const adminIndexHtml = `<!DOCTYPE html>
       '</div>';
     }).join("") : '<div class="sub">该用户还没有完成过打卡。</div>';
 
+    const breakdown = d.breakdown || { subjects: [], tags: [] };
+    const subjectsHtml = breakdown.subjects.length ? breakdown.subjects.map((row) => {
+      const pct = s.totalMinutes > 0 ? Math.round((row.totalMinutes / s.totalMinutes) * 100) : 0;
+      return '<tr>\\
+        <td><strong>' + escapeHtml(row.subject) + '</strong></td>\\
+        <td>' + row.count + ' 次</td>\\
+        <td>' + formatMinutes(row.totalMinutes) + '</td>\\
+        <td><div style="width:120px;background:rgba(46,169,133,0.1);border-radius:6px;height:8px;overflow:hidden;">\\
+          <div style="background:var(--mint-300);height:100%;width:' + pct + '%;"></div>\\
+        </div></td>\\
+        <td>' + pct + '%</td>\\
+      </tr>';
+    }).join("") : '<tr><td colspan="5" class="sub">暂无科目数据</td></tr>';
+
+    const tagsHtml = breakdown.tags.length
+      ? breakdown.tags.map((row) =>
+          '<span class="tag">' + escapeHtml(row.tag) + ' · ' + row.count + '</span>'
+        ).join(" ")
+      : '<span class="sub">暂无标签数据</span>';
+
     app.innerHTML = '\\
-      <div style="margin-bottom:16px;"><a class="ghost" style="text-decoration:none;display:inline-block;" href="#/">← 返回</a></div>\\
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;">\\
+        <a class="ghost" style="text-decoration:none;display:inline-block;" href="#/">← 返回</a>\\
+        <button class="ghost" id="exportSessions">导出 CSV</button>\\
+      </div>\\
       <div class="card">\\
         <h1>' + escapeHtml(u.nickname || "（未设置昵称）") + '</h1>\\
         <p class="sub mono">' + escapeHtml(u.id) + '</p>\\
@@ -475,6 +560,15 @@ export const adminIndexHtml = `<!DOCTYPE html>
       </div>\\
       \\
       <div class="card">\\
+        <h2 style="margin-top:0;">科目分布</h2>\\
+        <table>\\
+          <thead><tr><th>科目</th><th>次数</th><th>时长</th><th>占比</th><th></th></tr></thead>\\
+          <tbody>' + subjectsHtml + '</tbody>\\
+        </table>\\
+        <div style="margin-top:14px;"><span class="sub" style="margin-right:8px;">标签：</span>' + tagsHtml + '</div>\\
+      </div>\\
+      \\
+      <div class="card">\\
         <h2 style="margin-top:0;">学习热力图（近 6 个月）</h2>\\
         ' + heatHtml + '\\
       </div>\\
@@ -483,6 +577,14 @@ export const adminIndexHtml = `<!DOCTYPE html>
         <h2 style="margin-top:0;">学习记录（' + sessions.length + '）</h2>\\
         ' + sessionsHtml + '\\
       </div>';
+
+    const exportSessionsBtn = document.getElementById("exportSessions");
+    if (exportSessionsBtn) {
+      exportSessionsBtn.onclick = () => downloadCsv(
+        "/export/users/" + encodeURIComponent(u.id) + "/sessions.csv",
+        "user-" + u.id.slice(0, 8) + "-sessions.csv"
+      );
+    }
   }
 
   function render() {

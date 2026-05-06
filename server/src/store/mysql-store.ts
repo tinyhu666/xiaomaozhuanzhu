@@ -431,6 +431,41 @@ export class MySQLStore {
     const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
     return rows[0] ? mapUserRow(rows[0]) : null;
   }
+
+  async listRecentCompletedSessions(limit: number) {
+    const safeLimit = Math.max(0, Math.min(limit | 0, 200));
+    if (safeLimit === 0) return [];
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT
+        s.id, s.user_id, s.status, s.started_at, s.ended_at,
+        s.current_pause_started_at, s.pause_segments_json,
+        s.duration_minutes, s.summary, s.subject, s.tags_json,
+        s.created_at, s.updated_at,
+        u.nickname AS u_nickname,
+        u.avatar_url AS u_avatar,
+        u.openid AS u_openid,
+        u.client_uid AS u_client_uid
+      FROM study_sessions s
+      INNER JOIN users u ON u.id = s.user_id
+      WHERE s.status = 'completed' AND s.ended_at IS NOT NULL
+      ORDER BY s.ended_at DESC
+      LIMIT ?`,
+      [safeLimit]
+    );
+    return rows.map((row) => {
+      const session = mapSessionRow(row as SessionRow);
+      return {
+        session,
+        user: {
+          id: session.userId,
+          nickname: row.u_nickname ? String(row.u_nickname) : "",
+          avatarUrl: row.u_avatar ? String(row.u_avatar) : "",
+          openid: row.u_openid ? String(row.u_openid) : null,
+          clientUid: row.u_client_uid ? String(row.u_client_uid) : null
+        }
+      };
+    });
+  }
 }
 
 function mapUserRow(row: RowDataPacket): User {
