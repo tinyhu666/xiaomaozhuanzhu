@@ -164,5 +164,47 @@ export class MemoryStore {
   getDailyStats(userId: string) {
     return this.dailyStats.get(userId) ?? new Map<string, DailyStat>();
   }
+
+  listAllUsers() {
+    const out: Array<{
+      user: User;
+      totalMinutes: number;
+      completedSessions: number;
+      currentStreakDays: number;
+      longestStreakDays: number;
+      lastSessionAt: string | null;
+    }> = [];
+    for (const user of this.users.values()) {
+      const stats = this.dailyStats.get(user.id) ?? new Map<string, DailyStat>();
+      let totalMinutes = 0;
+      let completedSessions = 0;
+      let longestStreakDays = 0;
+      let latestStat: DailyStat | null = null;
+      for (const stat of stats.values()) {
+        totalMinutes += stat.totalMinutes;
+        completedSessions += stat.sessionCount;
+        if (stat.streakDays > longestStreakDays) longestStreakDays = stat.streakDays;
+        if (!latestStat || stat.date > latestStat.date) latestStat = stat;
+      }
+      const sessions = [...this.sessions.values()]
+        .filter((s) => s.userId === user.id && s.status === "completed")
+        .sort((a, b) => (b.endedAt ?? "").localeCompare(a.endedAt ?? ""));
+      out.push({
+        user,
+        totalMinutes,
+        completedSessions,
+        currentStreakDays: latestStat?.streakDays ?? 0,
+        longestStreakDays,
+        lastSessionAt: sessions[0]?.endedAt ?? null
+      });
+    }
+    return out.sort((a, b) =>
+      (b.user.lastLoginAt ?? "").localeCompare(a.user.lastLoginAt ?? "")
+    );
+  }
+
+  getUserById(userId: string) {
+    return this.users.get(userId) ?? null;
+  }
 }
 

@@ -34,5 +34,19 @@ export type DataStore = {
   getPhotosBySessionIds(sessionIds: string[]): SessionPhoto[] | Promise<SessionPhoto[]>;
   replaceDailyStats(userId: string, dailyStats: Map<string, DailyStat>): void | Promise<void>;
   getDailyStats(userId: string): Map<string, DailyStat> | Promise<Map<string, DailyStat>>;
+
+  // Admin-facing reads. These are aggregate queries used by the
+  // /admin dashboard and are not on the user-facing hot path.
+  listAllUsers(): AdminUserSummary[] | Promise<AdminUserSummary[]>;
+  getUserById(userId: string): User | null | Promise<User | null>;
+};
+
+export type AdminUserSummary = {
+  user: User;
+  totalMinutes: number;
+  completedSessions: number;
+  currentStreakDays: number;
+  longestStreakDays: number;
+  lastSessionAt: string | null;
 };
 

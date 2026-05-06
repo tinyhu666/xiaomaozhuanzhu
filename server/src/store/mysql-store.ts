@@ -391,6 +391,46 @@ export class MySQLStore {
     const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM users WHERE client_uid = ? LIMIT 1", [clientUid]);
     return rows[0] ? mapUserRow(rows[0]) : null;
   }
+
+  async listAllUsers() {
+    // Aggregate per-user metrics in a single round-trip via correlated
+    // subqueries. We avoid window functions so this also runs on
+    // MySQL 5.7. With proper indexes on daily_stats (user_id, stat_date)
+    // and study_sessions (user_id, status, ended_at) this is O(N users)
+    // index seeks.
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT
+        u.id, u.openid, u.client_uid, u.nickname, u.avatar_url,
+        u.profile_completed, u.created_at, u.last_login_at,
+        (SELECT COALESCE(SUM(total_minutes), 0)
+           FROM daily_stats WHERE user_id = u.id) AS total_minutes,
+        (SELECT COALESCE(SUM(session_count), 0)
+           FROM daily_stats WHERE user_id = u.id) AS completed_sessions,
+        (SELECT COALESCE(MAX(streak_snapshot), 0)
+           FROM daily_stats WHERE user_id = u.id) AS longest_streak,
+        (SELECT streak_snapshot
+           FROM daily_stats WHERE user_id = u.id
+           ORDER BY stat_date DESC LIMIT 1) AS current_streak,
+        (SELECT MAX(ended_at)
+           FROM study_sessions
+           WHERE user_id = u.id AND status = 'completed') AS last_session_at
+      FROM users u
+      ORDER BY u.last_login_at DESC`
+    );
+    return rows.map((row) => ({
+      user: mapUserRow(row),
+      totalMinutes: Number(row.total_minutes ?? 0),
+      completedSessions: Number(row.completed_sessions ?? 0),
+      currentStreakDays: Number(row.current_streak ?? 0),
+      longestStreakDays: Number(row.longest_streak ?? 0),
+      lastSessionAt: row.last_session_at ? toIsoString(row.last_session_at) : null
+    }));
+  }
+
+  async getUserById(userId: string) {
+    const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM users WHERE id = ? LIMIT 1", [userId]);
+    return rows[0] ? mapUserRow(rows[0]) : null;
+  }
 }
 
 function mapUserRow(row: RowDataPacket): User {

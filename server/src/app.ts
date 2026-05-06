@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 
+import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
@@ -84,6 +85,12 @@ export function createApp(options: CreateAppOptions = {}) {
   app.get(["/", "/health", "/healthz", "/readiness"], (_request, response) => {
     response.json({ status: "ok", time: clock.now().toISOString() });
   });
+
+  // Admin dashboard. The HTML lives at /admin/ and is unauthenticated
+  // (it's a static shell). Every /admin/api/* call requires the Bearer
+  // token from ADMIN_TOKEN env var; if that env var is missing the
+  // whole API surface is 503'd, so a forgotten setup never leaks data.
+  registerAdminRoutes(app, store, storage, clock);
 
   app.use((request, response, next) => {
     const requestId = randomUUID();
