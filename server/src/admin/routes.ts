@@ -8,12 +8,16 @@
  * The wire format is JSON; the static SPA at /admin/ consumes it with
  * fetch + a token saved in localStorage. No cookies, no sessions.
  */
+import { createHmac } from "node:crypto";
+
 import type { Express, NextFunction, Request, Response } from "express";
 
 import { AppError } from "../errors";
 import { adminIndexHtml } from "./ui";
 import type { DataStore } from "../store/types";
 import type { StorageClient } from "../storage/default-storage";
+
+const PHOTO_URL_TTL_SECONDS = 600; // 10 minutes
 
 type Clock = { now(): Date };
 
@@ -30,6 +34,70 @@ export function registerAdminRoutes(
   app.get(["/admin", "/admin/", "/admin/index.html"], (_request, response) => {
     response.type("html").send(adminIndexHtml);
   });
+
+  // Photo proxy is auth'd via a per-URL HMAC signature instead of the
+  // Bearer header, since <img src=...> tags can't carry custom headers.
+  // Mounted BEFORE the bulk Bearer guard so it can run its own auth.
+  app.get("/admin/api/photos/proxy", asyncHandler(async (request, response) => {
+    if (!adminToken) {
+      response.status(503).json({ error: { code: "ADMIN_DISABLED", message: "ADMIN_TOKEN env var is not set" } });
+      return;
+    }
+    const fileId = String(request.query.fileId ?? "");
+    const expRaw = Number(request.query.exp ?? 0);
+    const sig = String(request.query.sig ?? "");
+    if (!fileId || !Number.isFinite(expRaw) || expRaw <= 0 || !sig) {
+      response.status(400).end();
+      return;
+    }
+    if (Math.floor(Date.now() / 1000) > expRaw) {
+      response.status(410).json({ error: { code: "EXPIRED", message: "Signed URL expired" } });
+      return;
+    }
+    const expected = signPhotoSignature(adminToken, fileId, expRaw);
+    if (!timingSafeEquals(sig, expected)) {
+      response.status(403).end();
+      return;
+    }
+
+    // Resolve the temporary URL via the existing storage client and
+    // stream the file body back so the admin browser only ever talks
+    // to our same-origin server. This sidesteps any CORS / referrer
+    // restrictions on the upstream signed URL.
+    let resolvedUrl = "";
+    try {
+      const [item] = await storage.getTemporaryUrls([{ objectKey: fileId, fileId }]);
+      resolvedUrl = item?.url ?? "";
+    } catch (error) {
+      console.warn("[admin] photo getTemporaryUrls failed", error);
+    }
+    if (!resolvedUrl) {
+      response.status(404).json({ error: { code: "NOT_FOUND", message: "Photo URL could not be resolved" } });
+      return;
+    }
+
+    let upstream: Response | unknown;
+    try {
+      upstream = await fetch(resolvedUrl);
+    } catch (error) {
+      console.warn("[admin] photo fetch failed", error);
+      response.status(502).end();
+      return;
+    }
+    const fetchRes = upstream as { ok: boolean; status: number; headers: { get(name: string): string | null }; arrayBuffer(): Promise<ArrayBuffer> };
+    if (!fetchRes.ok) {
+      response.status(fetchRes.status || 502).end();
+      return;
+    }
+    const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
+    response.setHeader("content-type", contentType);
+    // Photos are immutable per cloud:// fileId, so cache aggressively
+    // within the signed URL's lifetime. The signature's `exp` already
+    // bounds re-use.
+    response.setHeader("cache-control", "private, max-age=300");
+    const buffer = Buffer.from(await fetchRes.arrayBuffer());
+    response.send(buffer);
+  }));
 
   app.use("/admin/api", (request, response, next) => {
     if (!adminToken) {
@@ -190,11 +258,11 @@ export function registerAdminRoutes(
     const completed = sessions.filter((session) => session.status === "completed");
     const sessionIds = completed.map((session) => session.id);
     const photos = await store.getPhotosBySessionIds(sessionIds);
-    const photoUrls = await storage
-      .getTemporaryUrls(photos.map((photo) => ({ objectKey: photo.objectKey, fileId: photo.fileId })))
-      .catch(() => []);
-    const urlByKey = new Map(photoUrls.map((item) => [item.objectKey, item.url]));
-
+    // Generate same-origin signed URLs for each photo. The admin browser
+    // hits /admin/api/photos/proxy?...sig=... which validates the HMAC,
+    // resolves the cloud:// fileId via WeChat OpenAPI server-side, and
+    // streams the bytes back. This avoids any CORS / referrer / domain
+    // restrictions on the upstream Tencent COS signed URL.
     const photosBySession = new Map<string, Array<{
       objectKey: string;
       fileId: string;
@@ -205,7 +273,7 @@ export function registerAdminRoutes(
       list.push({
         objectKey: photo.objectKey,
         fileId: photo.fileId,
-        url: urlByKey.get(photo.objectKey) ?? ""
+        url: adminToken ? buildSignedPhotoUrl(adminToken, photo.fileId) : ""
       });
       photosBySession.set(photo.sessionId, list);
     }
@@ -308,6 +376,27 @@ function csvCell(value: string) {
   const needsQuoting = /[",\r\n]/.test(value);
   if (!needsQuoting) return value;
   return `"${value.replace(/"/g, '""')}"`;
+}
+
+/**
+ * Builds a same-origin URL whose query carries a short-lived HMAC
+ * signature derived from the admin token. The /admin/api/photos/proxy
+ * endpoint verifies the signature, then streams the upstream WeChat
+ * COS bytes back to the admin browser.
+ *
+ * This is a "capability URL" — possession of a valid (fileId, exp,
+ * sig) triple is enough to fetch that one image, but it expires after
+ * PHOTO_URL_TTL_SECONDS. Re-loading the user-detail page mints fresh
+ * URLs.
+ */
+function buildSignedPhotoUrl(adminToken: string, fileId: string) {
+  const exp = Math.floor(Date.now() / 1000) + PHOTO_URL_TTL_SECONDS;
+  const sig = signPhotoSignature(adminToken, fileId, exp);
+  return `/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`;
+}
+
+function signPhotoSignature(adminToken: string, fileId: string, exp: number) {
+  return createHmac("sha256", adminToken).update(`${fileId}:${exp}`).digest("hex");
 }
 
 function sendCsv(response: Response, filename: string, header: string[], rows: string[][]) {

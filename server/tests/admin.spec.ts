@@ -195,7 +195,8 @@ describe("Admin dashboard", () => {
     expect(completedSessions[0].subject).toBe("审计");
     expect(completedSessions[0].tags).toEqual(["复习", "顺利"]);
     expect(completedSessions[0].photos).toHaveLength(2);
-    expect(completedSessions[0].photos[0].url).toContain("https://temp.example.com/");
+    // Photos are now exposed as same-origin signed proxy URLs.
+    expect(completedSessions[0].photos[0].url).toMatch(/^\/admin\/api\/photos\/proxy\?fileId=/);
   });
 
   it("returns 404 for an unknown user id", async () => {
@@ -313,6 +314,67 @@ describe("Admin dashboard", () => {
     expect(res.text).toContain("税法");
     // Pipe-joined tags survive the round-trip.
     expect(res.text).toContain("顺利|新课");
+  });
+
+  it("returns same-origin signed photo URLs in user detail", async () => {
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "photo-user")
+      .expect(200);
+    const userId = bootstrap.body.profile.id;
+
+    const session = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "photo-user")
+      .expect(200);
+    clock.advanceMinutes(30);
+    await request(app)
+      .post(`/api/sessions/${session.body.session.id}/complete`)
+      .set("x-wx-openid", "photo-user")
+      .send({
+        summary: "with photos",
+        subject: "财管",
+        tags: [],
+        photos: [{ fileId: "cloud://demo/p1.jpg", objectKey: "checkins/p1.jpg" }]
+      })
+      .expect(200);
+
+    const detail = await request(app)
+      .get(`/admin/api/users/${userId}`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+
+    const completed = detail.body.sessions.find((x: { status: string }) => x.status === "completed");
+    expect(completed.photos).toHaveLength(1);
+    const photoUrl: string = completed.photos[0].url;
+    // Same-origin signed URL, not a raw upstream URL.
+    expect(photoUrl).toMatch(/^\/admin\/api\/photos\/proxy\?fileId=/);
+    expect(photoUrl).toContain("&exp=");
+    expect(photoUrl).toContain("&sig=");
+  });
+
+  it("rejects photo proxy requests with missing or bad signatures", async () => {
+    // No params at all
+    await request(app).get("/admin/api/photos/proxy").expect(400);
+    // Missing sig
+    await request(app)
+      .get("/admin/api/photos/proxy?fileId=cloud://demo/x.jpg&exp=99999999999")
+      .expect(400);
+    // Bad sig
+    await request(app)
+      .get("/admin/api/photos/proxy?fileId=cloud://demo/x.jpg&exp=99999999999&sig=deadbeef")
+      .expect(403);
+  });
+
+  it("rejects expired photo proxy signatures", async () => {
+    // Build an expired signature manually using the same algorithm
+    const { createHmac } = await import("node:crypto");
+    const fileId = "cloud://demo/old.jpg";
+    const exp = Math.floor(Date.now() / 1000) - 60; // already past
+    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${fileId}:${exp}`).digest("hex");
+    await request(app)
+      .get(`/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`)
+      .expect(410);
   });
 
   it("exposes subject + tag breakdown on the user detail endpoint", async () => {
