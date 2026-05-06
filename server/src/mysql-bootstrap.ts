@@ -1,11 +1,12 @@
-import { createConnection } from "mysql2/promise";
+import { createConnection, type Connection, type RowDataPacket } from "mysql2/promise";
 
 type EnvMap = Partial<Record<string, string | undefined>>;
 
 const TABLE_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
-    openid VARCHAR(128) NOT NULL UNIQUE,
+    openid VARCHAR(128) NULL UNIQUE,
+    client_uid VARCHAR(64) NULL UNIQUE,
     nickname VARCHAR(20) NOT NULL DEFAULT '',
     avatar_url VARCHAR(512) NOT NULL DEFAULT '',
     profile_completed TINYINT(1) NOT NULL DEFAULT 0,
@@ -116,11 +117,55 @@ export async function ensureMySqlSchema(env: EnvMap = process.env) {
     for (const statement of TABLE_STATEMENTS) {
       await connection.query(statement);
     }
+    await migrateUsersIdentitySchema(connection, plan.databaseName);
   } finally {
     await connection.end();
   }
 
   return true;
+}
+
+/**
+ * In-place migration to bring older deployments up to the v0.4.9 identity
+ * model. We:
+ *   1. Add `client_uid` column (anonymous identifier from miniprogram).
+ *   2. Drop the NOT NULL constraint on `openid` so anonymous users can
+ *      exist before WeChat ever issues an openid for them.
+ * Both steps are idempotent and safe to re-run.
+ */
+async function migrateUsersIdentitySchema(connection: Connection, dbName: string) {
+  const [columns] = await connection.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME, IS_NULLABLE
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+    [dbName]
+  );
+  const columnMap = new Map(
+    columns.map((row) => [String(row.COLUMN_NAME), String(row.IS_NULLABLE).toUpperCase()])
+  );
+
+  if (!columnMap.has("client_uid")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN client_uid VARCHAR(64) NULL AFTER openid"
+    );
+    // Add a unique index separately so the ADD COLUMN doesn't fail on
+    // pre-existing duplicate NULLs (NULLs are allowed under MySQL UNIQUE).
+    const [existing] = await connection.query<RowDataPacket[]>(
+      `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND INDEX_NAME = 'uk_users_client_uid'
+        LIMIT 1`,
+      [dbName]
+    );
+    if (!existing.length) {
+      await connection.query(
+        "ALTER TABLE users ADD UNIQUE KEY uk_users_client_uid (client_uid)"
+      );
+    }
+  }
+
+  if (columnMap.get("openid") === "NO") {
+    await connection.query("ALTER TABLE users MODIFY COLUMN openid VARCHAR(128) NULL");
+  }
 }
 
 function escapeIdentifier(value: string) {

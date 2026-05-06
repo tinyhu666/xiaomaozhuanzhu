@@ -7,7 +7,8 @@ import type {
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
-  User
+  User,
+  UserResolutionInput
 } from "../types";
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
@@ -107,26 +108,55 @@ export class MySQLStore {
     );
   }
 
-  async ensureUser(openid: string, now: string) {
+  /**
+   * See {@link MemoryStore.ensureUser} for the full resolution semantics.
+   * The MySQL implementation persists openid / client_uid into the
+   * `users` row, opportunistically backfilling either column when an
+   * existing user gains a new identifier.
+   */
+  async ensureUser(input: UserResolutionInput, now: string) {
+    const openid = input.openid?.trim() || null;
+    const clientUid = input.clientUid?.trim() || null;
+    if (!openid && !clientUid) {
+      throw new Error("UserResolutionInput requires openid or clientUid");
+    }
+
     const nowSql = toMySQLDateTimeRequired(now);
-    const user = await this.getUserByOpenid(openid);
-    if (user) {
-      await this.pool.execute("UPDATE users SET last_login_at = ? WHERE id = ?", [nowSql, user.id]);
-      const publicProfile = (await this.getPublicSettingsByUserId(user.id))!;
-      return {
-        user: {
-          ...user,
-          lastLoginAt: now
-        },
-        publicProfile
-      };
+
+    let existing: User | null = null;
+    if (openid) {
+      existing = await this.getUserByOpenid(openid);
+    }
+    if (!existing && clientUid) {
+      existing = await this.getUserByClientUid(clientUid);
+    }
+
+    if (existing) {
+      const updates: string[] = ["last_login_at = ?"];
+      const params: (string | number | null)[] = [nowSql];
+      const merged: User = { ...existing, lastLoginAt: now };
+      if (openid && !existing.openid) {
+        updates.push("openid = ?");
+        params.push(openid);
+        merged.openid = openid;
+      }
+      if (clientUid && !existing.clientUid) {
+        updates.push("client_uid = ?");
+        params.push(clientUid);
+        merged.clientUid = clientUid;
+      }
+      params.push(existing.id);
+      await this.pool.execute(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, params);
+
+      const publicProfile = (await this.getPublicSettingsByUserId(existing.id))!;
+      return { user: merged, publicProfile };
     }
 
     const id = randomUUID();
     const shareSlug = randomUUID().slice(0, 8);
     await this.pool.execute(
-      "INSERT INTO users (id, openid, nickname, avatar_url, profile_completed, created_at, last_login_at) VALUES (?, ?, '', '', 0, ?, ?)",
-      [id, openid, nowSql, nowSql]
+      "INSERT INTO users (id, openid, client_uid, nickname, avatar_url, profile_completed, created_at, last_login_at) VALUES (?, ?, ?, '', '', 0, ?, ?)",
+      [id, openid, clientUid, nowSql, nowSql]
     );
     await this.pool.execute(
       "INSERT INTO user_public_settings (user_id, share_slug, is_public, require_wechat_auth) VALUES (?, ?, 0, 1)",
@@ -136,6 +166,7 @@ export class MySQLStore {
       user: {
         id,
         openid,
+        clientUid,
         nickname: "",
         avatarUrl: "",
         profileCompleted: false,
@@ -187,6 +218,7 @@ export class MySQLStore {
       `SELECT
         u.id,
         u.openid,
+        u.client_uid,
         u.nickname,
         u.avatar_url,
         u.profile_completed,
@@ -207,7 +239,8 @@ export class MySQLStore {
     return {
       user: {
         id: String(row.id),
-        openid: String(row.openid),
+        openid: row.openid ? String(row.openid) : null,
+        clientUid: row.client_uid ? String(row.client_uid) : null,
         nickname: String(row.nickname),
         avatarUrl: String(row.avatar_url),
         profileCompleted: Boolean(row.profile_completed),
@@ -353,12 +386,18 @@ export class MySQLStore {
     const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM users WHERE openid = ? LIMIT 1", [openid]);
     return rows[0] ? mapUserRow(rows[0]) : null;
   }
+
+  private async getUserByClientUid(clientUid: string) {
+    const [rows] = await this.pool.query<RowDataPacket[]>("SELECT * FROM users WHERE client_uid = ? LIMIT 1", [clientUid]);
+    return rows[0] ? mapUserRow(rows[0]) : null;
+  }
 }
 
 function mapUserRow(row: RowDataPacket): User {
   return {
     id: String(row.id),
-    openid: String(row.openid),
+    openid: row.openid ? String(row.openid) : null,
+    clientUid: row.client_uid ? String(row.client_uid) : null,
     nickname: String(row.nickname ?? ""),
     avatarUrl: String(row.avatar_url ?? ""),
     profileCompleted: Boolean(row.profile_completed),

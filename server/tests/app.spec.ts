@@ -493,4 +493,121 @@ describe("CPA study check-in API", () => {
       .set("x-wx-openid", "makeup-user")
       .expect(409);
   });
+
+  it("rejects requests with neither openid nor client UID", async () => {
+    await request(app).post("/api/me/bootstrap").expect(401);
+  });
+
+  it("isolates two anonymous users with distinct client UIDs", async () => {
+    const alpha = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "anon-alpha-12345")
+      .expect(200);
+    const beta = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "anon-beta-67890")
+      .expect(200);
+
+    expect(alpha.body.profile.id).not.toBe(beta.body.profile.id);
+
+    // Alpha logs a session
+    const session = await request(app)
+      .post("/api/sessions/start")
+      .set("x-client-uid", "anon-alpha-12345")
+      .expect(200);
+    clock.advanceMinutes(45);
+    await request(app)
+      .post(`/api/sessions/${session.body.session.id}/complete`)
+      .set("x-client-uid", "anon-alpha-12345")
+      .send({
+        summary: "匿名 alpha 的第一次专注",
+        subject: "审计",
+        tags: ["顺利"],
+        photos: [{ fileId: "cloud://demo/anon.jpg", objectKey: "checkins/anon.jpg" }]
+      })
+      .expect(200);
+
+    const alphaHome = await request(app)
+      .get("/api/home")
+      .set("x-client-uid", "anon-alpha-12345")
+      .expect(200);
+    expect(alphaHome.body.today.totalMinutes).toBe(45);
+
+    // Beta is unaffected
+    const betaHome = await request(app)
+      .get("/api/home")
+      .set("x-client-uid", "anon-beta-67890")
+      .expect(200);
+    expect(betaHome.body.today.totalMinutes).toBe(0);
+  });
+
+  it("merges anonymous history into the WeChat user when openid arrives later", async () => {
+    // Step 1: anonymous user records a session via clientUid only.
+    const anonBootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "device-merge-7777")
+      .expect(200);
+    const anonId = anonBootstrap.body.profile.id as string;
+
+    const session = await request(app)
+      .post("/api/sessions/start")
+      .set("x-client-uid", "device-merge-7777")
+      .expect(200);
+    clock.advanceMinutes(70);
+    await request(app)
+      .post(`/api/sessions/${session.body.session.id}/complete`)
+      .set("x-client-uid", "device-merge-7777")
+      .send({
+        summary: "匿名记录，等会儿登录把数据接过去",
+        subject: "税法",
+        tags: [],
+        photos: [{ fileId: "cloud://demo/merge.jpg", objectKey: "checkins/merge.jpg" }]
+      })
+      .expect(200);
+
+    // Step 2: same device authorizes WeChat. Both headers present.
+    const linked = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "merge-openid")
+      .set("x-client-uid", "device-merge-7777")
+      .expect(200);
+
+    // Same internal user_id → previous session is preserved.
+    expect(linked.body.profile.id).toBe(anonId);
+
+    const linkedHome = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "merge-openid")
+      .set("x-client-uid", "device-merge-7777")
+      .expect(200);
+    expect(linkedHome.body.today.totalMinutes).toBe(70);
+
+    // Step 3: subsequent calls via openid alone should still resolve to
+    // the same user — the openid is now bound on the server.
+    const openidOnly = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "merge-openid")
+      .expect(200);
+    expect(openidOnly.body.profile.id).toBe(anonId);
+    expect(openidOnly.body.today.totalMinutes).toBe(70);
+  });
+
+  it("ignores malformed client UIDs (too short / invalid chars)", async () => {
+    // Garbage clientUid → server treats as missing → 401 without an openid
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "no")
+      .expect(401);
+
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "<script>alert(1)</script>")
+      .expect(401);
+
+    // But a valid clientUid still works
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "valid-client-uid-abc123")
+      .expect(200);
+  });
 });

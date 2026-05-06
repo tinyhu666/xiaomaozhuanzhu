@@ -4,12 +4,18 @@ export type SessionStatus = "running" | "paused" | "completed" | "abandoned" | "
 
 export interface User {
   id: string;
-  openid: string;
+  openid: string | null;
+  clientUid: string | null;
   nickname: string;
   avatarUrl: string;
   profileCompleted: boolean;
   createdAt: string;
   lastLoginAt: string;
+}
+
+export interface UserResolutionInput {
+  openid?: string | null;
+  clientUid?: string | null;
 }
 
 export interface PublicProfileSettings {

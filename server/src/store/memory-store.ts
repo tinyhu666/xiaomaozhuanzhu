@@ -5,32 +5,74 @@ import type {
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
-  User
+  User,
+  UserResolutionInput
 } from "../types";
 
 export class MemoryStore {
   private users = new Map<string, User>();
   private userByOpenId = new Map<string, string>();
+  private userByClientUid = new Map<string, string>();
   private publicByUser = new Map<string, PublicProfileSettings>();
   private publicBySlug = new Map<string, string>();
   private sessions = new Map<string, StudySession>();
   private photos = new Map<string, SessionPhoto[]>();
   private dailyStats = new Map<string, Map<string, DailyStat>>();
 
-  ensureUser(openid: string, now: string) {
-    const existingId = this.userByOpenId.get(openid);
-    if (existingId) {
-      const user = this.users.get(existingId)!;
-      user.lastLoginAt = now;
+  /**
+   * Resolve (or create) a user from an identity bundle. The miniprogram
+   * sends both X-WX-OPENID (WeChat-injected) and X-CLIENT-UID (locally
+   * persisted UUID) when available. Resolution prefers the wechat
+   * identity but transparently merges anonymous-only history when the
+   * same device later gains an openid.
+   *
+   *   1. openid hits an existing user → return; opportunistically attach
+   *      clientUid for future anonymous fallback.
+   *   2. openid miss but clientUid hits an anonymous user → promote that
+   *      user by attaching the openid (no data loss).
+   *   3. neither matches → create a fresh user carrying whichever
+   *      identifiers we received.
+   *   4. neither identifier given → throw to caller (401).
+   */
+  ensureUser(input: UserResolutionInput, now: string) {
+    const openid = input.openid?.trim() || null;
+    const clientUid = input.clientUid?.trim() || null;
+    if (!openid && !clientUid) {
+      throw new Error("UserResolutionInput requires openid or clientUid");
+    }
+
+    let target: User | null = null;
+    if (openid) {
+      const id = this.userByOpenId.get(openid);
+      if (id) target = this.users.get(id) ?? null;
+    }
+    if (!target && clientUid) {
+      const id = this.userByClientUid.get(clientUid);
+      if (id) target = this.users.get(id) ?? null;
+    }
+
+    if (target) {
+      // Backfill any missing identifier so subsequent calls can resolve
+      // via either path.
+      if (openid && !target.openid) {
+        target.openid = openid;
+        this.userByOpenId.set(openid, target.id);
+      }
+      if (clientUid && !target.clientUid) {
+        target.clientUid = clientUid;
+        this.userByClientUid.set(clientUid, target.id);
+      }
+      target.lastLoginAt = now;
       return {
-        user,
-        publicProfile: this.publicByUser.get(user.id)!
+        user: target,
+        publicProfile: this.publicByUser.get(target.id)!
       };
     }
 
     const user: User = {
       id: randomUUID(),
       openid,
+      clientUid,
       nickname: "",
       avatarUrl: "",
       profileCompleted: false,
@@ -45,7 +87,8 @@ export class MemoryStore {
     };
 
     this.users.set(user.id, user);
-    this.userByOpenId.set(openid, user.id);
+    if (openid) this.userByOpenId.set(openid, user.id);
+    if (clientUid) this.userByClientUid.set(clientUid, user.id);
     this.publicByUser.set(user.id, publicProfile);
     this.publicBySlug.set(publicProfile.shareSlug, user.id);
 

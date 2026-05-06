@@ -3,11 +3,12 @@ import type {
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
-  User
+  User,
+  UserResolutionInput
 } from "../types";
 
 export type DataStore = {
-  ensureUser(openid: string, now: string):
+  ensureUser(input: UserResolutionInput, now: string):
     | { user: User; publicProfile: PublicProfileSettings }
     | Promise<{ user: User; publicProfile: PublicProfileSettings }>;
   updateProfile(

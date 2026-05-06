@@ -1,6 +1,10 @@
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(36) PRIMARY KEY,
-  openid VARCHAR(128) NOT NULL UNIQUE,
+  -- Identity: at least one of openid (WeChat) / client_uid (anonymous) is
+  -- required. Both are unique. Future auth methods (phone, email, ...) can
+  -- be added as additional columns or via a separate auth_methods table.
+  openid VARCHAR(128) NULL UNIQUE,
+  client_uid VARCHAR(64) NULL UNIQUE,
   nickname VARCHAR(20) NOT NULL DEFAULT '',
   avatar_url VARCHAR(512) NOT NULL DEFAULT '',
   profile_completed TINYINT(1) NOT NULL DEFAULT 0,

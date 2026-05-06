@@ -88,6 +88,7 @@ export function createApp(options: CreateAppOptions = {}) {
   app.use((request, response, next) => {
     const requestId = randomUUID();
     const openid = getOpenId(request) || "-";
+    const clientUid = getClientUid(request) || "-";
     response.setHeader("x-request-id", requestId);
     response.on("finish", () => {
       console.log(
@@ -96,7 +97,8 @@ export function createApp(options: CreateAppOptions = {}) {
           method: request.method,
           path: request.path,
           statusCode: response.statusCode,
-          openid
+          openid,
+          clientUid
         })
       );
     });
@@ -573,10 +575,18 @@ function withUser(
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
       const openid = getOpenId(request);
-      if (!openid) {
-        throw new AppError(401, "UNAUTHORIZED", "Wechat identity is required");
+      const clientUid = getClientUid(request);
+      if (!openid && !clientUid) {
+        throw new AppError(
+          401,
+          "UNAUTHORIZED",
+          "User identity required: provide either an openid (via WeChat) or a client UID."
+        );
       }
-      const context = await store.ensureUser(openid, clock.now().toISOString());
+      const context = await store.ensureUser(
+        { openid: openid || null, clientUid: clientUid || null },
+        clock.now().toISOString()
+      );
       await handler(request, response, context as never);
     } catch (error) {
       next(error);
@@ -591,6 +601,23 @@ function getOpenId(request: Request) {
     return request.header("x-dev-openid") ?? request.header("X-DEV-OPENID") ?? "";
   }
   return "";
+}
+
+/**
+ * Anonymous fallback identifier sent by the miniprogram. We use this
+ * alone (no openid) only when WeChat fails to inject openid, but always
+ * persist it so the user_id stays stable across login transitions.
+ *
+ * Format: 32–64 char URL-safe string. We sanitize aggressively to avoid
+ * SQL collation surprises.
+ */
+function getClientUid(request: Request) {
+  const raw = request.header("x-client-uid") ?? request.header("X-CLIENT-UID") ?? "";
+  const trimmed = String(raw).trim();
+  if (!trimmed) return "";
+  // Enforce a strict allow-list to avoid hostile/oversized values.
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(trimmed)) return "";
+  return trimmed;
 }
 
 async function requireSession(store: DataStore, sessionId: string, userId: string) {

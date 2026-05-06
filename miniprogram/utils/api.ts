@@ -19,6 +19,53 @@ function ensureCloudReady() {
   cloudReady = true;
 }
 
+/**
+ * Stable anonymous identifier for this install. Generated lazily on first
+ * use, persisted in `wx.setStorageSync` so it survives reopens / restarts.
+ * It is sent on every API call as `X-CLIENT-UID`. The server uses this as
+ * a fallback when `X-WX-OPENID` is unavailable, and merges anonymous
+ * history into the WeChat-bound user once openid arrives.
+ *
+ * NOTE: clearing miniprogram storage (rare) creates a new clientUid; if
+ * the user has openid, the server still resolves them correctly via
+ * openid and re-attaches the new clientUid.
+ */
+const CLIENT_UID_STORAGE_KEY = "cpa.clientUid";
+
+function generateClientUid() {
+  // RFC 4122 v4-shaped UUID using Math.random (sufficient for a per-device
+  // identifier; not used for cryptographic purposes).
+  const template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+  return template.replace(/[xy]/g, (char) => {
+    const value = (Math.random() * 16) | 0;
+    const hex = char === "x" ? value : (value & 0x3) | 0x8;
+    return hex.toString(16);
+  });
+}
+
+let cachedClientUid: string | null = null;
+
+export function getOrCreateClientUid(): string {
+  if (cachedClientUid) return cachedClientUid;
+  try {
+    const existing = wx.getStorageSync(CLIENT_UID_STORAGE_KEY);
+    if (typeof existing === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(existing)) {
+      cachedClientUid = existing;
+      return existing;
+    }
+  } catch (error) {
+    console.warn("[api] read clientUid failed", error);
+  }
+  const fresh = generateClientUid();
+  try {
+    wx.setStorageSync(CLIENT_UID_STORAGE_KEY, fresh);
+  } catch (error) {
+    console.warn("[api] persist clientUid failed", error);
+  }
+  cachedClientUid = fresh;
+  return fresh;
+}
+
 type RequestOptions = {
   path: string;
   method?: "GET" | "POST";
@@ -64,7 +111,8 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
   ensureCloudReady();
 
   const header: Record<string, string> = {
-    "X-WX-SERVICE": runtimeConfig.service
+    "X-WX-SERVICE": runtimeConfig.service,
+    "X-CLIENT-UID": getOrCreateClientUid()
   };
   if (method === "POST") {
     header["content-type"] = "application/json";
@@ -158,6 +206,9 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
 
 export async function warmUpBackend() {
   ensureCloudReady();
+  // Pre-create the clientUid before any real call so even the first
+  // /me/bootstrap arrives carrying our anonymous fallback identifier.
+  getOrCreateClientUid();
   try {
     await wx.cloud.callContainer({
       config: {
