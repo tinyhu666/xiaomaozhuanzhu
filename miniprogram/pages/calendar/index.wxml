@@ -39,23 +39,23 @@
       </view>
       <view class="calendar-board__legend-row">
         <view class="calendar-board__legend-swatch level-1"></view>
-        <text class="calendar-board__legend-text">&lt;½h</text>
+        <text class="calendar-board__legend-text">30m内</text>
       </view>
       <view class="calendar-board__legend-row">
         <view class="calendar-board__legend-swatch level-2"></view>
-        <text class="calendar-board__legend-text">½–1h</text>
+        <text class="calendar-board__legend-text">1h内</text>
       </view>
       <view class="calendar-board__legend-row">
         <view class="calendar-board__legend-swatch level-3"></view>
-        <text class="calendar-board__legend-text">1–2h</text>
+        <text class="calendar-board__legend-text">2h内</text>
       </view>
       <view class="calendar-board__legend-row">
         <view class="calendar-board__legend-swatch level-4"></view>
-        <text class="calendar-board__legend-text">2–4h</text>
+        <text class="calendar-board__legend-text">4h内</text>
       </view>
       <view class="calendar-board__legend-row">
         <view class="calendar-board__legend-swatch level-5"></view>
-        <text class="calendar-board__legend-text">≥4h</text>
+        <text class="calendar-board__legend-text">4h+</text>
       </view>
     </view>
   </view>

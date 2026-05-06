@@ -132,9 +132,19 @@ Page<{}, HomePageData>({
       this.applyActiveSession(home.activeSession ?? null);
     } catch (error) {
       console.error("[home] loadHomeStats failed", error);
+      // Surface a compact human message; the raw API path / HTML body
+      // from cold-start failures is already logged above.
+      const message = error instanceof Error ? error.message : "";
+      const friendly =
+        message.includes("唤醒") || message.includes("启动")
+          ? message
+          : message.includes("网络")
+            ? message
+            : "加载失败，请下拉刷新";
       wx.showToast({
-        title: error instanceof Error ? error.message : "加载主页数据失败",
-        icon: "none"
+        title: friendly,
+        icon: "none",
+        duration: 2400
       });
     }
   },

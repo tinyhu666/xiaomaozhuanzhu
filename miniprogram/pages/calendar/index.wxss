@@ -83,8 +83,8 @@
   justify-content: center;
   height: 78rpx;
   border-radius: 20rpx;
-  background: #eff7f3;
-  border: 2rpx solid rgba(46, 169, 133, 0.12);
+  background: #ecf3ef;
+  border: 2rpx solid #d3e6dd;
   box-sizing: border-box;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
@@ -108,30 +108,31 @@
 }
 
 .calendar-board__cell.level-1 {
-  background: var(--mint-100);
-  border-color: rgba(46, 169, 133, 0.22);
+  background: #b9e6d2;
+  border-color: #99d4bb;
 }
 
 .calendar-board__cell.level-2 {
-  background: var(--mint-200);
-  border-color: rgba(46, 169, 133, 0.32);
+  background: #7fcfa6;
+  border-color: #62b88c;
 }
 
 .calendar-board__cell.level-3 {
-  background: var(--mint-300);
-  border-color: rgba(46, 169, 133, 0.46);
+  background: #44b377;
+  border-color: #379163;
 }
 
 .calendar-board__cell.level-4 {
-  background: var(--mint-500);
-  border-color: var(--mint-600);
+  background: #237c56;
+  border-color: #1c6447;
 }
 
 .calendar-board__cell.level-5 {
-  background: var(--mint-600);
-  border-color: #1a624f;
+  background: #0d4d35;
+  border-color: #093a28;
 }
 
+.calendar-board__cell.level-3 .calendar-board__day,
 .calendar-board__cell.level-4 .calendar-board__day,
 .calendar-board__cell.level-5 .calendar-board__day {
   color: #ffffff;
@@ -158,38 +159,41 @@
 }
 
 .calendar-board__legend-swatch {
-  width: 26rpx;
-  height: 26rpx;
+  width: 32rpx;
+  height: 32rpx;
   border-radius: 6rpx;
   border: 2rpx solid rgba(46, 169, 133, 0.18);
   box-sizing: border-box;
 }
 
 .calendar-board__legend-swatch.level-0 {
-  background: #eff7f3;
+  background: #ecf3ef;
+  border-color: #d3e6dd;
 }
 
 .calendar-board__legend-swatch.level-1 {
-  background: var(--mint-100);
+  background: #b9e6d2;
+  border-color: #99d4bb;
 }
 
 .calendar-board__legend-swatch.level-2 {
-  background: var(--mint-200);
+  background: #7fcfa6;
+  border-color: #62b88c;
 }
 
 .calendar-board__legend-swatch.level-3 {
-  background: var(--mint-300);
-  border-color: rgba(46, 169, 133, 0.46);
+  background: #44b377;
+  border-color: #379163;
 }
 
 .calendar-board__legend-swatch.level-4 {
-  background: var(--mint-500);
-  border-color: var(--mint-600);
+  background: #237c56;
+  border-color: #1c6447;
 }
 
 .calendar-board__legend-swatch.level-5 {
-  background: var(--mint-600);
-  border-color: #1a624f;
+  background: #0d4d35;
+  border-color: #093a28;
 }
 
 .calendar-board__legend-text {

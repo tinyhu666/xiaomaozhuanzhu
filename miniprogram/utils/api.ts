@@ -27,11 +27,16 @@ type RequestOptions = {
 
 // Two retry profiles:
 //   - cold-start: backend is up but the cloud-run instance is waking
-//     (102002 / 5xx / timeout). Retry twice with progressive backoff.
+//     (102002 / 5xx / timeout / HTML gateway error). WeChat 云托管
+//     cold-start is 5–15s for Node containers, so we budget up to ~7s
+//     of retries before surfacing a failure. The first try is fast
+//     because the warmup ping at app launch usually pre-heats things;
+//     later retries back off so we don't hammer the gateway while it
+//     is waking the container.
 //   - transient network: request:fail / connection reset. Retry once
 //     with a short delay so a flaky cell signal recovers, but don't
 //     punish a genuinely-offline user with multiple long waits.
-const COLD_START_RETRY_DELAYS = [300, 900];
+const COLD_START_RETRY_DELAYS = [500, 1500, 2500, 2500];
 const NETWORK_RETRY_DELAYS = [250];
 
 function delay(ms: number) {

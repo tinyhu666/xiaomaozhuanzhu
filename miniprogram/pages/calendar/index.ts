@@ -54,9 +54,12 @@ Page<{}, CalendarPageData>({
     // Render the month skeleton synchronously so the user sees day
     // numbers immediately, even before /api/calendar responds.
     const skeleton = buildMonthGrid(month, {});
+    const fallbackSelected = this.pickSelectedDate(skeleton);
     this.setData({
       monthTitle: month.replace("-", "年") + "月",
-      grid: this.data.grid.length && this.data.month === month ? this.data.grid : skeleton
+      grid: this.data.grid.length && this.data.month === month ? this.data.grid : skeleton,
+      selectedDate: this.data.selectedDate || fallbackSelected,
+      selectedDateText: (this.data.selectedDate || fallbackSelected).replace(/-/g, ".")
     });
 
     wx.showNavigationBarLoading();
@@ -74,9 +77,12 @@ Page<{}, CalendarPageData>({
 
       await this.loadDay(selectedDate);
     } catch (error) {
+      console.error("[calendar] loadMonth failed", error);
+      // Friendly toast: hide the underlying API path / HTML body.
       wx.showToast({
-        title: error instanceof Error ? error.message : "加载日历失败",
-        icon: "none"
+        title: "加载失败，请下拉刷新",
+        icon: "none",
+        duration: 2400
       });
     } finally {
       wx.hideNavigationBarLoading();
@@ -115,9 +121,11 @@ Page<{}, CalendarPageData>({
         }
       });
     } catch (error) {
+      console.error("[calendar] loadDay failed", error);
       wx.showToast({
-        title: error instanceof Error ? error.message : "加载当天详情失败",
-        icon: "none"
+        title: "当天详情加载失败",
+        icon: "none",
+        duration: 2400
       });
     }
   },

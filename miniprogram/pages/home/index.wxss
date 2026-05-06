@@ -350,6 +350,10 @@
   margin-top: 14rpx;
 }
 
+/* Heat-map palette tuned for clear lightness steps so the gradient is
+   obvious at-a-glance, not just a row of pale tints. Each level drops
+   ~14% lightness from the previous one, which roughly matches
+   GitHub-style contribution graphs (人眼感知顺滑). */
 .mini-calendar__cell {
   position: relative;
   display: flex;
@@ -357,8 +361,8 @@
   justify-content: center;
   height: 72rpx;
   border-radius: 16rpx;
-  background: #eff7f3;
-  border: 2rpx solid rgba(46, 169, 133, 0.12);
+  background: #ecf3ef;
+  border: 2rpx solid #d3e6dd;
   box-sizing: border-box;
   transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
 }
@@ -368,30 +372,31 @@
 }
 
 .mini-calendar__cell.level-1 {
-  background: var(--mint-100);
-  border-color: rgba(46, 169, 133, 0.22);
+  background: #b9e6d2;
+  border-color: #99d4bb;
 }
 
 .mini-calendar__cell.level-2 {
-  background: var(--mint-200);
-  border-color: rgba(46, 169, 133, 0.32);
+  background: #7fcfa6;
+  border-color: #62b88c;
 }
 
 .mini-calendar__cell.level-3 {
-  background: var(--mint-300);
-  border-color: rgba(46, 169, 133, 0.46);
+  background: #44b377;
+  border-color: #379163;
 }
 
 .mini-calendar__cell.level-4 {
-  background: var(--mint-500);
-  border-color: var(--mint-600);
+  background: #237c56;
+  border-color: #1c6447;
 }
 
 .mini-calendar__cell.level-5 {
-  background: var(--mint-600);
-  border-color: #1a624f;
+  background: #0d4d35;
+  border-color: #093a28;
 }
 
+.mini-calendar__cell.level-3 .mini-calendar__day,
 .mini-calendar__cell.level-4 .mini-calendar__day,
 .mini-calendar__cell.level-5 .mini-calendar__day {
   color: #ffffff;
@@ -435,38 +440,41 @@
 }
 
 .mini-calendar__legend-swatch {
-  width: 24rpx;
-  height: 24rpx;
+  width: 30rpx;
+  height: 30rpx;
   border-radius: 6rpx;
   border: 2rpx solid rgba(46, 169, 133, 0.18);
   box-sizing: border-box;
 }
 
 .mini-calendar__legend-swatch.level-0 {
-  background: #eff7f3;
+  background: #ecf3ef;
+  border-color: #d3e6dd;
 }
 
 .mini-calendar__legend-swatch.level-1 {
-  background: var(--mint-100);
+  background: #b9e6d2;
+  border-color: #99d4bb;
 }
 
 .mini-calendar__legend-swatch.level-2 {
-  background: var(--mint-200);
+  background: #7fcfa6;
+  border-color: #62b88c;
 }
 
 .mini-calendar__legend-swatch.level-3 {
-  background: var(--mint-300);
-  border-color: rgba(46, 169, 133, 0.46);
+  background: #44b377;
+  border-color: #379163;
 }
 
 .mini-calendar__legend-swatch.level-4 {
-  background: var(--mint-500);
-  border-color: var(--mint-600);
+  background: #237c56;
+  border-color: #1c6447;
 }
 
 .mini-calendar__legend-swatch.level-5 {
-  background: var(--mint-600);
-  border-color: #1a624f;
+  background: #0d4d35;
+  border-color: #093a28;
 }
 
 .home-version {
