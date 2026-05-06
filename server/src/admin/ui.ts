@@ -153,7 +153,70 @@ export const adminIndexHtml = `<!DOCTYPE html>
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .tag { padding: 3px 10px; border-radius: 999px; background: rgba(46,169,133,0.1); color: var(--mint-500); font-size: 12px; }
   .photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .photos img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+  .photos img {
+    width: 96px; height: 96px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--line); cursor: zoom-in;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .photos img:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+
+  /* Lightbox: full-screen image viewer for session photos */
+  .lightbox-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0, 0, 0, 0.88);
+    display: flex; align-items: center; justify-content: center;
+    animation: lb-fade 0.18s ease;
+  }
+  @keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+  .lightbox-img {
+    max-width: 92vw; max-height: 88vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .lightbox-btn {
+    position: absolute;
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 28px;
+    line-height: 1;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease;
+  }
+  .lightbox-btn:hover { background: rgba(255,255,255,0.28); }
+  .lightbox-btn[hidden] { display: none; }
+  .lightbox-close { top: 24px; right: 24px; }
+  .lightbox-prev { left: 24px; top: 50%; transform: translateY(-50%); }
+  .lightbox-next { right: 24px; top: 50%; transform: translateY(-50%); }
+  .lightbox-counter {
+    position: absolute;
+    bottom: 28px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+  .lightbox-meta {
+    position: absolute;
+    top: 28px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.78);
+    font-size: 13px;
+    background: rgba(0,0,0,0.4);
+    padding: 6px 14px;
+    border-radius: 999px;
+    max-width: 70vw;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    pointer-events: none;
+  }
   .photo-fallback {
     width: 96px; height: 96px; border-radius: 8px;
     background: rgba(46,169,133,0.06); border: 1px dashed var(--line);
@@ -256,6 +319,75 @@ export const adminIndexHtml = `<!DOCTYPE html>
   function shortId(id) { return id ? id.slice(0, 8) : "—"; }
   function statusBadge(status) {
     return '<span class="badge badge--' + status + '">' + status + '</span>';
+  }
+
+  // Single-instance fullscreen image viewer. Re-used for every photo
+  // click; previous instance is torn down before opening a new one
+  // so we never leak event listeners onto the document.
+  let lightboxState = null;
+
+  function openLightbox(urls, startIndex, meta) {
+    if (!urls || !urls.length) return;
+    closeLightbox();
+    let index = Math.max(0, Math.min(startIndex | 0, urls.length - 1));
+    const overlay = document.createElement("div");
+    overlay.className = "lightbox-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+
+    function render() {
+      const url = urls[index];
+      overlay.innerHTML =
+        (meta ? '<div class="lightbox-meta">' + escapeHtml(meta) + '</div>' : '') +
+        '<button class="lightbox-btn lightbox-close" aria-label="关闭">×</button>' +
+        '<button class="lightbox-btn lightbox-prev" aria-label="上一张"' +
+          (index === 0 ? ' hidden' : '') + '>‹</button>' +
+        '<img class="lightbox-img" src="' + escapeHtml(url) + '" alt="" draggable="false" />' +
+        '<button class="lightbox-btn lightbox-next" aria-label="下一张"' +
+          (index === urls.length - 1 ? ' hidden' : '') + '>›</button>' +
+        (urls.length > 1
+          ? '<div class="lightbox-counter">' + (index + 1) + ' / ' + urls.length + '</div>'
+          : '');
+    }
+
+    function go(delta) {
+      const next = index + delta;
+      if (next < 0 || next >= urls.length) return;
+      index = next;
+      render();
+    }
+
+    function onClick(event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.classList.contains("lightbox-close") || target === overlay) {
+        closeLightbox();
+      } else if (target.classList.contains("lightbox-prev")) {
+        go(-1);
+      } else if (target.classList.contains("lightbox-next")) {
+        go(1);
+      }
+    }
+    function onKey(event) {
+      if (event.key === "Escape") closeLightbox();
+      else if (event.key === "ArrowRight") go(1);
+      else if (event.key === "ArrowLeft") go(-1);
+    }
+
+    overlay.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKey);
+    lightboxState = { overlay, onKey };
+    render();
+  }
+
+  function closeLightbox() {
+    if (!lightboxState) return;
+    document.removeEventListener("keydown", lightboxState.onKey);
+    lightboxState.overlay.remove();
+    lightboxState = null;
+    document.body.style.overflow = "";
   }
 
   const app = document.getElementById("app");
@@ -517,8 +649,9 @@ export const adminIndexHtml = `<!DOCTYPE html>
     const sessions = (d.sessions || []).filter((x) => x.status === "completed" || x.status === "makeup")
       .sort((a, b) => (b.endedAt || "").localeCompare(a.endedAt || ""));
     const sessionsHtml = sessions.length ? sessions.map((x) => {
-      const photos = (x.photos || []).map((p) => p.url
-        ? '<img src="' + escapeHtml(p.url) + '" alt="" loading="lazy" />'
+      const photos = (x.photos || []).map((p, i) => p.url
+        ? '<img src="' + escapeHtml(p.url) + '" alt="" loading="lazy"' +
+          ' data-session-id="' + escapeHtml(x.id) + '" data-photo-index="' + i + '" />'
         : '<div class="photo-fallback">' + escapeHtml(p.objectKey) + '</div>'
       ).join("");
       const tags = (x.tags || []).map((t) => '<span class="tag">' + escapeHtml(t) + '</span>').join("");
@@ -603,6 +736,22 @@ export const adminIndexHtml = `<!DOCTYPE html>
         "user-" + u.id.slice(0, 8) + "-sessions.csv"
       );
     }
+
+    // Delegated click handler: every photo thumbnail in any session
+    // opens a fullscreen lightbox scoped to that session photo set.
+    app.querySelectorAll(".photos img").forEach((img) => {
+      img.addEventListener("click", (event) => {
+        const target = event.currentTarget;
+        const sessionId = target.getAttribute("data-session-id");
+        const photoIndex = Number(target.getAttribute("data-photo-index") || 0);
+        const session = sessions.find((s) => s.id === sessionId);
+        if (!session) return;
+        const urls = (session.photos || []).map((p) => p.url).filter(Boolean);
+        if (!urls.length) return;
+        const meta = (session.subject || "学习") + " · " + formatDate(session.endedAt);
+        openLightbox(urls, photoIndex, meta);
+      });
+    });
   }
 
   function render() {
