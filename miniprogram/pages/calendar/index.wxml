@@ -85,9 +85,13 @@
             wx:for="{{item.photos}}"
             wx:key="objectKey"
             wx:for-item="photo"
+            wx:for-index="photoIndex"
             class="session-item__photo"
             src="{{photo.tempUrl || photo.fileId}}"
             mode="aspectFill"
+            data-session-id="{{item.id}}"
+            data-photo-index="{{photoIndex}}"
+            bindtap="previewSessionPhoto"
           />
         </scroll-view>
       </view>

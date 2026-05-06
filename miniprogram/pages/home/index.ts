@@ -13,6 +13,14 @@ type WeeklyReviewView = {
   topSubjectText: string;
   changeText: string;
   changeDirection: "up" | "down" | "flat";
+  days: Array<{
+    date: string;
+    dayLabel: string;
+    totalMinutes: number;
+    fillPct: number;
+    isToday: boolean;
+    isFuture: boolean;
+  }>;
 };
 
 type HomePageData = {
@@ -21,6 +29,7 @@ type HomePageData = {
   timerText: string;
   todayMinutesText: string;
   streakText: string;
+  streakDays: number;
   quoteEn: string;
   quoteZh: string;
   monthLabel: string;
@@ -51,6 +60,7 @@ Page<{}, HomePageData>({
     timerText: "00:00:00",
     todayMinutesText: "0m",
     streakText: "0天",
+    streakDays: 0,
     quoteEn: "One page at a time.",
     quoteZh: "一页一页，也是在前进。",
     monthLabel: "",
@@ -125,6 +135,7 @@ Page<{}, HomePageData>({
         profile: home.profile,
         todayMinutesText: formatDuration(todayMinutes),
         streakText: `${home.summary.currentStreakDays}天`,
+        streakDays: home.summary.currentStreakDays || 0,
         goalProgress,
         goalText: `${formatDuration(todayMinutes)} / ${formatDuration(DAILY_TARGET_MINUTES)}`,
         goalReached: todayMinutes >= DAILY_TARGET_MINUTES,
@@ -184,8 +195,53 @@ Page<{}, HomePageData>({
       bestDayText,
       topSubjectText,
       changeText,
-      changeDirection
+      changeDirection,
+      days: this.buildWeekDays(weekly.weekStart, weekly.bestDay.totalMinutes)
     };
+  },
+
+  /**
+   * Build the 7-day mini bar chart for the weekly review card. We
+   * derive per-day minutes from the already-loaded monthGrid (set by
+   * loadCalendar) so this doesn't cost an extra API call. If the
+   * week spans two months (Mon falls in last month), the leading
+   * faded cells in the next-month grid carry no totalMinutes — those
+   * bars render as zero, which is visually fine.
+   */
+  buildWeekDays(weekStartIso: string, bestDayMinutes: number) {
+    const labels = ["一", "二", "三", "四", "五", "六", "日"];
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+    const start = new Date(weekStartIso + "T00:00:00+08:00");
+    const lookup = new Map<string, number>();
+    for (const cell of this.data.monthGrid as Array<{ date: string; totalMinutes: number }>) {
+      lookup.set(cell.date, cell.totalMinutes);
+    }
+
+    const minutesByDay: number[] = [];
+    const dayKeys: string[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      const day = new Date(start.getTime() + i * 86400000);
+      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+      dayKeys.push(key);
+      minutesByDay.push(lookup.get(key) ?? 0);
+    }
+
+    // Scale bar height so the tallest day is ~100%, with a floor so
+    // a single 10-minute day doesn't render as a giant bar.
+    const peak = Math.max(...minutesByDay, bestDayMinutes || 0, 90);
+    return dayKeys.map((key, index) => {
+      const minutes = minutesByDay[index];
+      return {
+        date: key,
+        dayLabel: labels[index],
+        totalMinutes: minutes,
+        fillPct: Math.round((minutes / peak) * 100),
+        isToday: key === todayKey,
+        isFuture: key > todayKey
+      };
+    });
   },
 
   async handleMakeup() {

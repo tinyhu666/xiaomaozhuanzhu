@@ -8,6 +8,8 @@
   </view>
 
   <view class="quote-card">
+    <text class="quote-card__mark">"</text>
+    <text class="quote-card__paw">🐾</text>
     <text class="quote-card__en">{{quoteEn}}</text>
     <text class="quote-card__zh">{{quoteZh}}</text>
   </view>
@@ -20,7 +22,7 @@
       </view>
       <view class="timer-card__meta">
         <text>今日 {{todayMinutesText}}</text>
-        <text>连续 {{streakText}}</text>
+        <text>连续 {{streakDays >= 3 ? '🔥 ' : ''}}{{streakText}}</text>
       </view>
     </view>
 
@@ -82,6 +84,20 @@
       <text class="weekly-card__total">{{weekly.thisWeekText}}</text>
     </view>
     <text class="weekly-card__change weekly-card__change--{{weekly.changeDirection}}">{{weekly.changeText}}</text>
+
+    <view class="weekly-card__bars">
+      <view
+        wx:for="{{weekly.days}}"
+        wx:key="date"
+        class="weekly-card__bar {{item.isToday ? 'is-today' : ''}} {{item.isFuture ? 'is-future' : ''}}"
+      >
+        <view class="weekly-card__bar-track">
+          <view class="weekly-card__bar-fill" style="height: {{item.fillPct}}%"></view>
+        </view>
+        <text class="weekly-card__bar-label">{{item.dayLabel}}</text>
+      </view>
+    </view>
+
     <view class="weekly-card__rows">
       <view class="weekly-card__row">
         <text class="weekly-card__row-label">最长一天</text>

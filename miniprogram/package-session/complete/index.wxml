@@ -9,8 +9,13 @@
     <view class="field-label">学习照片（至少 1 张，最多 3 张）</view>
     <view class="photo-grid">
       <view wx:for="{{photos}}" wx:key="objectKey" class="photo-item">
-        <image src="{{item.localPath}}" mode="aspectFill" />
-        <view class="photo-remove" data-index="{{index}}" bindtap="removePhoto">×</view>
+        <image
+          src="{{item.localPath}}"
+          mode="aspectFill"
+          data-index="{{index}}"
+          bindtap="previewPhoto"
+        />
+        <view class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
       </view>
       <view wx:if="{{photos.length < 3}}" class="photo-picker" bindtap="choosePhotos">
         <view>上传照片</view>

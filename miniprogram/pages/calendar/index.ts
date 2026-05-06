@@ -170,6 +170,33 @@ Page<{}, CalendarPageData>({
     await this.loadDay(date);
   },
 
+  /**
+   * Tap a photo thumbnail in the day panel to open the system-native
+   * fullscreen previewer. We pre-resolve the same URL used by <image>
+   * (tempUrl when WeChat OpenAPI gave us one, otherwise the raw
+   * cloud:// fileId which wx.previewImage also accepts inside
+   * miniprograms). Only photos inside the tapped session are passed
+   * so swiping stays scoped to that session.
+   */
+  previewSessionPhoto(event: WechatMiniprogram.BaseEvent) {
+    const { sessionId, photoIndex } = event.currentTarget.dataset as {
+      sessionId: string;
+      photoIndex: string | number;
+    };
+    const sessions = this.data.selectedDetail?.sessions ?? [];
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return;
+    const urls = session.photos
+      .map((photo) => photo.tempUrl || photo.fileId || "")
+      .filter((url) => Boolean(url));
+    if (!urls.length) return;
+    const index = Math.max(0, Math.min(Number(photoIndex) || 0, urls.length - 1));
+    wx.previewImage({
+      current: urls[index],
+      urls
+    });
+  },
+
   shiftMonth(amount: number) {
     const [yearText, monthText] = this.data.month.split("-");
     const value = new Date(Date.UTC(Number(yearText), Number(monthText) - 1 + amount, 1));

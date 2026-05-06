@@ -125,6 +125,16 @@ Page<{}, CompletePageData>({
     });
   },
 
+  previewPhoto(event: WechatMiniprogram.BaseEvent) {
+    const index = Number(event.currentTarget.dataset.index);
+    const urls = this.data.photos.map((photo) => photo.localPath).filter((path) => Boolean(path));
+    if (!urls.length) return;
+    wx.previewImage({
+      current: urls[Math.max(0, Math.min(index, urls.length - 1))],
+      urls
+    });
+  },
+
   async submit() {
     const selectedSubjectChip = this.data.subjectChips.find((chip) => chip.selected);
     const selectedTags = this.data.tagChips.filter((chip) => chip.selected).map((chip) => chip.value);
