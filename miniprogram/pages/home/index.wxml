@@ -8,9 +8,15 @@
   </view>
 
   <view class="quote-card">
-    <text class="quote-card__mark">"</text>
+    <text class="quote-card__mark quote-card__mark--open">"</text>
+    <text class="quote-card__mark quote-card__mark--close">"</text>
     <text class="quote-card__paw">🐾</text>
+    <view class="quote-card__chip">
+      <text class="quote-card__chip-icon">✦</text>
+      <text class="quote-card__chip-text">今日金句</text>
+    </view>
     <text class="quote-card__en">{{quoteEn}}</text>
+    <view class="quote-card__divider"></view>
     <text class="quote-card__zh">{{quoteZh}}</text>
   </view>
 

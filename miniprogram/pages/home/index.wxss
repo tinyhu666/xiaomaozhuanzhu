@@ -6,56 +6,123 @@
 
 .quote-card {
   position: relative;
-  padding: 36rpx 36rpx 26rpx;
-  border-radius: 32rpx;
+  padding: 28rpx 36rpx 36rpx;
+  border-radius: 36rpx;
   background:
-    radial-gradient(circle at 88% 10%, rgba(143, 217, 190, 0.28), transparent 42%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(232, 250, 242, 0.92) 100%);
-  border: 2rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 14rpx 32rpx rgba(46, 169, 133, 0.08);
+    radial-gradient(circle at 92% 8%, rgba(143, 217, 190, 0.35), transparent 44%),
+    radial-gradient(circle at 8% 92%, rgba(94, 195, 157, 0.22), transparent 40%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(228, 248, 240, 0.94) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.14);
+  box-shadow:
+    0 18rpx 44rpx rgba(46, 169, 133, 0.12),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.6);
   overflow: hidden;
 }
 
-/* Big translucent open-quote glyph anchored top-left as a watermark */
+/* Two giant serif quote glyphs at opposite corners frame the line
+   like a literary pull-quote — open mark top-left, close mark
+   bottom-right (flipped via scaleY). Both are pure decoration so we
+   keep them watermark-light and pointer-events: none. */
 .quote-card__mark {
   position: absolute;
-  top: -32rpx;
-  left: 12rpx;
-  font-size: 220rpx;
-  line-height: 1;
   font-family: Georgia, "Times New Roman", serif;
-  color: rgba(46, 169, 133, 0.14);
+  font-weight: 700;
+  line-height: 1;
   pointer-events: none;
   user-select: none;
 }
 
-/* Cat-paw mascot sits in the top-right corner; gives the card an
-   on-brand point of focus without crowding the actual quote text. */
-.quote-card__paw {
-  position: absolute;
-  top: 20rpx;
-  right: 24rpx;
-  font-size: 36rpx;
-  opacity: 0.78;
-  transform: rotate(-12deg);
+.quote-card__mark--open {
+  top: -36rpx;
+  left: 8rpx;
+  font-size: 240rpx;
+  color: rgba(46, 169, 133, 0.16);
 }
 
+.quote-card__mark--close {
+  bottom: -110rpx;
+  right: 8rpx;
+  font-size: 200rpx;
+  color: rgba(46, 169, 133, 0.1);
+  transform: rotate(180deg);
+}
+
+/* Cat-paw mascot, slightly tilted, in the top-right corner. */
+.quote-card__paw {
+  position: absolute;
+  top: 24rpx;
+  right: 28rpx;
+  font-size: 36rpx;
+  opacity: 0.82;
+  transform: rotate(-14deg);
+}
+
+/* Small chip header above the quote — sets context ("今日金句") and
+   gives the card a clear vertical anchor before the big text. */
+.quote-card__chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx 18rpx 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, rgba(46, 169, 133, 0.16) 0%, rgba(143, 217, 190, 0.18) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.22);
+  margin-bottom: 18rpx;
+}
+
+.quote-card__chip-icon {
+  font-size: 18rpx;
+  color: var(--mint-600);
+  transform: translateY(-1rpx);
+}
+
+.quote-card__chip-text {
+  font-size: 20rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  letter-spacing: 2rpx;
+}
+
+/* English line gets a left-to-right mint gradient via -webkit-text-
+   fill-color: transparent + background-clip: text. WeChat MP runs on
+   WebKit so this works; the solid color: var(--mint-600) is a
+   fallback for any renderer that doesn't honor background-clip. */
 .quote-card__en {
   position: relative;
   display: block;
-  font-size: 40rpx;
+  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
+  font-size: 46rpx;
   font-weight: 700;
-  line-height: 1.28;
+  line-height: 1.24;
   letter-spacing: 0.2rpx;
+  color: var(--mint-600);
+  background: linear-gradient(135deg, #155946 0%, #2ea985 55%, #5ec39d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Tiny mint accent bar separating English and Chinese — gives the
+   card a deliberate, designed feel. */
+.quote-card__divider {
+  position: relative;
+  width: 64rpx;
+  height: 4rpx;
+  margin: 20rpx 0 16rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, var(--mint-500) 0%, rgba(143, 217, 190, 0.6) 100%);
+  box-shadow: 0 1rpx 0 rgba(255, 255, 255, 0.6);
 }
 
 .quote-card__zh {
   position: relative;
   display: block;
-  margin-top: 12rpx;
-  color: var(--text-sub);
-  font-size: 26rpx;
+  font-size: 28rpx;
   line-height: 1.7;
+  color: var(--text-main);
+  letter-spacing: 0.6rpx;
+  opacity: 0.78;
 }
 
 .timer-card {
