@@ -128,6 +128,19 @@
         <text class="mini-calendar__day">{{item.day}}</text>
       </view>
     </view>
+
+    <view class="mini-calendar__legend">
+      <text class="mini-calendar__legend-text">少</text>
+      <view class="mini-calendar__legend-swatches">
+        <view class="mini-calendar__legend-swatch level-0"></view>
+        <view class="mini-calendar__legend-swatch level-1"></view>
+        <view class="mini-calendar__legend-swatch level-2"></view>
+        <view class="mini-calendar__legend-swatch level-3"></view>
+        <view class="mini-calendar__legend-swatch level-4"></view>
+        <view class="mini-calendar__legend-swatch level-5"></view>
+      </view>
+      <text class="mini-calendar__legend-text">多</text>
+    </view>
   </view>
 
   <text class="home-version">v{{appVersion}}</text>
