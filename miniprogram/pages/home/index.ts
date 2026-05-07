@@ -32,6 +32,7 @@ type HomePageData = {
   streakDays: number;
   quoteEn: string;
   quoteZh: string;
+  quoteDateLabel: string;
   monthLabel: string;
   monthTotalText: string;
   monthGrid: ReturnType<typeof buildMonthGrid>;
@@ -63,6 +64,7 @@ Page<{}, HomePageData>({
     streakDays: 0,
     quoteEn: "One page at a time.",
     quoteZh: "一页一页，也是在前进。",
+    quoteDateLabel: "",
     monthLabel: "",
     monthTotalText: "0m",
     monthGrid: [],
@@ -114,6 +116,7 @@ Page<{}, HomePageData>({
     this.setData({
       quoteEn: quote.en,
       quoteZh: quote.zh,
+      quoteDateLabel: `${now.getMonth() + 1}月${now.getDate()}日`,
       monthLabel: `${now.getMonth() + 1}月学习热力图`,
       monthGrid: this.data.monthGrid.length ? this.data.monthGrid : buildMonthGrid(month, {})
     });
@@ -465,17 +468,7 @@ Page<{}, HomePageData>({
     this.loadCalendar(month).catch(() => {});
   },
 
-  handlePreviewDay(event: WechatMiniprogram.BaseEvent) {
-    const { date, inmonth } = event.currentTarget.dataset as { date: string; inmonth: boolean };
-    if (!inmonth) return;
-    wx.navigateTo({
-      url: `/package-calendar/day/index?date=${date}`
-    });
-  },
-
-  openCalendar() {
-    wx.switchTab({
-      url: "/pages/calendar/index"
-    });
-  }
+  // The home heat-map block was removed (duplicated the dedicated
+  // calendar tab); the per-day navigation handlers it used to wire up
+  // (handlePreviewDay / openCalendar) are no longer referenced.
 });

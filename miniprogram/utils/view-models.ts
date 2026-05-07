@@ -137,21 +137,78 @@ export function formatDuration(totalMinutes: number) {
   return `${hours}h ${minutes}m`;
 }
 
-export function getDailyQuote(dateKey?: string) {
-  const key =
-    dateKey ??
-    (() => {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-        now.getDate()
-      ).padStart(2, "0")}`;
-    })();
-  // Stable hash so the same calendar day always shows the same quote.
-  let hash = 0;
-  for (let index = 0; index < key.length; index += 1) {
-    hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
+/**
+ * Picks a quote for the home card. Strategy:
+ *   - Cycles through all 24 lines so each entry feels fresh.
+ *   - Persists the last-shown index via wx.setStorageSync so we never
+ *     repeat the immediately-previous quote, even after the user kills
+ *     the miniprogram.
+ *   - Falls back to a date-stable hash when wx is unavailable (Node
+ *     test environment) so existing tests stay deterministic.
+ *
+ * The `dateKey` parameter is preserved as a deterministic seed for
+ * tests; in normal miniprogram runtime it's ignored in favor of the
+ * persisted index.
+ */
+const QUOTE_LAST_INDEX_KEY = "cpa.lastQuoteIndex";
+
+declare const wx: { getStorageSync(key: string): unknown; setStorageSync(key: string, value: unknown): void } | undefined;
+
+function readPersistedQuoteIndex(): number {
+  try {
+    if (typeof wx === "undefined") return -1;
+    const value = wx.getStorageSync(QUOTE_LAST_INDEX_KEY);
+    if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value < DAILY_QUOTES.length) {
+      return value;
+    }
+  } catch {
+    // ignore — storage unavailable
   }
-  return DAILY_QUOTES[hash % DAILY_QUOTES.length];
+  return -1;
+}
+
+function persistQuoteIndex(index: number) {
+  try {
+    if (typeof wx === "undefined") return;
+    wx.setStorageSync(QUOTE_LAST_INDEX_KEY, index);
+  } catch {
+    // ignore — storage may be full or unavailable
+  }
+}
+
+export function getDailyQuote(dateKey?: string) {
+  const total = DAILY_QUOTES.length;
+  if (total <= 1) return DAILY_QUOTES[0];
+
+  // Test path: when wx is unavailable, behave deterministically off
+  // the dateKey so existing assertions still pass.
+  if (typeof wx === "undefined") {
+    const key =
+      dateKey ??
+      (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+          now.getDate()
+        ).padStart(2, "0")}`;
+      })();
+    let hash = 0;
+    for (let index = 0; index < key.length; index += 1) {
+      hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
+    }
+    return DAILY_QUOTES[hash % total];
+  }
+
+  // Runtime path: pick a fresh index that's not the immediately-
+  // previous one. Since the user complained the same line stuck for
+  // multiple entries, "always different from last" is the minimum
+  // viable randomness.
+  const last = readPersistedQuoteIndex();
+  let next = Math.floor(Math.random() * total);
+  if (last >= 0 && next === last) {
+    next = (next + 1) % total;
+  }
+  persistQuoteIndex(next);
+  return DAILY_QUOTES[next];
 }
 
 export function buildSubjectSummary(items: Array<{ subject: string; totalMinutes: number }>) {

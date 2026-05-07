@@ -57,6 +57,37 @@
   transform: rotate(-14deg);
 }
 
+/* Three small mint sparkles scattered around the card to suggest a
+   gentle "magic" feel without distracting from the actual quote. */
+.quote-card__sparkle {
+  position: absolute;
+  color: var(--mint-500);
+  pointer-events: none;
+  user-select: none;
+  line-height: 1;
+}
+
+.quote-card__sparkle--a {
+  top: 28rpx;
+  right: 110rpx;
+  font-size: 22rpx;
+  opacity: 0.55;
+}
+
+.quote-card__sparkle--b {
+  bottom: 64rpx;
+  left: 36rpx;
+  font-size: 18rpx;
+  opacity: 0.4;
+}
+
+.quote-card__sparkle--c {
+  bottom: 36rpx;
+  right: 60rpx;
+  font-size: 26rpx;
+  opacity: 0.35;
+}
+
 /* Small chip header above the quote — sets context ("今日金句") and
    gives the card a clear vertical anchor before the big text. */
 .quote-card__chip {
@@ -465,191 +496,6 @@
   text-align: right;
   font-weight: 600;
   color: var(--text-main);
-}
-
-.mini-calendar {
-  padding: 26rpx;
-  border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.84);
-  border: 2rpx solid rgba(46, 169, 133, 0.08);
-  box-shadow: 0 18rpx 42rpx rgba(46, 169, 133, 0.08);
-}
-
-.mini-calendar__header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.mini-calendar__title,
-.mini-calendar__month {
-  display: block;
-}
-
-.mini-calendar__title {
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.mini-calendar__month {
-  margin-top: 6rpx;
-  color: var(--text-sub);
-  font-size: 22rpx;
-}
-
-.mini-calendar__total {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: var(--mint-600);
-}
-
-.mini-calendar__weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10rpx;
-  margin-top: 24rpx;
-  color: var(--text-sub);
-  font-size: 20rpx;
-  text-align: center;
-}
-
-.mini-calendar__grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10rpx;
-  margin-top: 14rpx;
-}
-
-/* Heat-map palette: 6 distinct lightness steps with deliberately wider
-   gaps on the light end so level-0 and level-1 are never confused.
-   Lightness sequence ≈ 96% / 84% / 70% / 50% / 35% / 22%. */
-.mini-calendar__cell {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 76rpx;
-  border-radius: 16rpx;
-  background: #f0f6f3;
-  border: 2rpx solid #d8e8e0;
-  box-sizing: border-box;
-  transition: background 0.25s ease, border-color 0.25s ease;
-}
-
-.mini-calendar__cell.is-faded {
-  opacity: 0.32;
-}
-
-.mini-calendar__cell.level-1 {
-  background: #b3e3c7;
-  border-color: #8fd1ad;
-}
-
-.mini-calendar__cell.level-2 {
-  background: #6fc99a;
-  border-color: #4eb27e;
-}
-
-.mini-calendar__cell.level-3 {
-  background: #2ea985;
-  border-color: #228168;
-}
-
-.mini-calendar__cell.level-4 {
-  background: #1a7558;
-  border-color: #135a43;
-}
-
-.mini-calendar__cell.level-5 {
-  background: #0a4631;
-  border-color: #073323;
-}
-
-/* White day number whenever bg is dark enough to lose dark text. */
-.mini-calendar__cell.level-3 .mini-calendar__day,
-.mini-calendar__cell.level-4 .mini-calendar__day,
-.mini-calendar__cell.level-5 .mini-calendar__day {
-  color: #ffffff;
-}
-
-/* Today indicator: outer ring via box-shadow + bold number. NO transform —
-   transform/scale on iOS WeChat can trigger compositing glitches that
-   leave the cell content blank. */
-.mini-calendar__cell.is-today {
-  border-color: var(--mint-600);
-  box-shadow:
-    0 0 0 3rpx #ffffff,
-    0 0 0 6rpx var(--mint-600);
-}
-
-.mini-calendar__cell.is-today .mini-calendar__day {
-  font-weight: 800;
-}
-
-.mini-calendar__day {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-.mini-calendar__legend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10rpx;
-  margin-top: 22rpx;
-  font-size: 20rpx;
-  color: var(--text-sub);
-}
-
-.mini-calendar__legend-text {
-  color: var(--text-sub);
-  font-size: 20rpx;
-}
-
-.mini-calendar__legend-swatches {
-  display: flex;
-  gap: 6rpx;
-}
-
-.mini-calendar__legend-swatch {
-  width: 30rpx;
-  height: 30rpx;
-  border-radius: 6rpx;
-  border: 2rpx solid rgba(46, 169, 133, 0.18);
-  box-sizing: border-box;
-}
-
-.mini-calendar__legend-swatch.level-0 {
-  background: #f0f6f3;
-  border-color: #d8e8e0;
-}
-
-.mini-calendar__legend-swatch.level-1 {
-  background: #b3e3c7;
-  border-color: #8fd1ad;
-}
-
-.mini-calendar__legend-swatch.level-2 {
-  background: #6fc99a;
-  border-color: #4eb27e;
-}
-
-.mini-calendar__legend-swatch.level-3 {
-  background: #2ea985;
-  border-color: #228168;
-}
-
-.mini-calendar__legend-swatch.level-4 {
-  background: #1a7558;
-  border-color: #135a43;
-}
-
-.mini-calendar__legend-swatch.level-5 {
-  background: #0a4631;
-  border-color: #073323;
 }
 
 .home-version {

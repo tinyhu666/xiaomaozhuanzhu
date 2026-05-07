@@ -13,8 +13,11 @@
     <text class="quote-card__paw">🐾</text>
     <view class="quote-card__chip">
       <text class="quote-card__chip-icon">✦</text>
-      <text class="quote-card__chip-text">今日金句</text>
+      <text class="quote-card__chip-text">{{quoteDateLabel}} · 今日金句</text>
     </view>
+    <text class="quote-card__sparkle quote-card__sparkle--a">✧</text>
+    <text class="quote-card__sparkle quote-card__sparkle--b">✦</text>
+    <text class="quote-card__sparkle quote-card__sparkle--c">⋆</text>
     <text class="quote-card__en">{{quoteEn}}</text>
     <view class="quote-card__divider"></view>
     <text class="quote-card__zh">{{quoteZh}}</text>
@@ -117,52 +120,6 @@
         <text class="weekly-card__row-label">上周</text>
         <text class="weekly-card__row-value">{{weekly.lastWeekText}}</text>
       </view>
-    </view>
-  </view>
-
-  <view class="mini-calendar">
-    <view class="mini-calendar__header" bindtap="openCalendar">
-      <view>
-        <text class="mini-calendar__title">当月热力</text>
-        <text class="mini-calendar__month">{{monthLabel}}</text>
-      </view>
-      <text class="mini-calendar__total">{{monthTotalText}}</text>
-    </view>
-
-    <view class="mini-calendar__weekdays">
-      <text>一</text>
-      <text>二</text>
-      <text>三</text>
-      <text>四</text>
-      <text>五</text>
-      <text>六</text>
-      <text>日</text>
-    </view>
-
-    <view class="mini-calendar__grid">
-      <view
-        wx:for="{{monthGrid}}"
-        wx:key="date"
-        class="mini-calendar__cell level-{{item.heatLevel}} {{item.inMonth ? '' : 'is-faded'}} {{item.isToday ? 'is-today' : ''}}"
-        data-date="{{item.date}}"
-        data-inmonth="{{item.inMonth}}"
-        bindtap="handlePreviewDay"
-      >
-        <text class="mini-calendar__day">{{item.day}}</text>
-      </view>
-    </view>
-
-    <view class="mini-calendar__legend">
-      <text class="mini-calendar__legend-text">少</text>
-      <view class="mini-calendar__legend-swatches">
-        <view class="mini-calendar__legend-swatch level-0"></view>
-        <view class="mini-calendar__legend-swatch level-1"></view>
-        <view class="mini-calendar__legend-swatch level-2"></view>
-        <view class="mini-calendar__legend-swatch level-3"></view>
-        <view class="mini-calendar__legend-swatch level-4"></view>
-        <view class="mini-calendar__legend-swatch level-5"></view>
-      </view>
-      <text class="mini-calendar__legend-text">多</text>
     </view>
   </view>
 
