@@ -19,12 +19,18 @@
   <view class="timer-card">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
-        <text class="timer-card__status">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}</text>
+        <view class="timer-card__status {{activeSession && activeSession.status === 'running' ? 'is-running' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">
+          <view wx:if="{{activeSession && activeSession.status === 'running'}}" class="timer-card__status-dot"></view>
+          <text class="timer-card__status-text">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}</text>
+        </view>
         <text wx:if="{{activeSession && activeSession.status === 'paused' && pausedMinutes > 0}}" class="timer-card__pause-hint">已暂停 {{pausedMinutes}} 分钟</text>
       </view>
       <view class="timer-card__meta">
         <text>今日 {{todayMinutesText}}</text>
-        <text>连续 {{streakDays >= 3 ? '🔥 ' : ''}}{{streakText}}</text>
+        <text class="timer-card__streak">
+          <text wx:if="{{streakDays >= 3}}" class="timer-card__flame">🔥</text>
+          <text>连续 {{streakText}}</text>
+        </text>
       </view>
     </view>
 
