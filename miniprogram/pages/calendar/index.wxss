@@ -39,15 +39,14 @@
 
 .calendar-hero__nav {
   flex: 0 0 auto;
-  padding: 0 28rpx;
-  height: 64rpx;
-  line-height: 64rpx;
+  padding: 0 24rpx;
+  height: 56rpx;
+  line-height: 56rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, rgba(46, 169, 133, 0.1) 0%, rgba(143, 217, 190, 0.16) 100%);
-  border: 2rpx solid rgba(46, 169, 133, 0.18);
+  background: rgba(46, 169, 133, 0.08);
   color: var(--mint-600);
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 24rpx;
+  font-weight: 600;
   letter-spacing: 0.4rpx;
   text-align: center;
   white-space: nowrap;
@@ -55,20 +54,17 @@
 }
 
 .calendar-hero__nav--hover {
-  background: rgba(46, 169, 133, 0.22);
+  background: rgba(46, 169, 133, 0.16);
   transform: scale(0.97);
 }
 
 .calendar-board,
 .day-panel {
-  padding: 28rpx;
-  border-radius: 34rpx;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 253, 250, 0.92) 100%);
-  border: 2rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow:
-    0 16rpx 40rpx rgba(46, 169, 133, 0.08),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.7);
+  padding: 32rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow: 0 8rpx 28rpx rgba(46, 169, 133, 0.06);
 }
 
 .calendar-board__weekdays {
@@ -112,9 +108,7 @@
 
 .calendar-board__cell.is-today {
   border-color: var(--mint-600);
-  box-shadow:
-    0 0 0 3rpx #ffffff,
-    0 0 0 6rpx var(--mint-600);
+  border-width: 3rpx;
 }
 
 .calendar-board__cell.is-today .calendar-board__day {
@@ -274,26 +268,23 @@
 
 .session-item {
   position: relative;
-  padding: 24rpx 24rpx 22rpx 32rpx;
-  border-radius: 26rpx;
-  background:
-    linear-gradient(180deg, rgba(46, 169, 133, 0.06) 0%, rgba(46, 169, 133, 0.04) 100%);
-  border: 2rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.55);
+  padding: 24rpx 22rpx 22rpx 28rpx;
+  border-radius: 22rpx;
+  background: rgba(46, 169, 133, 0.04);
 }
 
-/* Left-side accent bar (mint gradient stripe) gives each session
-   record a clear visual anchor. */
+/* Slim left rail — single solid mint at low opacity. The previous
+   gradient + 2px width was visually loud. */
 .session-item::before {
   content: "";
   position: absolute;
-  left: 12rpx;
-  top: 24rpx;
-  bottom: 24rpx;
-  width: 6rpx;
+  left: 14rpx;
+  top: 28rpx;
+  bottom: 28rpx;
+  width: 3rpx;
   border-radius: 999rpx;
-  background: linear-gradient(180deg, #6fc99a 0%, #2ea985 100%);
-  opacity: 0.7;
+  background: var(--mint-400);
+  opacity: 0.55;
 }
 
 .session-item__top {
@@ -336,13 +327,12 @@
 }
 
 .session-item__tag {
-  padding: 6rpx 16rpx;
+  padding: 6rpx 14rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.1);
-  border: 2rpx solid rgba(46, 169, 133, 0.16);
+  background: rgba(46, 169, 133, 0.08);
   color: var(--mint-600);
   font-size: 20rpx;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.3rpx;
 }
 
@@ -353,13 +343,11 @@
 
 .session-item__photo {
   display: inline-block;
-  width: 152rpx;
-  height: 152rpx;
-  margin-right: 12rpx;
-  border-radius: 20rpx;
-  background: rgba(46, 169, 133, 0.08);
-  border: 2rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.08);
+  width: 148rpx;
+  height: 148rpx;
+  margin-right: 10rpx;
+  border-radius: 16rpx;
+  background: rgba(46, 169, 133, 0.06);
   transition: transform 0.18s ease;
 }
 

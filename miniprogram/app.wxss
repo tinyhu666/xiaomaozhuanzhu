@@ -16,9 +16,12 @@
 
 page {
   min-height: 100%;
+  /* Calmer base: very gentle mint tint everywhere instead of a bright
+     radial spot in the corner. Premium feel comes from quiet, even
+     surfaces — we add color only inside the card content. */
   background:
-    radial-gradient(circle at top right, rgba(188, 234, 217, 0.5), transparent 30%),
-    linear-gradient(180deg, #f8fffb 0%, #effcf6 100%);
+    radial-gradient(circle at 90% 0%, rgba(188, 234, 217, 0.22), transparent 32%),
+    linear-gradient(180deg, #fcfffd 0%, #f5fbf8 100%);
   color: var(--text-main);
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
@@ -135,34 +138,27 @@ button::after {
 
 .cta-button {
   color: #fff;
-  background: linear-gradient(135deg, #6fc99a 0%, #2ea985 55%, #1a7558 100%);
-  box-shadow:
-    0 16rpx 36rpx rgba(46, 169, 133, 0.28),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(180deg, #38b18e 0%, #228168 100%);
+  box-shadow: 0 10rpx 24rpx rgba(46, 169, 133, 0.22);
 }
 
 .cta-button:active {
-  box-shadow:
-    0 8rpx 18rpx rgba(46, 169, 133, 0.22),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.18);
 }
 
 .ghost-button {
   color: var(--mint-600);
-  background: rgba(46, 169, 133, 0.1);
-  border: 2rpx solid rgba(46, 169, 133, 0.18);
+  background: rgba(46, 169, 133, 0.08);
 }
 
 .ghost-button:active {
-  background: rgba(46, 169, 133, 0.16);
+  background: rgba(46, 169, 133, 0.14);
 }
 
 .danger-button {
   color: #fff;
-  background: linear-gradient(135deg, #ef9a93 0%, #e57b7b 100%);
-  box-shadow:
-    0 14rpx 28rpx rgba(229, 123, 123, 0.28),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #e88c84 0%, #d96e6e 100%);
+  box-shadow: 0 10rpx 22rpx rgba(229, 123, 123, 0.22);
 }
 
 .stats-grid {

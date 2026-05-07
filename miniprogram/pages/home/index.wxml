@@ -8,18 +8,11 @@
   </view>
 
   <view class="quote-card">
-    <text class="quote-card__mark quote-card__mark--open">"</text>
-    <text class="quote-card__mark quote-card__mark--close">"</text>
-    <text class="quote-card__paw">🐾</text>
+    <text class="quote-card__mark">"</text>
     <view class="quote-card__chip">
-      <text class="quote-card__chip-icon">✦</text>
-      <text class="quote-card__chip-text">{{quoteDateLabel}} · 今日金句</text>
+      <text class="quote-card__chip-text">{{quoteDateLabel}}</text>
     </view>
-    <text class="quote-card__sparkle quote-card__sparkle--a">✧</text>
-    <text class="quote-card__sparkle quote-card__sparkle--b">✦</text>
-    <text class="quote-card__sparkle quote-card__sparkle--c">⋆</text>
     <text class="quote-card__en">{{quoteEn}}</text>
-    <view class="quote-card__divider"></view>
     <text class="quote-card__zh">{{quoteZh}}</text>
   </view>
 
@@ -100,7 +93,6 @@
         wx:key="date"
         class="weekly-card__bar {{item.isToday ? 'is-today' : ''}} {{item.isFuture ? 'is-future' : ''}}"
       >
-        <text class="weekly-card__bar-value">{{item.totalMinutes > 0 ? item.totalMinutes + 'm' : ''}}</text>
         <view class="weekly-card__bar-track">
           <view class="weekly-card__bar-fill" style="height: {{item.fillPct}}%"></view>
         </view>
