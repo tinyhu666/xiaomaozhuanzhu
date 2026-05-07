@@ -182,22 +182,38 @@
   gap: 8rpx;
 }
 
+/* Status pill: gradient mint background, leading dot indicator + text.
+   Uses ::before for the dot so we don't need extra DOM nodes. */
 .timer-card__status {
-  display: inline-block;
-  padding: 10rpx 28rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 22rpx 10rpx 18rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.1);
+  background: linear-gradient(135deg, rgba(46, 169, 133, 0.14) 0%, rgba(143, 217, 190, 0.18) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.2);
   color: var(--mint-600);
   font-size: 22rpx;
   font-weight: 700;
-  line-height: 1.4;
-  text-align: center;
+  line-height: 1.3;
+  letter-spacing: 0.5rpx;
   box-sizing: border-box;
+}
+
+.timer-card__status::before {
+  content: "";
+  display: block;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--mint-500);
+  box-shadow: 0 0 0 3rpx rgba(46, 169, 133, 0.16);
 }
 
 .timer-card__pause-hint {
   font-size: 22rpx;
   color: var(--text-sub);
+  letter-spacing: 0.4rpx;
 }
 
 .timer-card__meta {
@@ -207,24 +223,39 @@
   gap: 6rpx;
   color: var(--text-sub);
   font-size: 22rpx;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.3rpx;
 }
 
+/* Tabular figures + subtle gradient text + soft drop-shadow for the
+   big timer. Tabular numerals keep the digits perfectly aligned as
+   they tick up so the layout doesn't wobble per second. */
 .timer-card__clock {
   display: block;
   margin-top: 42rpx;
-  font-size: 96rpx;
+  font-size: 100rpx;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 2rpx;
   text-align: center;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  color: #155946;
+  background: linear-gradient(180deg, #1a624f 0%, #155946 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 2rpx 0 rgba(255, 255, 255, 0.5);
 }
 
 .timer-card__hint {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 18rpx;
   text-align: center;
   font-size: 22rpx;
   color: var(--text-sub);
+  letter-spacing: 0.5rpx;
+  opacity: 0.85;
 }
 
 .timer-card__primary {
@@ -246,11 +277,14 @@
 }
 
 .goal-card {
-  padding: 26rpx;
-  border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.84);
-  border: 2rpx solid rgba(46, 169, 133, 0.08);
-  box-shadow: 0 16rpx 36rpx rgba(46, 169, 133, 0.06);
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 253, 250, 0.92) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    0 14rpx 36rpx rgba(46, 169, 133, 0.08),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.7);
 }
 
 .goal-card__head {
@@ -270,17 +304,22 @@
   font-size: 28rpx;
   font-weight: 700;
   color: var(--text-main);
+  letter-spacing: 0.4rpx;
 }
 
 .goal-card__sub {
   font-size: 22rpx;
   color: var(--text-sub);
+  letter-spacing: 0.3rpx;
 }
 
 .goal-card__value {
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 28rpx;
+  font-weight: 800;
   color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
 }
 
 .goal-card__value.is-reached {
@@ -288,22 +327,31 @@
 }
 
 .goal-card__track {
-  margin-top: 18rpx;
-  height: 16rpx;
+  position: relative;
+  margin-top: 20rpx;
+  height: 18rpx;
   border-radius: 999rpx;
   background: rgba(46, 169, 133, 0.08);
   overflow: hidden;
+  box-shadow: inset 0 1rpx 2rpx rgba(46, 169, 133, 0.08);
 }
 
+/* Progress fill: gradient with an inner top-edge highlight to simulate
+   a glossy ribbon, plus a subtle outer glow when achievement is hit. */
 .goal-card__fill {
+  position: relative;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(135deg, #8fd9be 0%, #2ea985 100%);
-  transition: width 0.4s ease;
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.45);
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .goal-card__fill.is-reached {
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  background: linear-gradient(135deg, #6fc99a 0%, #2ea985 60%, #1a7558 100%);
+  box-shadow:
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.5),
+    0 0 16rpx rgba(46, 169, 133, 0.4);
 }
 
 .goal-card__hint {
@@ -356,11 +404,14 @@
 }
 
 .weekly-card {
-  padding: 26rpx;
-  border-radius: 30rpx;
-  background: rgba(255, 255, 255, 0.86);
-  border: 2rpx solid rgba(46, 169, 133, 0.08);
-  box-shadow: 0 16rpx 36rpx rgba(46, 169, 133, 0.06);
+  padding: 28rpx;
+  border-radius: 32rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 253, 250, 0.92) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    0 14rpx 36rpx rgba(46, 169, 133, 0.08),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.7);
 }
 
 .weekly-card__header {
@@ -379,17 +430,23 @@
 .weekly-card__title {
   font-size: 28rpx;
   font-weight: 700;
+  letter-spacing: 0.4rpx;
 }
 
 .weekly-card__range {
   font-size: 22rpx;
   color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+  font-feature-settings: "tnum" 1;
 }
 
 .weekly-card__total {
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 800;
   color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
 }
 
 .weekly-card__change {
@@ -414,10 +471,10 @@
 .weekly-card__bars {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10rpx;
+  gap: 12rpx;
   align-items: end;
-  margin-top: 22rpx;
-  padding: 10rpx 4rpx 0;
+  margin-top: 24rpx;
+  padding: 4rpx 4rpx 0;
 }
 
 .weekly-card__bar {
@@ -428,29 +485,44 @@
   min-width: 0;
 }
 
+.weekly-card__bar-value {
+  font-size: 16rpx;
+  line-height: 1;
+  height: 22rpx;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.2rpx;
+  opacity: 0.85;
+}
+
 .weekly-card__bar-track {
-  width: 28rpx;
-  height: 96rpx;
-  border-radius: 8rpx;
+  position: relative;
+  width: 30rpx;
+  height: 100rpx;
+  border-radius: 10rpx;
   background: rgba(46, 169, 133, 0.08);
   overflow: hidden;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  box-shadow: inset 0 1rpx 2rpx rgba(46, 169, 133, 0.06);
 }
 
 .weekly-card__bar-fill {
   width: 100%;
   min-height: 0;
   background: linear-gradient(180deg, #6fc99a 0%, #2ea985 100%);
-  border-top-left-radius: 6rpx;
-  border-top-right-radius: 6rpx;
-  transition: height 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+  border-top-left-radius: 8rpx;
+  border-top-right-radius: 8rpx;
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.35);
+  transition: height 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .weekly-card__bar.is-today .weekly-card__bar-track {
   background: rgba(46, 169, 133, 0.14);
-  box-shadow: 0 0 0 3rpx rgba(46, 169, 133, 0.22);
+  box-shadow:
+    0 0 0 3rpx rgba(46, 169, 133, 0.24),
+    inset 0 1rpx 2rpx rgba(46, 169, 133, 0.1);
 }
 
 .weekly-card__bar.is-today .weekly-card__bar-fill {
@@ -462,6 +534,12 @@
   font-weight: 800;
 }
 
+.weekly-card__bar.is-today .weekly-card__bar-value {
+  color: var(--mint-600);
+  font-weight: 700;
+  opacity: 1;
+}
+
 .weekly-card__bar.is-future .weekly-card__bar-track {
   opacity: 0.5;
 }
@@ -470,13 +548,16 @@
   font-size: 20rpx;
   color: var(--text-sub);
   line-height: 1;
+  letter-spacing: 0.3rpx;
 }
 
 .weekly-card__rows {
-  margin-top: 16rpx;
+  margin-top: 22rpx;
+  padding-top: 18rpx;
+  border-top: 2rpx dashed rgba(46, 169, 133, 0.16);
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 12rpx;
 }
 
 .weekly-card__row {
@@ -489,6 +570,7 @@
 
 .weekly-card__row-label {
   color: var(--text-sub);
+  letter-spacing: 0.4rpx;
 }
 
 .weekly-card__row-value {
@@ -496,6 +578,8 @@
   text-align: right;
   font-weight: 600;
   color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.3rpx;
 }
 
 .home-version {

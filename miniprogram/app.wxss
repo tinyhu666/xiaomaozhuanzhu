@@ -108,32 +108,61 @@ button::after {
   font-size: 28rpx;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: 0.6rpx;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* Press feedback: a small scale-down + reduced shadow gives the button
+   physical feel without being noisy. WeChat MP also has hover-class,
+   but :active works for both touch and dev-tool clicks. */
+.cta-button:active,
+.ghost-button:active,
+.danger-button:active {
+  transform: scale(0.97);
 }
 
 .cta-button[disabled],
 .ghost-button[disabled],
 .danger-button[disabled] {
-  opacity: 0.6;
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
 }
 
 .cta-button {
   color: #fff;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  box-shadow: 0 16rpx 36rpx rgba(46, 169, 133, 0.22);
+  background: linear-gradient(135deg, #6fc99a 0%, #2ea985 55%, #1a7558 100%);
+  box-shadow:
+    0 16rpx 36rpx rgba(46, 169, 133, 0.28),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.25);
+}
+
+.cta-button:active {
+  box-shadow:
+    0 8rpx 18rpx rgba(46, 169, 133, 0.22),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.25);
 }
 
 .ghost-button {
   color: var(--mint-600);
-  background: rgba(46, 169, 133, 0.08);
+  background: rgba(46, 169, 133, 0.1);
+  border: 2rpx solid rgba(46, 169, 133, 0.18);
+}
+
+.ghost-button:active {
+  background: rgba(46, 169, 133, 0.16);
 }
 
 .danger-button {
   color: #fff;
   background: linear-gradient(135deg, #ef9a93 0%, #e57b7b 100%);
+  box-shadow:
+    0 14rpx 28rpx rgba(229, 123, 123, 0.28),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.2);
 }
 
 .stats-grid {

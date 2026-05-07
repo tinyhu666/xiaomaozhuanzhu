@@ -23,14 +23,18 @@
 }
 
 .calendar-hero__title {
-  font-size: 34rpx;
-  font-weight: 700;
+  font-size: 36rpx;
+  font-weight: 800;
+  letter-spacing: 0.4rpx;
+  font-feature-settings: "tnum" 1;
 }
 
 .calendar-hero__meta {
   margin-top: 6rpx;
   color: var(--text-sub);
   font-size: 22rpx;
+  letter-spacing: 0.3rpx;
+  font-feature-settings: "tnum" 1;
 }
 
 .calendar-hero__nav {
@@ -39,25 +43,32 @@
   height: 64rpx;
   line-height: 64rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.1);
+  background: linear-gradient(135deg, rgba(46, 169, 133, 0.1) 0%, rgba(143, 217, 190, 0.16) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.18);
   color: var(--mint-600);
   font-size: 26rpx;
   font-weight: 700;
+  letter-spacing: 0.4rpx;
   text-align: center;
   white-space: nowrap;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .calendar-hero__nav--hover {
-  background: rgba(46, 169, 133, 0.2);
+  background: rgba(46, 169, 133, 0.22);
+  transform: scale(0.97);
 }
 
 .calendar-board,
 .day-panel {
-  padding: 26rpx;
+  padding: 28rpx;
   border-radius: 34rpx;
-  background: rgba(255, 255, 255, 0.86);
-  border: 2rpx solid rgba(46, 169, 133, 0.08);
-  box-shadow: 0 18rpx 42rpx rgba(46, 169, 133, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 253, 250, 0.92) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    0 16rpx 40rpx rgba(46, 169, 133, 0.08),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.7);
 }
 
 .calendar-board__weekdays {
@@ -233,19 +244,25 @@
 
 .day-panel__date {
   font-size: 34rpx;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.4rpx;
+  font-feature-settings: "tnum" 1;
 }
 
 .day-panel__meta {
   margin-top: 8rpx;
   color: var(--text-sub);
   font-size: 22rpx;
+  letter-spacing: 0.3rpx;
 }
 
 .day-panel__total {
-  font-size: 30rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  font-weight: 800;
   color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
 }
 
 .day-panel__sessions {
@@ -256,9 +273,27 @@
 }
 
 .session-item {
-  padding: 24rpx;
+  position: relative;
+  padding: 24rpx 24rpx 22rpx 32rpx;
   border-radius: 26rpx;
-  background: rgba(46, 169, 133, 0.05);
+  background:
+    linear-gradient(180deg, rgba(46, 169, 133, 0.06) 0%, rgba(46, 169, 133, 0.04) 100%);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Left-side accent bar (mint gradient stripe) gives each session
+   record a clear visual anchor. */
+.session-item::before {
+  content: "";
+  position: absolute;
+  left: 12rpx;
+  top: 24rpx;
+  bottom: 24rpx;
+  width: 6rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, #6fc99a 0%, #2ea985 100%);
+  opacity: 0.7;
 }
 
 .session-item__top {
@@ -269,22 +304,28 @@
 }
 
 .session-item__subject {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
+  letter-spacing: 0.4rpx;
 }
 
 .session-item__duration {
   font-size: 24rpx;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
 }
 
 .session-item__summary {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   font-size: 24rpx;
   line-height: 1.7;
   color: var(--text-main);
+  letter-spacing: 0.3rpx;
+  opacity: 0.86;
 }
 
 .session-item__tags {
@@ -295,23 +336,33 @@
 }
 
 .session-item__tag {
-  padding: 8rpx 14rpx;
+  padding: 6rpx 16rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
+  background: rgba(46, 169, 133, 0.1);
+  border: 2rpx solid rgba(46, 169, 133, 0.16);
   color: var(--mint-600);
   font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 0.3rpx;
 }
 
 .session-item__photos {
   white-space: nowrap;
-  margin-top: 16rpx;
+  margin-top: 18rpx;
 }
 
 .session-item__photo {
   display: inline-block;
-  width: 144rpx;
-  height: 144rpx;
+  width: 152rpx;
+  height: 152rpx;
   margin-right: 12rpx;
   border-radius: 20rpx;
   background: rgba(46, 169, 133, 0.08);
+  border: 2rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.08);
+  transition: transform 0.18s ease;
+}
+
+.session-item__photo:active {
+  transform: scale(0.97);
 }
