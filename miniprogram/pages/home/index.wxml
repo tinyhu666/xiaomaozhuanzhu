@@ -16,7 +16,7 @@
     <text class="quote-card__zh">{{quoteZh}}</text>
   </view>
 
-  <view class="timer-card">
+  <view class="timer-card {{activeSession ? 'is-active' : ''}}">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
         <view class="timer-card__status {{activeSession && activeSession.status === 'running' ? 'is-running' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">

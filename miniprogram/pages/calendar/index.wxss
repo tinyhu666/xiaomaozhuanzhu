@@ -53,10 +53,14 @@
 .calendar-hero__nav {
   flex: 0 0 auto;
   padding: 0 24rpx;
-  height: 56rpx;
-  line-height: 56rpx;
+  height: 58rpx;
+  line-height: 58rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 252, 248, 0.94) 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 4rpx 12rpx rgba(46, 169, 133, 0.06);
   color: var(--mint-600);
   font-size: 24rpx;
   font-weight: 600;
@@ -73,11 +77,17 @@
 
 .calendar-board,
 .day-panel {
+  position: relative;
   padding: 32rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 8rpx 28rpx rgba(46, 169, 133, 0.06);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.03),
+    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
 .calendar-board__weekdays {
@@ -132,28 +142,30 @@
   font-weight: 800;
 }
 
+/* Subtle vertical gradient on each heat level so cells look "filled
+   in" rather than flat-colored — gives the heat-map a designed feel. */
 .calendar-board__cell.level-1 {
-  background: #b3e3c7;
+  background: linear-gradient(180deg, #c2ead2 0%, #a4dcc0 100%);
   border-color: #8fd1ad;
 }
 
 .calendar-board__cell.level-2 {
-  background: #6fc99a;
+  background: linear-gradient(180deg, #80d3a4 0%, #5fc491 100%);
   border-color: #4eb27e;
 }
 
 .calendar-board__cell.level-3 {
-  background: #2ea985;
+  background: linear-gradient(180deg, #3fb693 0%, #228168 100%);
   border-color: #228168;
 }
 
 .calendar-board__cell.level-4 {
-  background: #1a7558;
+  background: linear-gradient(180deg, #258266 0%, #135a43 100%);
   border-color: #135a43;
 }
 
 .calendar-board__cell.level-5 {
-  background: #0a4631;
+  background: linear-gradient(180deg, #115239 0%, #073323 100%);
   border-color: #073323;
 }
 
@@ -285,23 +297,25 @@
 
 .session-item {
   position: relative;
-  padding: 24rpx 22rpx 22rpx 28rpx;
+  padding: 24rpx 22rpx 22rpx 30rpx;
   border-radius: 22rpx;
-  background: rgba(46, 169, 133, 0.04);
+  background:
+    linear-gradient(180deg, rgba(46, 169, 133, 0.06) 0%, rgba(46, 169, 133, 0.03) 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.5);
 }
 
-/* Slim left rail — single solid mint at low opacity. The previous
-   gradient + 2px width was visually loud. */
+/* Slim left rail with subtle gradient. */
 .session-item::before {
   content: "";
   position: absolute;
   left: 14rpx;
-  top: 28rpx;
-  bottom: 28rpx;
-  width: 3rpx;
+  top: 26rpx;
+  bottom: 26rpx;
+  width: 4rpx;
   border-radius: 999rpx;
-  background: var(--mint-400);
-  opacity: 0.55;
+  background: linear-gradient(180deg, var(--mint-400) 0%, var(--mint-500) 100%);
+  opacity: 0.7;
 }
 
 .session-item__top {

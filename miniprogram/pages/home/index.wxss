@@ -24,29 +24,47 @@
 .home-page > view:nth-child(5) { animation-delay: 0.28s; }
 .home-page > .home-version { animation-delay: 0.34s; }
 
-/* Quote card: minimal, editorial. One quote glyph as watermark, one
-   small date chip, big serif English, supporting Chinese. The
-   background is almost-white with a hairline border instead of the
-   prior dual-radial-gradient — silence is the point. */
+/* Quote card: editorial pull-quote feel. Layered surface with one
+   restored watermark glyph + a left-side mint hairline rail (book-
+   page mark) + tight typography. Soft shadow + inset highlight
+   gives it printed-paper depth. */
 .quote-card {
   position: relative;
-  padding: 36rpx 36rpx 32rpx;
+  padding: 32rpx 36rpx 32rpx 44rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 8rpx 28rpx rgba(46, 169, 133, 0.06);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.18), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.8),
+    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.1);
   overflow: hidden;
+}
+
+/* Editorial side-rail: thin mint line on the left margin like a
+   classical pull-quote indent. */
+.quote-card::before {
+  content: "";
+  position: absolute;
+  top: 36rpx;
+  bottom: 36rpx;
+  left: 22rpx;
+  width: 3rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(180deg, var(--mint-400) 0%, rgba(143, 217, 190, 0.3) 100%);
+  opacity: 0.7;
 }
 
 .quote-card__mark {
   position: absolute;
-  top: -42rpx;
-  left: 14rpx;
+  top: -52rpx;
+  right: 24rpx;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 700;
   font-size: 220rpx;
   line-height: 1;
-  color: rgba(46, 169, 133, 0.1);
+  color: rgba(46, 169, 133, 0.08);
   pointer-events: none;
   user-select: none;
 }
@@ -55,48 +73,75 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 4rpx 14rpx;
+  padding: 6rpx 16rpx;
   border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
-  margin-bottom: 16rpx;
+  background: rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.16);
+  margin-bottom: 18rpx;
 }
 
 .quote-card__chip-text {
   font-size: 18rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--mint-600);
-  letter-spacing: 1.5rpx;
+  letter-spacing: 1.6rpx;
   font-feature-settings: "tnum" 1;
 }
 
+/* English: confident solid color (not the busy 3-stop gradient) */
 .quote-card__en {
   position: relative;
   display: block;
   font-family: Georgia, "Times New Roman", "PingFang SC", serif;
-  font-size: 42rpx;
+  font-size: 44rpx;
   font-weight: 600;
   line-height: 1.28;
   letter-spacing: 0.3rpx;
-  color: #1a624f;
+  color: #155946;
 }
 
 .quote-card__zh {
   position: relative;
   display: block;
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   font-size: 26rpx;
+  font-weight: 400;
   line-height: 1.7;
   color: var(--text-sub);
   letter-spacing: 0.5rpx;
 }
 
+/* Timer is the hero card on this page: more elevation, gentle mesh
+   gradient surface, and an ambient glow when a session is running.
+   Three shadow layers (inset highlight + small crisp + large soft)
+   give the card real "weight" that distinguishes it from secondary
+   cards below. */
 .timer-card {
   position: relative;
-  padding: 36rpx 32rpx 36rpx;
+  padding: 40rpx 36rpx;
   border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 12rpx 36rpx rgba(46, 169, 133, 0.08);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(143, 217, 190, 0.28), transparent 48%),
+    radial-gradient(circle at 6% 92%, rgba(94, 195, 157, 0.16), transparent 44%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.04),
+    0 24rpx 48rpx -8rpx rgba(46, 169, 133, 0.16);
+  overflow: hidden;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+/* Active-session ambient: card edge lights up subtly, ring of mint
+   glow extends 8rpx beyond the border like a soft halo. */
+.timer-card.is-active {
+  border-color: rgba(46, 169, 133, 0.28);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.04),
+    0 24rpx 48rpx -8rpx rgba(46, 169, 133, 0.22),
+    0 0 0 8rpx rgba(46, 169, 133, 0.04);
 }
 
 .timer-card__head {
@@ -209,13 +254,13 @@
   letter-spacing: 0.3rpx;
 }
 
-/* Big timer: single solid color, generous whitespace above. No
-   gradient, no drop-shadow — premium feels like one confident
-   statement instead of multiple effects on top of each other. */
+/* Big timer: subtle vertical gradient gives it a "carved" / metallic
+   look without being loud. Solid color fallback so the number stays
+   readable on renderers that ignore -webkit-background-clip. */
 .timer-card__clock {
   display: block;
-  margin-top: 56rpx;
-  font-size: 104rpx;
+  margin-top: 52rpx;
+  font-size: 108rpx;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 1rpx;
@@ -223,6 +268,10 @@
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
   color: #155946;
+  background: linear-gradient(180deg, #1a624f 0%, #0f4836 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .timer-card__hint {
@@ -254,11 +303,17 @@
 }
 
 .goal-card {
-  padding: 32rpx;
+  position: relative;
+  padding: 32rpx 32rpx 30rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 8rpx 28rpx rgba(46, 169, 133, 0.06);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.03),
+    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
 .goal-card__head {
@@ -301,17 +356,22 @@
 }
 
 .goal-card__track {
+  position: relative;
   margin-top: 22rpx;
-  height: 10rpx;
+  height: 14rpx;
   border-radius: 999rpx;
   background: rgba(46, 169, 133, 0.08);
   overflow: hidden;
+  box-shadow: inset 0 1rpx 2rpx rgba(20, 60, 50, 0.06);
 }
 
+/* Subtle gradient fill + inset top highlight gives the bar
+   "carved" depth without being shiny. */
 .goal-card__fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--mint-500);
+  background: linear-gradient(180deg, #4dbe96 0%, #228168 100%);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.32);
   transform-origin: left center;
   transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
   animation: progress-grow 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
@@ -324,7 +384,7 @@
 }
 
 .goal-card__fill.is-reached {
-  background: var(--mint-600);
+  background: linear-gradient(180deg, #2ea985 0%, #155946 100%);
 }
 
 .goal-card__hint {
@@ -336,14 +396,19 @@
 }
 
 .makeup-banner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 18rpx;
   padding: 22rpx 24rpx;
   border-radius: 24rpx;
-  background: rgba(255, 240, 219, 0.85);
-  border: 1rpx solid rgba(229, 158, 87, 0.22);
-  box-shadow: 0 8rpx 24rpx rgba(229, 158, 87, 0.12);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 138, 0.22), transparent 40%),
+    linear-gradient(180deg, rgba(255, 244, 224, 0.94) 0%, rgba(255, 233, 198, 0.92) 100%);
+  border: 1rpx solid rgba(229, 158, 87, 0.26);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 12rpx 32rpx -4rpx rgba(229, 158, 87, 0.16);
 }
 
 .makeup-banner__text {
@@ -368,20 +433,28 @@
 
 .makeup-banner__btn {
   flex-shrink: 0;
-  min-height: 64rpx;
-  height: 64rpx;
-  padding: 0 24rpx;
+  min-height: 68rpx;
+  height: 68rpx;
+  padding: 0 26rpx;
   font-size: 24rpx;
   background: linear-gradient(180deg, #ec9a36 0%, #d97a23 100%);
-  box-shadow: 0 6rpx 16rpx rgba(229, 137, 50, 0.22);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.32),
+    0 10rpx 22rpx rgba(229, 137, 50, 0.28);
 }
 
 .weekly-card {
+  position: relative;
   padding: 32rpx;
   border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 8rpx 28rpx rgba(46, 169, 133, 0.06);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(143, 217, 190, 0.12), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.03),
+    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
 .weekly-card__header {
@@ -455,10 +528,11 @@
 }
 
 .weekly-card__bar-track {
-  width: 24rpx;
-  height: 90rpx;
-  border-radius: 6rpx;
+  width: 26rpx;
+  height: 96rpx;
+  border-radius: 8rpx;
   background: rgba(46, 169, 133, 0.06);
+  box-shadow: inset 0 1rpx 2rpx rgba(20, 60, 50, 0.04);
   overflow: hidden;
   display: flex;
   align-items: flex-end;
@@ -468,9 +542,10 @@
 .weekly-card__bar-fill {
   width: 100%;
   min-height: 0;
-  background: var(--mint-400);
-  border-top-left-radius: 4rpx;
-  border-top-right-radius: 4rpx;
+  background: linear-gradient(180deg, #6fc99a 0%, #2ea985 100%);
+  border-top-left-radius: 6rpx;
+  border-top-right-radius: 6rpx;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.28);
   transform-origin: bottom center;
   transition: height 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
   animation: bar-grow 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
@@ -491,7 +566,7 @@
 .weekly-card__bar:nth-child(7) .weekly-card__bar-fill { animation-delay: 0.42s; }
 
 .weekly-card__bar.is-today .weekly-card__bar-fill {
-  background: var(--mint-600);
+  background: linear-gradient(180deg, #2ea985 0%, #0a4631 100%);
 }
 
 .weekly-card__bar.is-today .weekly-card__bar-label {
