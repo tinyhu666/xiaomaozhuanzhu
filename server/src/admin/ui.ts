@@ -378,6 +378,151 @@ export const adminIndexHtml = `<!DOCTYPE html>
     }[c]));
   }
   function shortId(id) { return id ? id.slice(0, 8) : "—"; }
+
+  // ---- Tiny inline-SVG charts (no external library) ----------------
+  // We compose them as one SVG string per chart, with small helpers for
+  // axis ticks, polyline path, etc. Keeps the admin SPA dependency-free.
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function dateKey(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+
+  /** Daily-minutes trend: filled area + line + dots, last N days. */
+  function buildDailyTrendSvg(dailyStats, days) {
+    var today = new Date();
+    var byDate = {};
+    (dailyStats || []).forEach(function (s) { byDate[s.date] = s.totalMinutes; });
+
+    var data = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+      data.push({
+        key: dateKey(d),
+        date: d,
+        minutes: byDate[dateKey(d)] || 0,
+        isToday: i === 0
+      });
+    }
+
+    var max = data.reduce(function (m, p) { return Math.max(m, p.minutes); }, 60);
+    // Round max up to nice y-axis mark (60/120/180/...)
+    var step = max <= 60 ? 30 : max <= 180 ? 60 : max <= 360 ? 90 : 120;
+    var yMax = Math.ceil(max / step) * step;
+
+    var w = 600, h = 220;
+    var padL = 44, padR = 16, padT = 16, padB = 32;
+    var iw = w - padL - padR;
+    var ih = h - padT - padB;
+
+    var xFor = function (i) { return padL + (data.length === 1 ? iw / 2 : (i / (data.length - 1)) * iw); };
+    var yFor = function (m) { return padT + ih - (m / yMax) * ih; };
+
+    // Y-axis grid lines + labels
+    var grid = "";
+    for (var t = 0; t <= yMax; t += step) {
+      var gy = yFor(t);
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (w - padR) + '" y2="' + gy + '" stroke="rgba(46,169,133,0.08)" stroke-width="1" />';
+      grid += '<text x="' + (padL - 8) + '" y="' + (gy + 4) + '" font-size="10" fill="#7a8e88" text-anchor="end">' + t + 'm</text>';
+    }
+
+    // Line + area paths
+    var pts = data.map(function (p, i) { return xFor(i) + "," + yFor(p.minutes); });
+    var linePath = "M " + pts.join(" L ");
+    var areaPath = "M " + xFor(0) + "," + yFor(0) + " L " + pts.join(" L ") + " L " + xFor(data.length - 1) + "," + yFor(0) + " Z";
+
+    // X-axis date ticks (every ~5 days)
+    var xTicks = "";
+    var tickEvery = days <= 14 ? 2 : days <= 30 ? 5 : 10;
+    data.forEach(function (p, i) {
+      if (i === data.length - 1 || i % tickEvery === 0) {
+        var label = (p.date.getMonth() + 1) + "/" + p.date.getDate();
+        xTicks += '<text x="' + xFor(i) + '" y="' + (h - 10) + '" font-size="10" fill="#7a8e88" text-anchor="middle">' + label + '</text>';
+      }
+    });
+
+    // Dots
+    var dots = data.map(function (p, i) {
+      if (p.minutes <= 0) return "";
+      var cx = xFor(i), cy = yFor(p.minutes);
+      if (p.isToday) {
+        return '<circle cx="' + cx + '" cy="' + cy + '" r="6" fill="rgba(46,169,133,0.18)" />' +
+               '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="#155946" stroke="#fff" stroke-width="1.5" />';
+      }
+      return '<circle cx="' + cx + '" cy="' + cy + '" r="2.4" fill="#2ea985" />';
+    }).join("");
+
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">' +
+      '<defs>' +
+        '<linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0%" stop-color="#2ea985" stop-opacity="0.28" />' +
+          '<stop offset="100%" stop-color="#2ea985" stop-opacity="0" />' +
+        '</linearGradient>' +
+      '</defs>' +
+      grid +
+      '<path d="' + areaPath + '" fill="url(#trendGrad)" />' +
+      '<path d="' + linePath + '" fill="none" stroke="#2ea985" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />' +
+      dots +
+      xTicks +
+      '</svg>';
+  }
+
+  /** Weekday-pattern bars: average minutes per Monday..Sunday. */
+  function buildWeekdayPatternSvg(dailyStats) {
+    // Aggregate: total minutes per weekday + count of distinct dates
+    // (so the bar represents an average rather than absolute total —
+    // counting all distinct dates we have stats for, including 0-min
+    // days, would be misleading; we average over recorded days).
+    var totals = [0,0,0,0,0,0,0];
+    var counts = [0,0,0,0,0,0,0];
+    (dailyStats || []).forEach(function (s) {
+      if (!s.date) return;
+      // Mon-first: JS getDay() returns 0=Sun; convert to 0=Mon..6=Sun
+      var jsDay = new Date(s.date + "T08:00:00+08:00").getDay();
+      var idx = (jsDay + 6) % 7;
+      totals[idx] += s.totalMinutes || 0;
+      counts[idx] += 1;
+    });
+    var avgs = totals.map(function (t, i) { return counts[i] ? Math.round(t / counts[i]) : 0; });
+    var labels = ["一","二","三","四","五","六","日"];
+
+    var max = avgs.reduce(function (m, v) { return Math.max(m, v); }, 60);
+    var step = max <= 60 ? 30 : max <= 120 ? 60 : 90;
+    var yMax = Math.ceil(max / step) * step;
+
+    var w = 480, h = 200;
+    var padL = 44, padR = 16, padT = 18, padB = 32;
+    var iw = w - padL - padR;
+    var ih = h - padT - padB;
+    var slotW = iw / 7;
+    var barW = Math.min(slotW * 0.6, 38);
+
+    var grid = "";
+    for (var t = 0; t <= yMax; t += step) {
+      var gy = padT + ih - (t / yMax) * ih;
+      grid += '<line x1="' + padL + '" y1="' + gy + '" x2="' + (w - padR) + '" y2="' + gy + '" stroke="rgba(46,169,133,0.08)" stroke-width="1" />';
+      grid += '<text x="' + (padL - 8) + '" y="' + (gy + 4) + '" font-size="10" fill="#7a8e88" text-anchor="end">' + t + 'm</text>';
+    }
+
+    var bars = avgs.map(function (val, i) {
+      var cx = padL + slotW * (i + 0.5);
+      var bx = cx - barW / 2;
+      var bh = (val / yMax) * ih;
+      var by = padT + ih - bh;
+      var labelY = padT + ih + 18;
+      var valueY = by - 6;
+      var fill = "#5fc491";
+      return (val > 0
+          ? '<rect x="' + bx + '" y="' + by + '" width="' + barW + '" height="' + bh + '" rx="4" fill="' + fill + '" />' +
+            '<text x="' + cx + '" y="' + valueY + '" font-size="10" fill="#155946" font-weight="600" text-anchor="middle">' + val + 'm</text>'
+          : '<rect x="' + bx + '" y="' + (padT + ih - 4) + '" width="' + barW + '" height="4" rx="2" fill="rgba(46,169,133,0.16)" />'
+        ) +
+        '<text x="' + cx + '" y="' + labelY + '" font-size="11" fill="#7a8e88" text-anchor="middle">' + labels[i] + '</text>';
+    }).join("");
+
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">' +
+      grid + bars +
+      '</svg>';
+  }
+  // ----------------------------------------------------------------
   function statusBadge(status) {
     return '<span class="badge badge--' + status + '">' + status + '</span>';
   }
@@ -800,6 +945,22 @@ export const adminIndexHtml = `<!DOCTYPE html>
           <div class="stat"><div class="stat__label">当前连签</div><div class="stat__value">' + s.currentStreakDays + ' 天</div></div>\\
           <div class="stat"><div class="stat__label">最长连签</div><div class="stat__value">' + s.longestStreakDays + ' 天</div></div>\\
         </div>\\
+      </div>\\
+      \\
+      <div class="card">\\
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">\\
+          <h2 style="margin:0;">学习趋势（近 30 天）</h2>\\
+          <span class="sub" style="font-size:12px;">每日累计学习分钟</span>\\
+        </div>\\
+        ' + buildDailyTrendSvg(d.dailyStats || [], 30) + '\\
+      </div>\\
+      \\
+      <div class="card">\\
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">\\
+          <h2 style="margin:0;">周内分布</h2>\\
+          <span class="sub" style="font-size:12px;">各周天的平均学习时长</span>\\
+        </div>\\
+        ' + buildWeekdayPatternSvg(d.dailyStats || []) + '\\
       </div>\\
       \\
       <div class="card">\\
