@@ -116,18 +116,26 @@ export const adminIndexHtml = `<!DOCTYPE html>
   .alert--err { background: rgba(184,66,58,0.08); color: var(--danger); border: 1px solid rgba(184,66,58,0.18); }
   .alert--info { background: rgba(46,169,133,0.08); color: var(--mint-500); border: 1px solid var(--line); }
 
+  /* Compact heat-map: fixed-cell grid sized so a full month is ~210px
+     wide instead of stretching the card. Click target is still 28px
+     which is fine for a desktop admin tool. */
+  .heat-month { margin-bottom: 14px; }
+  .heat-month:last-child { margin-bottom: 0; }
   .heat-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0,1fr));
-    gap: 6px;
-    margin: 12px 0;
+    grid-template-columns: repeat(7, 28px);
+    gap: 4px;
+    margin: 6px 0 0;
+    justify-content: start;
   }
   .heat-cell {
-    aspect-ratio: 1;
-    border-radius: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
     background: #f0f6f3;
     border: 1px solid #d8e8e0;
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -138,7 +146,7 @@ export const adminIndexHtml = `<!DOCTYPE html>
   .heat-cell.l3 { background: #2ea985; color: #fff; }
   .heat-cell.l4 { background: #1a7558; color: #fff; }
   .heat-cell.l5 { background: #0a4631; color: #fff; }
-  .heat-cell.faded { opacity: 0.3; }
+  .heat-cell.faded { opacity: 0.3; border-color: transparent; background: transparent; }
 
   .session {
     border-top: 1px solid var(--line);
@@ -687,11 +695,15 @@ export const adminIndexHtml = `<!DOCTYPE html>
   function drawDetail(d) {
     const u = d.user;
     const s = d.summary;
-    // Build heat grid for the most recent visible 6 months
+    // Heat-map: current calendar month only by default. The 6-month
+    // historical grid was eating too much vertical space; the user can
+    // toggle "查看更多月份" if they need historical context.
     const stats = d.dailyStats || [];
     const today = new Date();
+    const expanded = !!state.detailHeatExpanded;
+    const monthsBack = expanded ? 5 : 0;
     const months = [];
-    for (let i = 5; i >= 0; i--) {
+    for (let i = monthsBack; i >= 0; i--) {
       const dt = new Date(today.getFullYear(), today.getMonth() - i, 1);
       months.push({ y: dt.getFullYear(), m: dt.getMonth() + 1 });
     }
@@ -712,7 +724,7 @@ export const adminIndexHtml = `<!DOCTYPE html>
         const titleAttr = date + (minutes > 0 ? ' · ' + formatMinutes(minutes) : '');
         cells.push('<div class="heat-cell ' + (lvl > 0 ? 'l' + lvl : '') + '" title="' + titleAttr + '">' + day + '</div>');
       }
-      return '<div style="margin-bottom:18px;"><div class="sub" style="margin-bottom:6px;">' + monthLabel + '</div><div class="heat-grid">' + cells.join("") + '</div></div>';
+      return '<div class="heat-month"><div class="sub" style="margin-bottom:6px;">' + monthLabel + '</div><div class="heat-grid">' + cells.join("") + '</div></div>';
     }).join("");
 
     const sessions = (d.sessions || []).filter((x) => x.status === "completed" || x.status === "makeup")
@@ -800,7 +812,10 @@ export const adminIndexHtml = `<!DOCTYPE html>
       </div>\\
       \\
       <div class="card">\\
-        <h2 style="margin-top:0;">学习热力图（近 6 个月）</h2>\\
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">\\
+          <h2 style="margin:0;">学习热力图（' + (expanded ? '近 6 个月' : '本月') + '）</h2>\\
+          <button class="ghost" id="heatToggleBtn">' + (expanded ? '只看本月' : '查看 6 个月') + '</button>\\
+        </div>\\
         ' + heatHtml + '\\
       </div>\\
       \\
@@ -815,6 +830,14 @@ export const adminIndexHtml = `<!DOCTYPE html>
         "/export/users/" + encodeURIComponent(u.id) + "/sessions.csv",
         "user-" + u.id.slice(0, 8) + "-sessions.csv"
       );
+    }
+
+    const heatToggleBtn = document.getElementById("heatToggleBtn");
+    if (heatToggleBtn) {
+      heatToggleBtn.onclick = () => {
+        state.detailHeatExpanded = !state.detailHeatExpanded;
+        drawDetail(d);
+      };
     }
 
     // Admin remark editor: PATCH the new value, then update the local
