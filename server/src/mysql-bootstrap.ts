@@ -10,6 +10,7 @@ const TABLE_STATEMENTS = [
     nickname VARCHAR(20) NOT NULL DEFAULT '',
     avatar_url VARCHAR(512) NOT NULL DEFAULT '',
     profile_completed TINYINT(1) NOT NULL DEFAULT 0,
+    admin_remark VARCHAR(60) NOT NULL DEFAULT '',
     created_at DATETIME(3) NOT NULL,
     last_login_at DATETIME(3) NOT NULL
   )`,
@@ -165,6 +166,12 @@ async function migrateUsersIdentitySchema(connection: Connection, dbName: string
 
   if (columnMap.get("openid") === "NO") {
     await connection.query("ALTER TABLE users MODIFY COLUMN openid VARCHAR(128) NULL");
+  }
+
+  if (!columnMap.has("admin_remark")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN admin_remark VARCHAR(60) NOT NULL DEFAULT '' AFTER profile_completed"
+    );
   }
 }
 

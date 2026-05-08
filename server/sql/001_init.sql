@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   nickname VARCHAR(20) NOT NULL DEFAULT '',
   avatar_url VARCHAR(512) NOT NULL DEFAULT '',
   profile_completed TINYINT(1) NOT NULL DEFAULT 0,
+  -- Admin-only label, set via /admin dashboard. Never shown to users.
+  admin_remark VARCHAR(60) NOT NULL DEFAULT '',
   created_at DATETIME(3) NOT NULL,
   last_login_at DATETIME(3) NOT NULL
 );

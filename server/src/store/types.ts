@@ -40,6 +40,7 @@ export type DataStore = {
   listAllUsers(): AdminUserSummary[] | Promise<AdminUserSummary[]>;
   getUserById(userId: string): User | null | Promise<User | null>;
   listRecentCompletedSessions(limit: number): AdminSessionWithOwner[] | Promise<AdminSessionWithOwner[]>;
+  setAdminRemark(userId: string, remark: string): User | null | Promise<User | null>;
 };
 
 export type AdminUserSummary = {

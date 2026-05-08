@@ -9,6 +9,13 @@ export interface User {
   nickname: string;
   avatarUrl: string;
   profileCompleted: boolean;
+  /**
+   * Optional admin-only label for this user. Set via the /admin
+   * dashboard, never visible to the user themselves. Used as a
+   * display fallback when the user has no nickname yet, and as a
+   * primary label when the admin wants to categorize a user.
+   */
+  adminRemark: string;
   createdAt: string;
   lastLoginAt: string;
 }

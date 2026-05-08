@@ -76,6 +76,7 @@ export class MemoryStore {
       nickname: "",
       avatarUrl: "",
       profileCompleted: false,
+      adminRemark: "",
       createdAt: now,
       lastLoginAt: now
     };
@@ -205,6 +206,13 @@ export class MemoryStore {
 
   getUserById(userId: string) {
     return this.users.get(userId) ?? null;
+  }
+
+  setAdminRemark(userId: string, remark: string) {
+    const user = this.users.get(userId);
+    if (!user) return null;
+    user.adminRemark = remark;
+    return user;
   }
 
   listRecentCompletedSessions(limit: number) {

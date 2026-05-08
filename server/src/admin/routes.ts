@@ -10,7 +10,7 @@
  */
 import { createHmac } from "node:crypto";
 
-import type { Express, NextFunction, Request, Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 
 import { AppError } from "../errors";
 import { adminIndexHtml } from "./ui";
@@ -210,6 +210,7 @@ export function registerAdminRoutes(
       users: summaries.map((item) => ({
         id: item.user.id,
         nickname: item.user.nickname || "",
+        adminRemark: item.user.adminRemark || "",
         avatarUrl: item.user.avatarUrl || "",
         openid: item.user.openid,
         clientUid: item.user.clientUid,
@@ -225,15 +226,48 @@ export function registerAdminRoutes(
     });
   }));
 
+  app.patch("/admin/api/users/:userId/remark", express.json(), asyncHandler(async (request, response) => {
+    const userId = String(request.params.userId);
+    const raw = request.body?.remark;
+    if (typeof raw !== "string") {
+      throw new AppError(400, "INVALID_INPUT", "remark must be a string");
+    }
+    const trimmed = raw.trim();
+    if (trimmed.length > 60) {
+      throw new AppError(400, "INVALID_INPUT", "remark must be 60 characters or fewer");
+    }
+    const updated = await store.setAdminRemark(userId, trimmed);
+    if (!updated) {
+      throw new AppError(404, "NOT_FOUND", "User not found");
+    }
+    response.json({
+      user: {
+        id: updated.id,
+        adminRemark: updated.adminRemark,
+        nickname: updated.nickname
+      }
+    });
+  }));
+
   app.get("/admin/api/recent-sessions", asyncHandler(async (request, response) => {
     const limitRaw = Number(request.query.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 200) : 50;
     const items = await store.listRecentCompletedSessions(limit);
+    // Pull each owner's admin_remark in one shot so the admin label
+    // resolution can prefer it over the user's own (often empty)
+    // nickname.
+    const remarkByUser = new Map<string, string>();
+    for (const { user } of items) {
+      if (remarkByUser.has(user.id)) continue;
+      const full = await store.getUserById(user.id);
+      remarkByUser.set(user.id, full?.adminRemark ?? "");
+    }
     response.json({
       items: items.map(({ session, user }) => ({
         sessionId: session.id,
         userId: user.id,
         nickname: user.nickname || "",
+        adminRemark: remarkByUser.get(user.id) || "",
         avatarUrl: user.avatarUrl || "",
         identityKind: user.openid ? "wechat" : user.clientUid ? "anon" : "unknown",
         startedAt: session.startedAt,
@@ -373,6 +407,7 @@ export function registerAdminRoutes(
       user: {
         id: user.id,
         nickname: user.nickname,
+        adminRemark: user.adminRemark,
         avatarUrl: user.avatarUrl,
         openid: user.openid,
         clientUid: user.clientUid,

@@ -240,6 +240,59 @@ export const adminIndexHtml = `<!DOCTYPE html>
   .badge--completed { background: rgba(46,169,133,0.12); color: var(--mint-500); }
   .badge--abandoned { background: #eee; color: #888; }
   .badge--makeup { background: #f0e8f7; color: #6a4ba0; }
+
+  .remark-editor {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: rgba(46, 169, 133, 0.06);
+    border: 1px solid var(--line);
+  }
+  .remark-editor__label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .remark-editor__row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .remark-editor__row input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .remark-editor__row input:focus {
+    outline: none;
+    border-color: var(--mint-500);
+    box-shadow: 0 0 0 3px rgba(46, 169, 133, 0.12);
+  }
+  .remark-editor__row button {
+    padding: 8px 18px;
+    background: var(--mint-500);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .remark-editor__row button:hover { background: var(--mint-700); }
+  .remark-editor__row button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .remark-editor__status {
+    min-height: 14px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
@@ -319,6 +372,21 @@ export const adminIndexHtml = `<!DOCTYPE html>
   function shortId(id) { return id ? id.slice(0, 8) : "—"; }
   function statusBadge(status) {
     return '<span class="badge badge--' + status + '">' + status + '</span>';
+  }
+
+  /**
+   * Resolve the admin-facing display label for a user record.
+   * Priority: admin remark → user nickname → fallback "用户 #shortId".
+   * The user's own nickname (if set) is not shown when an admin remark
+   * exists, because the admin chose the remark deliberately.
+   */
+  function displayLabel(user) {
+    if (!user) return "—";
+    var remark = (user.adminRemark || "").trim();
+    if (remark) return remark;
+    var nickname = (user.nickname || "").trim();
+    if (nickname) return nickname;
+    return "用户 #" + (user.id ? user.id.slice(0, 8) : "—");
   }
 
   // Single-instance fullscreen image viewer. Re-used for every photo
@@ -488,7 +556,7 @@ export const adminIndexHtml = `<!DOCTYPE html>
       return '<div class="session" style="padding:10px 0;">\\
         <div class="session__head">\\
           <div>\\
-            <div class="session__when"><a href="' + userLink + '" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--mint-300);">' + escapeHtml(item.nickname || "（未设置昵称）") + '</a> ' +
+            <div class="session__when"><a href="' + userLink + '" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--mint-300);">' + escapeHtml(displayLabel({ id: item.userId, nickname: item.nickname, adminRemark: item.adminRemark })) + '</a> ' +
               (item.identityKind === "wechat" ? '<span class="badge badge--wechat">wechat</span>' : '<span class="badge badge--anon">anon</span>') + '</div>\\
             <div class="session__sub">' + escapeHtml(item.subject || "—") + ' · ' + formatDate(item.endedAt) + '</div>\\
           </div>\\
@@ -567,7 +635,8 @@ export const adminIndexHtml = `<!DOCTYPE html>
       const ident = (u.openid ? '<span class="badge badge--wechat">wechat</span>' : '')
         + (u.clientUid ? '<span class="badge badge--anon">anon</span>' : '');
       return '<tr class="row-link" onclick="location.hash=\\'#/users/' + escapeHtml(u.id) + '\\'">' +
-        '<td><strong>' + escapeHtml(u.nickname || "（未设置昵称）") + '</strong>' +
+        '<td><strong>' + escapeHtml(displayLabel(u)) + '</strong>' +
+          (u.adminRemark && u.nickname ? '<div class="sub" style="font-size:12px;margin-top:2px;">原昵称：' + escapeHtml(u.nickname) + '</div>' : '') +
         '<div class="mono">' + shortId(u.id) + '</div></td>' +
         '<td>' + formatMinutes(u.totalMinutes) + '</td>' +
         '<td>' + u.completedSessions + '</td>' +
@@ -695,13 +764,24 @@ export const adminIndexHtml = `<!DOCTYPE html>
         <button class="ghost" id="exportSessions">导出 CSV</button>\\
       </div>\\
       <div class="card">\\
-        <h1>' + escapeHtml(u.nickname || "（未设置昵称）") + '</h1>\\
+        <h1>' + escapeHtml(displayLabel(u)) + '</h1>\\
         <p class="sub mono">' + escapeHtml(u.id) + '</p>\\
+        ' + (u.adminRemark && u.nickname ? '<p class="sub" style="margin-top:4px;">用户原昵称：<strong style="color:var(--text-main);">' + escapeHtml(u.nickname) + '</strong></p>' : '') + '\\
         <div class="sub" style="margin-top:8px;">\\
           ' + (u.openid ? '<span class="badge badge--wechat">wechat</span> ' + '<span class="mono">' + escapeHtml(u.openid) + '</span>' : '') + '<br>' +
           (u.clientUid ? '<span class="badge badge--anon">anon</span> ' + '<span class="mono">' + escapeHtml(u.clientUid) + '</span>' : '') + '\\
         </div>\\
         <div class="sub" style="margin-top:8px;">注册：' + formatDate(u.createdAt) + ' · 最近登录：' + formatDate(u.lastLoginAt) + '</div>\\
+        \\
+        <div class="remark-editor">\\
+          <label class="remark-editor__label" for="remarkInput">管理员备注</label>\\
+          <div class="remark-editor__row">\\
+            <input id="remarkInput" type="text" maxlength="60" placeholder="给该用户起个易记的名字（仅你自己可见）" value="' + escapeHtml(u.adminRemark || "") + '" />\\
+            <button class="primary" id="remarkSaveBtn">保存</button>\\
+          </div>\\
+          <div id="remarkStatus" class="remark-editor__status sub"></div>\\
+        </div>\\
+        \\
         <div class="stats" style="margin-top:18px;">\\
           <div class="stat"><div class="stat__label">累计学习</div><div class="stat__value">' + formatMinutes(s.totalMinutes) + '</div></div>\\
           <div class="stat"><div class="stat__label">完成打卡</div><div class="stat__value">' + s.completedSessions + '</div></div>\\
@@ -735,6 +815,58 @@ export const adminIndexHtml = `<!DOCTYPE html>
         "/export/users/" + encodeURIComponent(u.id) + "/sessions.csv",
         "user-" + u.id.slice(0, 8) + "-sessions.csv"
       );
+    }
+
+    // Admin remark editor: PATCH the new value, then update the local
+    // state and re-render so the page header (and breadcrumb-style
+    // header) reflects the new label without a full reload.
+    const remarkInput = document.getElementById("remarkInput");
+    const remarkBtn = document.getElementById("remarkSaveBtn");
+    const remarkStatus = document.getElementById("remarkStatus");
+    function showRemarkStatus(message, kind) {
+      if (!remarkStatus) return;
+      remarkStatus.textContent = message;
+      remarkStatus.style.color = kind === "ok"
+        ? "var(--mint-500)"
+        : kind === "err"
+          ? "var(--danger)"
+          : "var(--text-sub)";
+    }
+    if (remarkInput && remarkBtn) {
+      remarkBtn.onclick = async () => {
+        const next = (remarkInput.value || "").trim();
+        if (next.length > 60) {
+          showRemarkStatus("最多 60 个字符", "err");
+          return;
+        }
+        remarkBtn.disabled = true;
+        showRemarkStatus("保存中…");
+        try {
+          const token = getToken();
+          const res = await fetch("/admin/api/users/" + encodeURIComponent(u.id) + "/remark", {
+            method: "PATCH",
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ remark: next })
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error?.message || "HTTP " + res.status);
+          }
+          showRemarkStatus("已保存 ✓", "ok");
+          // Reflect the change in the local cache + re-render so the
+          // big H1 picks up the new label immediately.
+          d.user.adminRemark = next;
+          if (state.detail) state.detail.user.adminRemark = next;
+          drawDetail(d);
+          setTimeout(() => showRemarkStatus("", ""), 2200);
+        } catch (err) {
+          showRemarkStatus("保存失败：" + err.message, "err");
+          remarkBtn.disabled = false;
+        }
+      };
     }
 
     // Delegated click handler: every photo thumbnail in any session

@@ -155,7 +155,7 @@ export class MySQLStore {
     const id = randomUUID();
     const shareSlug = randomUUID().slice(0, 8);
     await this.pool.execute(
-      "INSERT INTO users (id, openid, client_uid, nickname, avatar_url, profile_completed, created_at, last_login_at) VALUES (?, ?, ?, '', '', 0, ?, ?)",
+      "INSERT INTO users (id, openid, client_uid, nickname, avatar_url, profile_completed, admin_remark, created_at, last_login_at) VALUES (?, ?, ?, '', '', 0, '', ?, ?)",
       [id, openid, clientUid, nowSql, nowSql]
     );
     await this.pool.execute(
@@ -170,6 +170,7 @@ export class MySQLStore {
         nickname: "",
         avatarUrl: "",
         profileCompleted: false,
+        adminRemark: "",
         createdAt: now,
         lastLoginAt: now
       },
@@ -244,6 +245,7 @@ export class MySQLStore {
         nickname: String(row.nickname),
         avatarUrl: String(row.avatar_url),
         profileCompleted: Boolean(row.profile_completed),
+        adminRemark: String(row.admin_remark ?? ""),
         createdAt: String(row.created_at),
         lastLoginAt: String(row.last_login_at)
       },
@@ -432,6 +434,15 @@ export class MySQLStore {
     return rows[0] ? mapUserRow(rows[0]) : null;
   }
 
+  async setAdminRemark(userId: string, remark: string) {
+    const [result] = await this.pool.execute(
+      "UPDATE users SET admin_remark = ? WHERE id = ?",
+      [remark, userId]
+    );
+    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+    return this.getUserById(userId);
+  }
+
   async listRecentCompletedSessions(limit: number) {
     const safeLimit = Math.max(0, Math.min(limit | 0, 200));
     if (safeLimit === 0) return [];
@@ -476,6 +487,7 @@ function mapUserRow(row: RowDataPacket): User {
     nickname: String(row.nickname ?? ""),
     avatarUrl: String(row.avatar_url ?? ""),
     profileCompleted: Boolean(row.profile_completed),
+    adminRemark: String(row.admin_remark ?? ""),
     createdAt: toIsoString(row.created_at),
     lastLoginAt: toIsoString(row.last_login_at)
   };

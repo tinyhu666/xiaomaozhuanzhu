@@ -206,6 +206,87 @@ describe("Admin dashboard", () => {
       .expect(404);
   });
 
+  it("supports setting and clearing an admin remark on a user", async () => {
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "remark-target")
+      .expect(200);
+    const userId = bootstrap.body.profile.id;
+
+    // Initially no remark.
+    const initial = await request(app)
+      .get(`/admin/api/users/${userId}`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+    expect(initial.body.user.adminRemark).toBe("");
+
+    // Set a remark.
+    const set = await request(app)
+      .patch(`/admin/api/users/${userId}/remark`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ remark: "重要客户：李总" })
+      .expect(200);
+    expect(set.body.user.adminRemark).toBe("重要客户：李总");
+
+    // Round-trip: detail endpoint reflects it.
+    const after = await request(app)
+      .get(`/admin/api/users/${userId}`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+    expect(after.body.user.adminRemark).toBe("重要客户：李总");
+
+    // Listing endpoint includes the remark too.
+    const list = await request(app)
+      .get("/admin/api/users")
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .expect(200);
+    const target = list.body.users.find((row: { id: string }) => row.id === userId);
+    expect(target.adminRemark).toBe("重要客户：李总");
+
+    // Clearing: empty string is allowed and trimmed.
+    const cleared = await request(app)
+      .patch(`/admin/api/users/${userId}/remark`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ remark: "   " })
+      .expect(200);
+    expect(cleared.body.user.adminRemark).toBe("");
+  });
+
+  it("rejects bad remark payloads", async () => {
+    const bootstrap = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "remark-target-2")
+      .expect(200);
+    const userId = bootstrap.body.profile.id;
+
+    // > 60 chars
+    await request(app)
+      .patch(`/admin/api/users/${userId}/remark`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ remark: "a".repeat(61) })
+      .expect(400);
+
+    // not a string
+    await request(app)
+      .patch(`/admin/api/users/${userId}/remark`)
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ remark: 12345 })
+      .expect(400);
+
+    // unknown user
+    await request(app)
+      .patch("/admin/api/users/00000000-0000-0000-0000-000000000000/remark")
+      .set("authorization", `Bearer ${ADMIN_TOKEN}`)
+      .send({ remark: "x" })
+      .expect(404);
+
+    // unauthorized
+    await request(app)
+      .patch(`/admin/api/users/${userId}/remark`)
+      .send({ remark: "x" })
+      .expect(401);
+  });
+
   it("returns recent completed sessions across users in reverse chronological order", async () => {
     // user-1 logs a session
     await request(app)
