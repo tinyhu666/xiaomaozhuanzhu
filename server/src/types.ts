@@ -78,3 +78,30 @@ export interface TemporaryUrl {
   expiresAt: string;
 }
 
+/**
+ * Top-level news category surfaced in the miniprogram's 「动态」 tab.
+ * Maps roughly to CICPA's own section breakdown:
+ *   - announce: 公告 (official announcements: registration, fees, etc.)
+ *   - outline:  考试大纲 / 命题说明
+ *   - news:     news, policy interpretation, candidate guidance
+ */
+export type NewsCategory = "announce" | "outline" | "news";
+
+export const NEWS_CATEGORIES: readonly NewsCategory[] = ["announce", "outline", "news"] as const;
+
+export interface NewsItem {
+  id: string;
+  source: string;
+  category: NewsCategory;
+  title: string;
+  summary: string;
+  /** Plain-text body. Null when only the listing row has been parsed yet. */
+  content: string | null;
+  url: string;
+  publishedAt: string;
+  fetchedAt: string;
+  hidden: boolean;
+  /** True for admin-curated items; fetcher will never overwrite these. */
+  manual: boolean;
+}
+

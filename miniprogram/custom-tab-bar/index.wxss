@@ -4,9 +4,9 @@
   right: 28rpx;
   bottom: calc(24rpx + env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
-  padding: 18rpx;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8rpx;
+  padding: 14rpx;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 24rpx 56rpx rgba(46, 169, 133, 0.16);

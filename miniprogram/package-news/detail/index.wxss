@@ -1,0 +1,102 @@
+.news-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.news-detail__loading,
+.news-detail__error {
+  padding: 80rpx 0;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--text-sub);
+}
+
+.news-detail__error-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.news-detail__head {
+  padding: 28rpx 32rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.22), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 10rpx 28rpx -4rpx rgba(46, 169, 133, 0.1);
+}
+
+.news-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+}
+
+.news-detail__cat {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
+}
+
+.news-detail__cat--announce { background: rgba(229, 158, 87, 0.18); color: #b56823; }
+.news-detail__cat--outline  { background: rgba(94, 116, 200, 0.18); color: #3a4a92; }
+.news-detail__cat--news     { background: rgba(46, 169, 133, 0.18); color: #1d7e63; }
+
+.news-detail__date {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.news-detail__title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+  line-height: 1.4;
+}
+
+.news-detail__body {
+  padding: 28rpx 32rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
+}
+
+.news-detail__content {
+  display: block;
+  font-size: 28rpx;
+  color: var(--text-main);
+  line-height: 1.75;
+  letter-spacing: 0.2rpx;
+  white-space: pre-wrap;
+}
+
+.news-detail__hint {
+  margin-top: 18rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx dashed rgba(46, 169, 133, 0.18);
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.news-detail__actions {
+  padding: 0;
+}
+
+.news-detail__source {
+  text-align: center;
+  font-size: 20rpx;
+  color: rgba(94, 125, 117, 0.55);
+  letter-spacing: 0.5rpx;
+}

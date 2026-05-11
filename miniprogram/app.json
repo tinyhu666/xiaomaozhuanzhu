@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/index",
     "pages/calendar/index",
+    "pages/news/index",
     "pages/profile/index",
     "pages/public/index"
   ],
@@ -17,6 +18,10 @@
     {
       "root": "package-profile",
       "pages": ["badges/index", "subjects/index", "share/index"]
+    },
+    {
+      "root": "package-news",
+      "pages": ["detail/index"]
     }
   ],
   "window": {
@@ -40,6 +45,10 @@
       {
         "pagePath": "pages/calendar/index",
         "text": "日历"
+      },
+      {
+        "pagePath": "pages/news/index",
+        "text": "动态"
       },
       {
         "pagePath": "pages/profile/index",

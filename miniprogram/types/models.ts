@@ -127,6 +127,32 @@ export type ExamDateInfo = {
   sourceYear: number;
 };
 
+export type NewsCategory = "announce" | "outline" | "news";
+
+export type NewsListItem = {
+  id: string;
+  source: string;
+  category: NewsCategory;
+  title: string;
+  summary: string;
+  url: string;
+  publishedAt: string;
+};
+
+export type NewsDetail = NewsListItem & {
+  content: string | null;
+  fetchedAt: string;
+};
+
+export type NewsListResponse = {
+  items: NewsListItem[];
+  nextBefore: string | null;
+};
+
+export type NewsDetailResponse = {
+  item: NewsDetail;
+};
+
 export type ProfileDashboardResponse = {
   profile: UserProfile;
   summary: {

@@ -4,12 +4,15 @@ import { createPool, type Pool, type RowDataPacket } from "mysql2/promise";
 import { formatShanghaiDate } from "../domain/date-utils";
 import type {
   DailyStat,
+  NewsCategory,
+  NewsItem,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
   User,
   UserResolutionInput
 } from "../types";
+import type { NewsListOptions, NewsUpsertResult } from "./types";
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 
@@ -443,6 +446,168 @@ export class MySQLStore {
     return this.getUserById(userId);
   }
 
+  // ----------------------------------------------------------------
+  // News module
+  // ----------------------------------------------------------------
+
+  async listNews(options: NewsListOptions = {}) {
+    return this.runNewsQuery({ ...options, includeHidden: options.includeHidden ?? false });
+  }
+
+  async listNewsForAdmin(options: NewsListOptions = {}) {
+    return this.runNewsQuery({ ...options, includeHidden: options.includeHidden ?? true });
+  }
+
+  private async runNewsQuery(options: NewsListOptions): Promise<NewsItem[]> {
+    const limit = Math.min(Math.max(options.limit ?? 30, 1), 100);
+    const where: string[] = [];
+    const params: (string | number)[] = [];
+    if (!options.includeHidden) where.push("hidden = 0");
+    if (options.category && options.category !== "all") {
+      where.push("category = ?");
+      params.push(options.category);
+    }
+    if (options.before) {
+      where.push("published_at < ?");
+      params.push(toMySQLDateTimeRequired(options.before));
+    }
+    const sql =
+      `SELECT id, source, category, title, summary, content, url,
+              published_at, fetched_at, hidden, manual
+         FROM news_items
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY published_at DESC, id DESC
+        LIMIT ?`;
+    params.push(limit);
+    const [rows] = await this.pool.query<RowDataPacket[]>(sql, params);
+    return rows.map(mapNewsRow);
+  }
+
+  async getNewsById(id: string) {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT id, source, category, title, summary, content, url,
+              published_at, fetched_at, hidden, manual
+         FROM news_items WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    return rows[0] ? mapNewsRow(rows[0]) : null;
+  }
+
+  async upsertNewsBatch(items: NewsItem[]): Promise<NewsUpsertResult> {
+    if (!items.length) return { inserted: 0, updated: 0 };
+    let inserted = 0;
+    let updated = 0;
+    // We use INSERT ... ON DUPLICATE KEY UPDATE so the (source, url)
+    // UNIQUE index drives the merge. Manual rows are preserved by
+    // filtering out any incoming item whose existing row has manual=1.
+    const conn = await this.pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const item of items) {
+        const [existingRows] = await conn.query<RowDataPacket[]>(
+          "SELECT id, hidden, manual FROM news_items WHERE source = ? AND url = ? LIMIT 1",
+          [item.source, item.url]
+        );
+        const existing = existingRows[0];
+        if (existing?.manual) {
+          // Admin-curated: refuse to clobber.
+          continue;
+        }
+        const preservedHidden = existing ? Boolean(existing.hidden) : item.hidden;
+        if (existing) {
+          await conn.execute(
+            `UPDATE news_items
+                SET category = ?, title = ?, summary = ?, content = ?,
+                    published_at = ?, fetched_at = ?, hidden = ?
+              WHERE id = ?`,
+            [
+              item.category,
+              item.title,
+              item.summary,
+              item.content,
+              toMySQLDateTimeRequired(item.publishedAt),
+              toMySQLDateTimeRequired(item.fetchedAt),
+              preservedHidden ? 1 : 0,
+              String(existing.id)
+            ]
+          );
+          updated += 1;
+        } else {
+          await conn.execute(
+            `INSERT INTO news_items
+              (id, source, category, title, summary, content, url,
+               published_at, fetched_at, hidden, manual)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+            [
+              item.id,
+              item.source,
+              item.category,
+              item.title,
+              item.summary,
+              item.content,
+              item.url,
+              toMySQLDateTimeRequired(item.publishedAt),
+              toMySQLDateTimeRequired(item.fetchedAt)
+            ]
+          );
+          inserted += 1;
+        }
+      }
+      await conn.commit();
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      conn.release();
+    }
+    return { inserted, updated };
+  }
+
+  async putNewsManual(item: NewsItem) {
+    await this.pool.execute(
+      `INSERT INTO news_items
+        (id, source, category, title, summary, content, url,
+         published_at, fetched_at, hidden, manual)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE
+         category = VALUES(category),
+         title = VALUES(title),
+         summary = VALUES(summary),
+         content = VALUES(content),
+         published_at = VALUES(published_at),
+         fetched_at = VALUES(fetched_at),
+         hidden = VALUES(hidden),
+         manual = 1`,
+      [
+        item.id,
+        item.source,
+        item.category,
+        item.title,
+        item.summary,
+        item.content,
+        item.url,
+        toMySQLDateTimeRequired(item.publishedAt),
+        toMySQLDateTimeRequired(item.fetchedAt),
+        item.hidden ? 1 : 0
+      ]
+    );
+    return { ...item, manual: true };
+  }
+
+  async setNewsHidden(id: string, hidden: boolean) {
+    const [result] = await this.pool.execute(
+      "UPDATE news_items SET hidden = ? WHERE id = ?",
+      [hidden ? 1 : 0, id]
+    );
+    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+    return this.getNewsById(id);
+  }
+
+  async deleteNewsById(id: string) {
+    const [result] = await this.pool.execute("DELETE FROM news_items WHERE id = ?", [id]);
+    return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  }
+
   async listRecentCompletedSessions(limit: number) {
     const safeLimit = Math.max(0, Math.min(limit | 0, 200));
     if (safeLimit === 0) return [];
@@ -529,6 +694,22 @@ function mapPhotoRow(row: RowDataPacket): SessionPhoto {
     objectKey: String(row.object_key),
     sortOrder: Number(row.sort_order),
     createdAt: toIsoString(row.created_at)
+  };
+}
+
+function mapNewsRow(row: RowDataPacket): NewsItem {
+  return {
+    id: String(row.id),
+    source: String(row.source),
+    category: String(row.category) as NewsCategory,
+    title: String(row.title ?? ""),
+    summary: String(row.summary ?? ""),
+    content: row.content === null || row.content === undefined ? null : String(row.content),
+    url: String(row.url ?? ""),
+    publishedAt: toIsoString(row.published_at),
+    fetchedAt: toIsoString(row.fetched_at),
+    hidden: Boolean(row.hidden),
+    manual: Boolean(row.manual)
   };
 }
 

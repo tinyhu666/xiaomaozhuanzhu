@@ -1,6 +1,6 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.7.9 — 服务端 + 管理后台完整，小程序具备核心打卡闭环。
+> 当前版本 v0.9.0 — 「我的」+「动态」tab 已上线；考试动态从 CICPA 抓取，3 小时懒刷新。
 > 下面的规划按"用户价值密度 × 实现成本"排序，每个 phase 可独立交付。
 
 ---
@@ -126,10 +126,33 @@
 
 ---
 
+## Phase 3.5：考试动态 tab（独立优先）
+
+### 3.5.1 「动态」tab
+小程序底部第 4 个 tab。展示 CICPA 官方考试公告、大纲、动态。
+
+- 列表：标题 + 来源 + 发布时间 + 摘要（150 字）
+- 顶部分类切换：全部 / 公告 / 大纲 / 动态
+- 点进详情：标题 + 时间 + 全文（plain text 提取）+ "查看原文"按钮
+
+### 3.5.2 服务端 news 模块 ✅ (v0.8.0)
+- 新表 `news_items (id, source, category, title, summary, content, url, published_at, fetched_at, hidden, manual)`
+- `domain/news.ts`: 抓 `https://www.cicpa.org.cn/zcks/{ksgg,ksdg,ksdt}/` 三个分类页；用纯正则解析 `<li>` 块（无 cheerio 依赖，保持镜像精简）
+- 懒加载刷新：用户访问 `/api/news` 时，若最近 fetch 已超过 3h，触发后台异步刷新（用户拿到当前缓存，下次拿到新数据）
+- 失败兜底：解析失败时保留旧缓存；每个分类失败独立隔离
+- 唯一去重：`UNIQUE(source, url)` — 重复 URL 不会重复插入；`manual=1` 行不被刷新覆盖
+
+### 3.5.3 admin 后台管理 ✅ (v0.8.0)
+- `POST /admin/api/news/refresh` 手动触发抓取，返回每类成功/失败统计
+- `GET /admin/api/news` 列表展示所有抓取的新闻（含已隐藏）
+- `PATCH /admin/api/news/:id` 编辑标题/摘要/正文；`PATCH /:id/hidden` 软隐藏
+- `POST /admin/api/news` 添加自定义条目（manual=1，永久不被覆盖）
+
+---
+
 ## Phase 4：内容深度（2 周）
 
-### 4.1 错题本 / 知识卡
-session 完成时除照片外，可以选 type："学习"/"错题"/"重点"。错题/重点单独归类页，可按科目筛选。
+### 4.1 ~~错题本 / 知识卡~~（已弃，超出工具定位）
 
 ### 4.2 学习日历"展开"模式
 日历 tab 加切换：

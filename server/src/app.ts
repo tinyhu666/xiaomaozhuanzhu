@@ -7,6 +7,7 @@ import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
 import { getExamSchedule } from "./domain/exam-dates";
+import { maybeKickoffNewsRefresh } from "./domain/news";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
@@ -14,7 +15,7 @@ import { createStorageClient, type StorageClient } from "./storage/default-stora
 import { MemoryStore } from "./store/memory-store";
 import { MySQLStore } from "./store/mysql-store";
 import type { DataStore } from "./store/types";
-import type { DailyStat, SessionPhoto, StudySession, User } from "./types";
+import { NEWS_CATEGORIES, type NewsCategory, type DailyStat, type SessionPhoto, type StudySession, type User } from "./types";
 
 type Clock = {
   now(): Date;
@@ -544,6 +545,45 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   });
 
+  // -------- News (考试动态) --------
+  // Reads are intentionally un-authenticated: the「动态」tab is
+  // public-facing content (CICPA announcements) and the miniprogram
+  // sometimes calls /api/news before identity bootstrap completes.
+  // Hitting GET kicks off a fire-and-forget refresh whenever the
+  // cache is stale (>3h since last successful fetch); the response
+  // always serves the current cache so users never block on network.
+  app.get("/api/news", async (request, response, next) => {
+    try {
+      const category = parseNewsCategoryParam(request.query.category);
+      const limit = parseLimit(request.query.limit, 30, 100);
+      const before = typeof request.query.before === "string" ? request.query.before : undefined;
+      // Fire-and-forget; the user reads whatever is currently in cache.
+      maybeKickoffNewsRefresh(store, clock.now());
+      const items = await store.listNews({ category, limit, before });
+      response.json({
+        items: items.map(serializeNewsListItem),
+        // Pagination cursor: callers feed the last publishedAt as
+        // `before=` to request the next page.
+        nextBefore: items.length === limit ? items[items.length - 1].publishedAt : null
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/news/:id", async (request, response, next) => {
+    try {
+      const id = String(request.params.id);
+      const item = await store.getNewsById(id);
+      if (!item || item.hidden) {
+        throw new AppError(404, "NOT_FOUND", "News item does not exist");
+      }
+      response.json({ item: serializeNewsDetail(item) });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);
     const queries = [
@@ -910,6 +950,43 @@ function emptyDailyStat(userId: string, date: string, updatedAt: string): DailyS
     heatLevel: 0,
     streakDays: 0,
     updatedAt
+  };
+}
+
+function parseNewsCategoryParam(raw: unknown): NewsCategory | "all" {
+  if (typeof raw !== "string" || !raw || raw === "all") return "all";
+  return (NEWS_CATEGORIES as readonly string[]).includes(raw) ? (raw as NewsCategory) : "all";
+}
+
+function parseLimit(raw: unknown, fallback: number, max: number) {
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(Math.floor(value), max);
+}
+
+function serializeNewsListItem(item: import("./types").NewsItem) {
+  return {
+    id: item.id,
+    source: item.source,
+    category: item.category,
+    title: item.title,
+    summary: item.summary,
+    url: item.url,
+    publishedAt: item.publishedAt
+  };
+}
+
+function serializeNewsDetail(item: import("./types").NewsItem) {
+  return {
+    id: item.id,
+    source: item.source,
+    category: item.category,
+    title: item.title,
+    summary: item.summary,
+    content: item.content,
+    url: item.url,
+    publishedAt: item.publishedAt,
+    fetchedAt: item.fetchedAt
   };
 }
 

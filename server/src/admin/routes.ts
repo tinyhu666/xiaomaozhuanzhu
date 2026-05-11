@@ -14,6 +14,8 @@ import express, { type Express, type NextFunction, type Request, type Response }
 
 import { AppError } from "../errors";
 import { adminIndexHtml } from "./ui";
+import { refreshAllNews, newsIdFor } from "../domain/news";
+import { NEWS_CATEGORIES, type NewsCategory, type NewsItem } from "../types";
 import type { DataStore } from "../store/types";
 import { detectStorageMode, type StorageClient } from "../storage/default-storage";
 
@@ -437,6 +439,199 @@ export function registerAdminRoutes(
       }))
     });
   }));
+
+  // -------- News management (admin) --------
+
+  app.get("/admin/api/news", asyncHandler(async (request, response) => {
+    const category = parseNewsCategoryQuery(request.query.category);
+    const limit = parseAdminLimit(request.query.limit, 50, 200);
+    const items = await store.listNewsForAdmin({ category, limit });
+    response.json({
+      items: items.map((item) => ({
+        ...item,
+        // Truncate body in list view; admin opens detail for full text.
+        content: item.content ? item.content.slice(0, 200) : null
+      }))
+    });
+  }));
+
+  app.get("/admin/api/news/:id", asyncHandler(async (request, response) => {
+    const item = await store.getNewsById(String(request.params.id));
+    if (!item) {
+      throw new AppError(404, "NOT_FOUND", "News item not found");
+    }
+    response.json({ item });
+  }));
+
+  // Manual / admin-triggered refresh of all CICPA categories. Blocking
+  // wait for the refresh to finish so the admin sees the result.
+  app.post("/admin/api/news/refresh", express.json(), asyncHandler(async (_request, response) => {
+    const summary = await refreshAllNews(store, clock.now());
+    response.json({ summary });
+  }));
+
+  // Create or update an admin-curated item. These rows are marked
+  // `manual = 1` and the fetcher will not overwrite them.
+  app.post("/admin/api/news", express.json(), asyncHandler(async (request, response) => {
+    const item = parseManualNewsBody(request.body, clock.now());
+    const saved = await store.putNewsManual(item);
+    response.status(201).json({ item: saved });
+  }));
+
+  app.patch("/admin/api/news/:id", express.json(), asyncHandler(async (request, response) => {
+    const id = String(request.params.id);
+    const existing = await store.getNewsById(id);
+    if (!existing) {
+      throw new AppError(404, "NOT_FOUND", "News item not found");
+    }
+    const next = mergeManualPatch(existing, request.body, clock.now());
+    const saved = await store.putNewsManual(next);
+    response.json({ item: saved });
+  }));
+
+  // Soft-hide / unhide. We keep the row so the unique (source, url)
+  // constraint still rejects duplicates from the fetcher.
+  app.patch("/admin/api/news/:id/hidden", express.json(), asyncHandler(async (request, response) => {
+    const id = String(request.params.id);
+    const raw = request.body?.hidden;
+    if (typeof raw !== "boolean") {
+      throw new AppError(400, "INVALID_INPUT", "hidden must be a boolean");
+    }
+    const item = await store.setNewsHidden(id, raw);
+    if (!item) {
+      throw new AppError(404, "NOT_FOUND", "News item not found");
+    }
+    response.json({ item });
+  }));
+
+  app.delete("/admin/api/news/:id", asyncHandler(async (request, response) => {
+    const id = String(request.params.id);
+    const removed = await store.deleteNewsById(id);
+    if (!removed) {
+      throw new AppError(404, "NOT_FOUND", "News item not found");
+    }
+    response.json({ ok: true });
+  }));
+}
+
+function parseNewsCategoryQuery(raw: unknown): NewsCategory | "all" {
+  if (typeof raw !== "string" || !raw || raw === "all") return "all";
+  return (NEWS_CATEGORIES as readonly string[]).includes(raw) ? (raw as NewsCategory) : "all";
+}
+
+function parseAdminLimit(raw: unknown, fallback: number, max: number) {
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(Math.floor(value), max);
+}
+
+/**
+ * Validate an admin-submitted manual news item. We're permissive about
+ * shape (this is an admin tool, not a public endpoint) but strict
+ * about field bounds so a typo can't blow the MySQL column limits.
+ */
+function parseManualNewsBody(body: unknown, now: Date): NewsItem {
+  if (!body || typeof body !== "object") {
+    throw new AppError(400, "INVALID_INPUT", "Body must be an object");
+  }
+  const raw = body as Record<string, unknown>;
+  const title = expectString(raw.title, "title", 1, 255).trim();
+  const url = expectString(raw.url, "url", 1, 255).trim();
+  if (!/^https?:\/\//.test(url)) {
+    throw new AppError(400, "INVALID_INPUT", "url must start with http:// or https://");
+  }
+  const category = String(raw.category ?? "").trim();
+  if (!(NEWS_CATEGORIES as readonly string[]).includes(category)) {
+    throw new AppError(400, "INVALID_INPUT", "category must be one of announce/outline/news");
+  }
+  const summary = expectOptionalString(raw.summary, "summary", 0, 1024);
+  const content = raw.content == null || raw.content === "" ? null : expectOptionalString(raw.content, "content", 0, 65000);
+  const publishedAt = parsePublishedAt(raw.publishedAt);
+  const source = String(raw.source ?? "manual").trim() || "manual";
+  return {
+    id: newsIdFor(source, url),
+    source,
+    category: category as NewsCategory,
+    title,
+    summary,
+    content,
+    url,
+    publishedAt,
+    fetchedAt: now.toISOString(),
+    hidden: false,
+    manual: true
+  };
+}
+
+function mergeManualPatch(existing: NewsItem, body: unknown, now: Date): NewsItem {
+  if (!body || typeof body !== "object") {
+    throw new AppError(400, "INVALID_INPUT", "Body must be an object");
+  }
+  const raw = body as Record<string, unknown>;
+  const next: NewsItem = { ...existing };
+  if (raw.title !== undefined) next.title = expectString(raw.title, "title", 1, 255).trim();
+  if (raw.summary !== undefined) next.summary = expectOptionalString(raw.summary, "summary", 0, 1024);
+  if (raw.content !== undefined) {
+    next.content = raw.content == null || raw.content === ""
+      ? null
+      : expectOptionalString(raw.content, "content", 0, 65000);
+  }
+  if (raw.url !== undefined) {
+    const url = expectString(raw.url, "url", 1, 255).trim();
+    if (!/^https?:\/\//.test(url)) {
+      throw new AppError(400, "INVALID_INPUT", "url must start with http:// or https://");
+    }
+    next.url = url;
+  }
+  if (raw.category !== undefined) {
+    const cat = String(raw.category).trim();
+    if (!(NEWS_CATEGORIES as readonly string[]).includes(cat)) {
+      throw new AppError(400, "INVALID_INPUT", "category must be one of announce/outline/news");
+    }
+    next.category = cat as NewsCategory;
+  }
+  if (raw.publishedAt !== undefined) next.publishedAt = parsePublishedAt(raw.publishedAt);
+  next.manual = true;
+  next.fetchedAt = now.toISOString();
+  return next;
+}
+
+function expectString(value: unknown, field: string, minLen: number, maxLen: number): string {
+  if (typeof value !== "string" || value.length < minLen || value.length > maxLen) {
+    throw new AppError(
+      400,
+      "INVALID_INPUT",
+      `${field} must be a string of length ${minLen}-${maxLen}`
+    );
+  }
+  return value;
+}
+
+function expectOptionalString(value: unknown, field: string, minLen: number, maxLen: number): string {
+  if (value == null) return "";
+  if (typeof value !== "string" || value.length < minLen || value.length > maxLen) {
+    throw new AppError(
+      400,
+      "INVALID_INPUT",
+      `${field} must be a string of length ${minLen}-${maxLen}`
+    );
+  }
+  return value;
+}
+
+function parsePublishedAt(raw: unknown): string {
+  if (typeof raw !== "string") {
+    throw new AppError(400, "INVALID_INPUT", "publishedAt must be a date string");
+  }
+  // Accept both ISO and YYYY-MM-DD (treated as midnight Shanghai).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return `${raw}T00:00:00.000+08:00`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new AppError(400, "INVALID_INPUT", "publishedAt is not a valid date");
+  }
+  return parsed.toISOString();
 }
 
 function asyncHandler(handler: (req: Request, res: Response) => Promise<void>) {

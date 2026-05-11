@@ -1,0 +1,35 @@
+<view class="page-shell news-detail">
+  <view wx:if="{{loading}}" class="news-detail__loading">加载中…</view>
+
+  <view wx:elif="{{errorMessage && !item}}" class="news-detail__error">
+    <view class="news-detail__error-icon">⚠️</view>
+    <view class="news-detail__error-text">{{errorMessage}}</view>
+  </view>
+
+  <block wx:elif="{{item}}">
+    <view class="news-detail__head">
+      <view class="news-detail__meta">
+        <text class="news-detail__cat news-detail__cat--{{item.category}}">{{categoryLabel}}</text>
+        <text class="news-detail__date">{{dateText}}</text>
+      </view>
+      <view class="news-detail__title">{{item.title}}</view>
+    </view>
+
+    <view wx:if="{{item.content}}" class="news-detail__body">
+      <text class="news-detail__content">{{item.content}}</text>
+    </view>
+    <view wx:elif="{{item.summary}}" class="news-detail__body">
+      <text class="news-detail__content">{{item.summary}}</text>
+      <view class="news-detail__hint">摘要内容，点击「查看原文」获取完整信息</view>
+    </view>
+    <view wx:else class="news-detail__body">
+      <text class="news-detail__content">仅有标题信息，请点击「查看原文」获取完整内容。</text>
+    </view>
+
+    <view class="news-detail__actions">
+      <button class="ghost-button" bindtap="onOpenSource">查看原文 / 复制链接</button>
+    </view>
+
+    <view class="news-detail__source">来源：{{item.source}}</view>
+  </block>
+</view>

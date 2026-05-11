@@ -1,5 +1,7 @@
 import type {
   DailyStat,
+  NewsCategory,
+  NewsItem,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
@@ -41,6 +43,32 @@ export type DataStore = {
   getUserById(userId: string): User | null | Promise<User | null>;
   listRecentCompletedSessions(limit: number): AdminSessionWithOwner[] | Promise<AdminSessionWithOwner[]>;
   setAdminRemark(userId: string, remark: string): User | null | Promise<User | null>;
+
+  // News module. The miniprogram「动态」tab reads via listNews +
+  // getNewsById; the fetcher writes via upsertNews; admin overrides
+  // via setNewsHidden / putNewsManual.
+  listNews(options: NewsListOptions): NewsItem[] | Promise<NewsItem[]>;
+  listNewsForAdmin(options: NewsListOptions): NewsItem[] | Promise<NewsItem[]>;
+  getNewsById(id: string): NewsItem | null | Promise<NewsItem | null>;
+  upsertNewsBatch(items: NewsItem[]): NewsUpsertResult | Promise<NewsUpsertResult>;
+  putNewsManual(item: NewsItem): NewsItem | Promise<NewsItem>;
+  setNewsHidden(id: string, hidden: boolean): NewsItem | null | Promise<NewsItem | null>;
+  deleteNewsById(id: string): boolean | Promise<boolean>;
+};
+
+export type NewsListOptions = {
+  category?: NewsCategory | "all";
+  /** Default 30. Hard-capped to 100 in the implementation. */
+  limit?: number;
+  /** "before this publishedAt ISO" cursor for keyset pagination. */
+  before?: string;
+  /** Set true to include hidden items (admin only). */
+  includeHidden?: boolean;
+};
+
+export type NewsUpsertResult = {
+  inserted: number;
+  updated: number;
 };
 
 export type AdminUserSummary = {

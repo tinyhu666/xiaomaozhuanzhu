@@ -59,6 +59,27 @@ const TABLE_STATEMENTS = [
     PRIMARY KEY (user_id, stat_date),
     KEY idx_daily_stats_user_date (user_id, stat_date DESC),
     CONSTRAINT fk_daily_stat_user FOREIGN KEY (user_id) REFERENCES users(id)
+  )`,
+  // Exam-related news / announcements / syllabi. Populated by an
+  // asynchronous fetcher (server/src/domain/news.ts) and surfaced in
+  // the miniprogram's 「动态」 tab. `manual = 1` rows are admin-curated
+  // and never overwritten by the fetcher; `hidden = 1` rows are
+  // soft-deleted (kept for audit, hidden from the user-facing list).
+  `CREATE TABLE IF NOT EXISTS news_items (
+    id VARCHAR(64) PRIMARY KEY,
+    source VARCHAR(32) NOT NULL,
+    category VARCHAR(32) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    summary VARCHAR(1024) NOT NULL DEFAULT '',
+    content MEDIUMTEXT NULL,
+    url VARCHAR(255) NOT NULL,
+    published_at DATETIME(3) NOT NULL,
+    fetched_at DATETIME(3) NOT NULL,
+    hidden TINYINT(1) NOT NULL DEFAULT 0,
+    manual TINYINT(1) NOT NULL DEFAULT 0,
+    KEY idx_news_published (hidden, published_at DESC),
+    KEY idx_news_category_published (category, hidden, published_at DESC),
+    UNIQUE KEY uk_source_url (source, url)
   )`
 ] as const;
 

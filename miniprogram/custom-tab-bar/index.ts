@@ -5,6 +5,7 @@ Component({
     items: [
       { pagePath: "/pages/home/index", text: "首页" },
       { pagePath: "/pages/calendar/index", text: "日历" },
+      { pagePath: "/pages/news/index", text: "动态" },
       { pagePath: "/pages/profile/index", text: "我的" }
     ]
   },

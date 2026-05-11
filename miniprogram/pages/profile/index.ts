@@ -39,7 +39,7 @@ Page<{}, ProfilePageData>({
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
-    tabBar?.setData?.({ selected: 2 });
+    tabBar?.setData?.({ selected: 3 });
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[profile] ensureProfile failed", error);
     });

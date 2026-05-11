@@ -2,12 +2,14 @@ import { randomUUID } from "node:crypto";
 
 import type {
   DailyStat,
+  NewsItem,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
   User,
   UserResolutionInput
 } from "../types";
+import type { NewsListOptions, NewsUpsertResult } from "./types";
 
 export class MemoryStore {
   private users = new Map<string, User>();
@@ -18,6 +20,9 @@ export class MemoryStore {
   private sessions = new Map<string, StudySession>();
   private photos = new Map<string, SessionPhoto[]>();
   private dailyStats = new Map<string, Map<string, DailyStat>>();
+  private newsById = new Map<string, NewsItem>();
+  /** (source, url) -> id index, mirrors the MySQL UNIQUE constraint. */
+  private newsBySourceUrl = new Map<string, string>();
 
   /**
    * Resolve (or create) a user from an identity bundle. The miniprogram
@@ -213,6 +218,84 @@ export class MemoryStore {
     if (!user) return null;
     user.adminRemark = remark;
     return user;
+  }
+
+  // ---------------------------------------------------------------
+  // News module
+  // ---------------------------------------------------------------
+
+  listNews(options: NewsListOptions = {}) {
+    return this.listNewsInternal({ ...options, includeHidden: options.includeHidden ?? false });
+  }
+
+  listNewsForAdmin(options: NewsListOptions = {}) {
+    return this.listNewsInternal({ ...options, includeHidden: options.includeHidden ?? true });
+  }
+
+  private listNewsInternal(options: NewsListOptions) {
+    const limit = Math.min(Math.max(options.limit ?? 30, 1), 100);
+    const beforeKey = options.before ?? "";
+    const wantCategory = options.category && options.category !== "all" ? options.category : null;
+    return [...this.newsById.values()]
+      .filter((item) => (options.includeHidden ? true : !item.hidden))
+      .filter((item) => (wantCategory ? item.category === wantCategory : true))
+      .filter((item) => (beforeKey ? item.publishedAt < beforeKey : true))
+      .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))
+      .slice(0, limit);
+  }
+
+  getNewsById(id: string) {
+    return this.newsById.get(id) ?? null;
+  }
+
+  upsertNewsBatch(items: NewsItem[]): NewsUpsertResult {
+    let inserted = 0;
+    let updated = 0;
+    for (const item of items) {
+      const key = `${item.source} ${item.url}`;
+      const existingId = this.newsBySourceUrl.get(key);
+      if (existingId) {
+        const existing = this.newsById.get(existingId);
+        if (existing?.manual) continue;
+        // Preserve admin-set hidden flag through refreshes.
+        const next: NewsItem = {
+          ...item,
+          id: existingId,
+          hidden: existing?.hidden ?? item.hidden,
+          manual: existing?.manual ?? item.manual
+        };
+        this.newsById.set(existingId, next);
+        updated += 1;
+        continue;
+      }
+      this.newsById.set(item.id, item);
+      this.newsBySourceUrl.set(key, item.id);
+      inserted += 1;
+    }
+    return { inserted, updated };
+  }
+
+  putNewsManual(item: NewsItem) {
+    const manualItem: NewsItem = { ...item, manual: true };
+    this.newsById.set(item.id, manualItem);
+    this.newsBySourceUrl.set(`${item.source} ${item.url}`, item.id);
+    return manualItem;
+  }
+
+  setNewsHidden(id: string, hidden: boolean) {
+    const item = this.newsById.get(id);
+    if (!item) return null;
+    const updated: NewsItem = { ...item, hidden };
+    this.newsById.set(id, updated);
+    return updated;
+  }
+
+  deleteNewsById(id: string) {
+    const item = this.newsById.get(id);
+    if (!item) return false;
+    this.newsById.delete(id);
+    this.newsBySourceUrl.delete(`${item.source} ${item.url}`);
+    return true;
   }
 
   listRecentCompletedSessions(limit: number) {

@@ -2,6 +2,9 @@ import { runtimeConfig } from "../config/runtime";
 import type {
   CalendarDayResponse,
   HomeResponse,
+  NewsCategory,
+  NewsDetailResponse,
+  NewsListResponse,
   ProfileDashboardResponse,
   PublicProfileResponse,
   SessionPhoto,
@@ -380,6 +383,23 @@ export function getTempUrls(items: Array<{ objectKey: string; fileId?: string }>
     path: "/storage/temp-urls",
     method: "POST",
     data: { items }
+  });
+}
+
+export function getNewsList(params: { category?: NewsCategory | "all"; limit?: number; before?: string } = {}) {
+  const queryParts: string[] = [];
+  if (params.category && params.category !== "all") queryParts.push(`category=${encodeURIComponent(params.category)}`);
+  if (params.limit) queryParts.push(`limit=${params.limit}`);
+  if (params.before) queryParts.push(`before=${encodeURIComponent(params.before)}`);
+  const query = queryParts.length ? `?${queryParts.join("&")}` : "";
+  return callContainer<NewsListResponse>({
+    path: `/news${query}`
+  });
+}
+
+export function getNewsDetail(id: string) {
+  return callContainer<NewsDetailResponse>({
+    path: `/news/${encodeURIComponent(id)}`
   });
 }
 
