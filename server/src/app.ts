@@ -6,6 +6,7 @@ import { z } from "zod";
 import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
+import { getExamSchedule } from "./domain/exam-dates";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
@@ -27,7 +28,15 @@ type CreateAppOptions = {
 
 const profileSchema = z.object({
   nickname: z.string().trim().min(1).max(20),
-  avatarUrl: z.string().url(),
+  // avatarUrl is either a valid URL (incl. cloud:// fileId) or empty,
+  // so users can update just their nickname without having uploaded
+  // an avatar yet.
+  avatarUrl: z
+    .string()
+    .max(512)
+    .refine((v) => v === "" || /^(https?|cloud):\/\//.test(v), {
+      message: "avatarUrl must be empty or a URL"
+    }),
   isPublic: z.boolean().optional(),
   requireWechatAuth: z.boolean().optional()
 });
@@ -200,6 +209,8 @@ export function createApp(options: CreateAppOptions = {}) {
     const longestStreakDays = getLongestStreak(dailyStats);
     const completedSubjects = new Set(sessions.map((session) => session.subject).filter((subject): subject is Subject => Boolean(subject)));
 
+    const examSchedule = getExamSchedule(clock.now());
+
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
       summary: {
@@ -219,7 +230,8 @@ export function createApp(options: CreateAppOptions = {}) {
         completedCount: sessions.length,
         subjectTotals: subjectsWithProgress.map((item) => ({ subject: item.subject, totalMinutes: item.totalMinutes })),
         completedSubjectCount: completedSubjects.size
-      })
+      }),
+      examSchedule
     });
   }));
 
@@ -825,22 +837,32 @@ function computeBadges(args: {
     (max, item) => (item.totalMinutes > max ? item.totalMinutes : max),
     0
   );
-  const unlockMap: Record<BadgeKey, boolean> = {
-    first_checkin: args.completedCount >= 1,
-    streak_7: peakStreak >= 7,
-    streak_30: peakStreak >= 30,
-    total_10h: args.totalMinutes >= 600,
-    total_50h: args.totalMinutes >= 3000,
-    total_100h: args.totalMinutes >= 6000,
-    single_day_4h: args.bestDayMinutes >= 240,
-    subject_50h: maxSubjectMinutes >= 3000,
-    all_six_subjects: args.completedSubjectCount >= SUBJECTS.length
+  // Per-badge progress so the miniprogram can show "5/7 天" instead of
+  // just a binary locked/unlocked.
+  const progressMap: Record<BadgeKey, { current: number; goal: number; unit: string }> = {
+    first_checkin: { current: Math.min(args.completedCount, 1), goal: 1, unit: "次" },
+    streak_7: { current: peakStreak, goal: 7, unit: "天" },
+    streak_30: { current: peakStreak, goal: 30, unit: "天" },
+    total_10h: { current: args.totalMinutes, goal: 600, unit: "min" },
+    total_50h: { current: args.totalMinutes, goal: 3000, unit: "min" },
+    total_100h: { current: args.totalMinutes, goal: 6000, unit: "min" },
+    single_day_4h: { current: args.bestDayMinutes, goal: 240, unit: "min" },
+    subject_50h: { current: maxSubjectMinutes, goal: 3000, unit: "min" },
+    all_six_subjects: { current: args.completedSubjectCount, goal: SUBJECTS.length, unit: "科" }
   };
 
-  return BADGE_DEFINITIONS.map((badge) => ({
-    ...badge,
-    unlocked: unlockMap[badge.key]
-  }));
+  return BADGE_DEFINITIONS.map((badge) => {
+    const p = progressMap[badge.key];
+    const ratio = p.goal > 0 ? p.current / p.goal : 0;
+    return {
+      ...badge,
+      unlocked: ratio >= 1,
+      progress: Math.max(0, Math.min(1, ratio)),
+      current: Math.min(p.current, p.goal),
+      goal: p.goal,
+      unit: p.unit
+    };
+  });
 }
 
 function serializeProfile(

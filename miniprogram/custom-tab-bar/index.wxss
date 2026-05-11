@@ -4,8 +4,8 @@
   right: 28rpx;
   bottom: calc(24rpx + env(safe-area-inset-bottom));
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
   padding: 18rpx;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.94);

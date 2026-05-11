@@ -1,0 +1,40 @@
+<view class="page-shell subjects-page">
+  <view class="overall-card">
+    <view class="overall-card__row">
+      <text class="overall-card__title">六科总进度</text>
+      <text class="overall-card__value">{{overallPct}}%</text>
+    </view>
+    <view class="overall-card__track">
+      <view class="overall-card__fill" style="width: {{overallPct}}%"></view>
+    </view>
+    <text class="overall-card__hint">{{totalText}} / 1220h · 距最近一科考试还有 <text class="overall-card__highlight">{{nextDaysRemaining}} 天</text></text>
+    <text wx:if="{{anyFallback}}" class="overall-card__footnote">* 标 ✱ 的科目暂以上一年公告时间为参考，待今年正式时间公布后会自动更新</text>
+  </view>
+
+  <view class="subject-list">
+    <view
+      wx:for="{{subjects}}"
+      wx:key="subject"
+      class="subject-card"
+    >
+      <view class="subject-card__head">
+        <view class="subject-card__name-wrap">
+          <text class="subject-card__name">{{item.subject}}</text>
+          <text wx:if="{{item.fallback}}" class="subject-card__fallback">✱</text>
+        </view>
+        <text class="subject-card__pct {{item.reached ? 'is-reached' : ''}}">{{item.progressPct}}%</text>
+      </view>
+      <view class="subject-card__track">
+        <view
+          class="subject-card__fill {{item.reached ? 'is-reached' : ''}}"
+          style="width: {{item.progressPct}}%"
+        ></view>
+      </view>
+      <view class="subject-card__meta">
+        <text class="subject-card__hours">已学 {{item.totalText}} · 目标 {{item.targetText}}</text>
+        <text class="subject-card__countdown {{item.daysRemaining <= 30 ? 'is-urgent' : ''}}">距考试 {{item.daysRemaining}} 天</text>
+      </view>
+      <text class="subject-card__exam-date">考试日期：{{item.examDateLabel}}</text>
+    </view>
+  </view>
+</view>

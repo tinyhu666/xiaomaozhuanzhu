@@ -1,0 +1,112 @@
+.share-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+}
+
+.share-card {
+  padding: 28rpx 30rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow: 0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.share-card__top,
+.share-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.share-card__title-wrap,
+.share-card__row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.share-card__title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.share-card__hint {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+  line-height: 1.5;
+}
+
+.share-card__switch {
+  transform: scale(0.85);
+}
+
+.share-card__label {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.5rpx;
+  font-weight: 600;
+  margin-bottom: 10rpx;
+}
+
+.share-card__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  border-radius: 14rpx;
+  background: rgba(46, 169, 133, 0.08);
+  gap: 12rpx;
+}
+
+.share-card__link-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  color: var(--mint-600);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.share-card__copy {
+  flex-shrink: 0;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  background: var(--mint-500);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.share-page__hidden-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 20rpx;
+  background: rgba(46, 169, 133, 0.04);
+}
+
+.share-page__note-title {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.share-page__note-list {
+  font-size: 22rpx;
+  line-height: 1.7;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}

@@ -1,0 +1,59 @@
+<view class="page-shell share-page">
+  <view class="share-card">
+    <view class="share-card__top">
+      <view class="share-card__title-wrap">
+        <text class="share-card__title">公开学习页</text>
+        <text class="share-card__hint">{{shareInfo.isPublic ? '已开启 · 朋友可通过分享或链接查看你的学习数据' : '关闭中 · 别人无法访问'}}</text>
+      </view>
+      <switch
+        class="share-card__switch"
+        color="#2ea985"
+        checked="{{shareInfo.isPublic}}"
+        bindchange="onToggle"
+      />
+    </view>
+  </view>
+
+  <view wx:if="{{shareInfo.isPublic}}" class="share-card">
+    <text class="share-card__label">分享链接</text>
+    <view class="share-card__link" bindtap="copyLink">
+      <text class="share-card__link-text">{{shareUrl}}</text>
+      <text class="share-card__copy">复制</text>
+    </view>
+    <text class="share-card__hint" style="margin-top:10rpx;">微信内分享：右上 · · ·  → 分享给朋友 / 朋友圈</text>
+  </view>
+
+  <view wx:if="{{shareInfo.isPublic}}" class="share-card">
+    <view class="share-card__row">
+      <view class="share-card__row-body">
+        <text class="share-card__title">需要微信登录</text>
+        <text class="share-card__hint">开启后只有用微信打开你的分享链接的人能查看</text>
+      </view>
+      <switch
+        class="share-card__switch"
+        color="#2ea985"
+        checked="{{shareInfo.requireWechatAuth}}"
+        bindchange="onToggleAuth"
+      />
+    </view>
+  </view>
+
+  <button
+    wx:if="{{shareInfo.isPublic}}"
+    class="cta-button"
+    open-type="share"
+    data-slug="{{shareInfo.shareSlug}}"
+  >分享我的学习页</button>
+
+  <view class="share-page__hidden-note">
+    <text class="share-page__note-title">公开页会展示</text>
+    <text class="share-page__note-list">· 你的昵称、头像</text>
+    <text class="share-page__note-list">· 累计学习时长、连签天数</text>
+    <text class="share-page__note-list">· 月度热力图汇总</text>
+    <text class="share-page__note-list">· 最近的学习总结（不含照片）</text>
+    <text class="share-page__note-title" style="margin-top:14rpx;">不会展示</text>
+    <text class="share-page__note-list">· 单次 session 的具体时间</text>
+    <text class="share-page__note-list">· 上传的学习照片</text>
+    <text class="share-page__note-list">· 任何标签或备注</text>
+  </view>
+</view>

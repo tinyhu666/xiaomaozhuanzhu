@@ -1,0 +1,22 @@
+<view class="page-shell badges-page">
+  <view class="badges-hero">
+    <text class="badges-hero__title">{{unlockedCount}} / {{totalCount}}</text>
+    <text class="badges-hero__sub">已解锁徽章 · 继续保持，下一个就快了</text>
+  </view>
+
+  <view class="badges-grid">
+    <view
+      wx:for="{{badges}}"
+      wx:key="key"
+      class="badge-tile {{item.unlocked ? 'is-unlocked' : ''}}"
+    >
+      <view class="badge-tile__icon">{{item.icon}}</view>
+      <text class="badge-tile__name">{{item.name}}</text>
+      <text class="badge-tile__desc">{{item.description}}</text>
+      <view class="badge-tile__track">
+        <view class="badge-tile__fill" style="width: {{item.progressPct}}%"></view>
+      </view>
+      <text class="badge-tile__progress">{{item.progressText}}</text>
+    </view>
+  </view>
+</view>

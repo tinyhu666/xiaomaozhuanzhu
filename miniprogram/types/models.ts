@@ -106,6 +106,10 @@ export type Badge = {
   description: string;
   icon: string;
   unlocked: boolean;
+  progress: number;
+  current: number;
+  goal: number;
+  unit: string;
 };
 
 export type SubjectProgress = {
@@ -113,6 +117,14 @@ export type SubjectProgress = {
   totalMinutes: number;
   targetMinutes?: number;
   progress?: number;
+};
+
+export type ExamDateInfo = {
+  subject: string;
+  date: string;
+  daysRemaining: number;
+  fallback: boolean;
+  sourceYear: number;
 };
 
 export type ProfileDashboardResponse = {
@@ -130,4 +142,5 @@ export type ProfileDashboardResponse = {
     totalMinutes: number;
   };
   badges?: Badge[];
+  examSchedule?: ExamDateInfo[];
 };

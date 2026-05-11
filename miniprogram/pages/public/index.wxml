@@ -1,0 +1,46 @@
+<view wx:if="{{state === 'loading'}}" class="public-state">
+  <text class="public-state__text">加载中…</text>
+</view>
+
+<view wx:elif="{{state === 'error'}}" class="public-state">
+  <text class="public-state__title">无法访问</text>
+  <text class="public-state__text">{{errorMessage || '该公开页可能未开启或已关闭分享'}}</text>
+</view>
+
+<view wx:else class="page-shell public-page">
+  <view class="public-hero">
+    <image
+      wx:if="{{data.profile.avatarUrl}}"
+      class="public-hero__avatar"
+      src="{{data.profile.avatarUrl}}"
+      mode="aspectFill"
+    />
+    <view wx:else class="public-hero__avatar public-hero__avatar--placeholder">🐱</view>
+    <text class="public-hero__name">{{data.profile.nickname || 'CPA 考生'}}</text>
+    <text class="public-hero__sub">小猫专注 · 学习数据</text>
+  </view>
+
+  <view class="public-stats">
+    <view class="public-stat">
+      <text class="public-stat__value">{{totalText}}</text>
+      <text class="public-stat__label">累计学习</text>
+    </view>
+    <view class="public-stat">
+      <text class="public-stat__value">{{data.summary.currentStreakDays}}<text class="public-stat__unit">天</text></text>
+      <text class="public-stat__label">当前连签</text>
+    </view>
+  </view>
+
+  <view wx:if="{{recentSummaries.length}}" class="public-card">
+    <text class="public-card__title">最近学习总结</text>
+    <view wx:for="{{recentSummaries}}" wx:key="id" class="recent-item">
+      <view class="recent-item__top">
+        <text class="recent-item__subject">{{item.subject || '学习记录'}}</text>
+        <text class="recent-item__date">{{item.endedAtLabel}}</text>
+      </view>
+      <text wx:if="{{item.summary}}" class="recent-item__summary">{{item.summary}}</text>
+    </view>
+  </view>
+
+  <text class="public-footer">来自小猫专注 · 同学也来记录吧 🐾</text>
+</view>

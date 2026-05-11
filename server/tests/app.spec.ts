@@ -431,6 +431,25 @@ describe("CPA study check-in API", () => {
     expect(badgeMap.get("total_10h")).toBe(false);
     expect(badgeMap.get("single_day_4h")).toBe(false);
     expect(badgeMap.get("all_six_subjects")).toBe(false);
+
+    // Badge progress fields surfaced for the miniprogram so it can
+    // show "current / goal" instead of just locked/unlocked.
+    const firstCheckin = (dashboard.body.badges as Array<{ key: string; progress: number; current: number; goal: number; unit: string }>).find(
+      (b) => b.key === "first_checkin"
+    );
+    expect(firstCheckin?.progress).toBe(1);
+    expect(firstCheckin?.current).toBe(1);
+    expect(firstCheckin?.goal).toBe(1);
+    expect(firstCheckin?.unit).toBe("次");
+
+    // Exam schedule is included on the dashboard response so the
+    // 六科进度 page can render countdowns per subject.
+    expect(dashboard.body.examSchedule).toHaveLength(6);
+    const exam = (dashboard.body.examSchedule as Array<{ subject: string; date: string; daysRemaining: number }>).find(
+      (e) => e.subject === "会计"
+    );
+    expect(exam?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(exam?.daysRemaining).toBeGreaterThanOrEqual(0);
   });
 
   it("recovers a one-day streak gap via makeup and refuses again within 7 days", async () => {

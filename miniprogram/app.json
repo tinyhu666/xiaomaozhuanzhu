@@ -1,7 +1,9 @@
 {
   "pages": [
     "pages/home/index",
-    "pages/calendar/index"
+    "pages/calendar/index",
+    "pages/profile/index",
+    "pages/public/index"
   ],
   "subpackages": [
     {
@@ -11,6 +13,10 @@
     {
       "root": "package-calendar",
       "pages": ["day/index"]
+    },
+    {
+      "root": "package-profile",
+      "pages": ["badges/index", "subjects/index", "share/index"]
     }
   ],
   "window": {
@@ -34,6 +40,10 @@
       {
         "pagePath": "pages/calendar/index",
         "text": "日历"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
       }
     ]
   },

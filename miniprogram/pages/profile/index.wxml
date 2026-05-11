@@ -1,0 +1,85 @@
+<view class="page-shell profile-page">
+  <view class="profile-hero">
+    <button
+      class="profile-hero__avatar"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+    >
+      <image
+        wx:if="{{profile.avatarUrl}}"
+        class="profile-hero__avatar-img"
+        src="{{profile.avatarUrl}}"
+        mode="aspectFill"
+      />
+      <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
+      <view class="profile-hero__avatar-edit">编辑</view>
+    </button>
+    <view class="profile-hero__body">
+      <input
+        class="profile-hero__nickname"
+        type="nickname"
+        placeholder="点击设置昵称"
+        value="{{profile.nickname}}"
+        bindblur="onNicknameBlur"
+      />
+      <text class="profile-hero__hint">长按头像/昵称可使用微信资料</text>
+    </view>
+  </view>
+
+  <view class="stat-grid">
+    <view class="stat-tile">
+      <text class="stat-tile__value">{{totalText}}</text>
+      <text class="stat-tile__label">累计学习</text>
+    </view>
+    <view class="stat-tile">
+      <text class="stat-tile__value">{{completedCount}}</text>
+      <text class="stat-tile__label">完成打卡</text>
+    </view>
+    <view class="stat-tile">
+      <text class="stat-tile__value">{{currentStreak}}<text class="stat-tile__unit">天</text></text>
+      <text class="stat-tile__label">当前连签</text>
+    </view>
+    <view class="stat-tile">
+      <text class="stat-tile__value">{{longestStreak}}<text class="stat-tile__unit">天</text></text>
+      <text class="stat-tile__label">最长连签</text>
+    </view>
+  </view>
+
+  <view wx:if="{{nextExam}}" class="exam-card">
+    <view class="exam-card__row">
+      <text class="exam-card__label">距下一科 CPA 考试</text>
+      <text class="exam-card__date">{{nextExam.subject}} · {{nextExam.dateLabel}}</text>
+    </view>
+    <text class="exam-card__big">{{nextExam.daysRemaining}}<text class="exam-card__unit"> 天</text></text>
+    <text wx:if="{{nextExam.fallback}}" class="exam-card__hint">* 暂以 {{nextExam.sourceYear}} 年公告为参考，待今年正式时间公布后会自动更新</text>
+  </view>
+
+  <view class="menu-list">
+    <view class="menu-item" bindtap="openBadges">
+      <view class="menu-item__icon">🏆</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">徽章</text>
+        <text class="menu-item__hint">{{badgeProgressLabel}}</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
+    <view class="menu-item" bindtap="openSubjects">
+      <view class="menu-item__icon">📚</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">六科进度</text>
+        <text class="menu-item__hint">{{subjectsHint}}</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
+    <view class="menu-item" bindtap="openShare">
+      <view class="menu-item__icon">🔗</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">公开学习页</text>
+        <text class="menu-item__hint">{{shareHint}}</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
+  </view>
+
+  <text class="profile-version">小猫专注 · v{{appVersion}}</text>
+</view>
