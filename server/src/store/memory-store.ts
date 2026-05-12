@@ -240,7 +240,11 @@ export class MemoryStore {
       .filter((item) => (options.includeHidden ? true : !item.hidden))
       .filter((item) => (wantCategory ? item.category === wantCategory : true))
       .filter((item) => (beforeKey ? item.publishedAt < beforeKey : true))
-      .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))
+      // Sort: pinned (官方源) first, then most recent.
+      .sort((left, right) => {
+        if (left.pinned !== right.pinned) return left.pinned ? -1 : 1;
+        return right.publishedAt.localeCompare(left.publishedAt);
+      })
       .slice(0, limit);
   }
 
@@ -257,12 +261,13 @@ export class MemoryStore {
       if (existingId) {
         const existing = this.newsById.get(existingId);
         if (existing?.manual) continue;
-        // Preserve admin-set hidden flag through refreshes.
+        // Preserve admin-set hidden + pinned flags through refreshes.
         const next: NewsItem = {
           ...item,
           id: existingId,
           hidden: existing?.hidden ?? item.hidden,
-          manual: existing?.manual ?? item.manual
+          manual: existing?.manual ?? item.manual,
+          pinned: existing?.pinned ?? item.pinned
         };
         this.newsById.set(existingId, next);
         updated += 1;

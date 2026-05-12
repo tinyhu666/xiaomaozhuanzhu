@@ -70,7 +70,8 @@ Page<{}, NewsPageData>({
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
-    tabBar?.setData?.({ selected: 3 });
+    // 4 tabs: 首页 / 日历 / 动态 / 我的 → news is index 2
+    tabBar?.setData?.({ selected: 2 });
     if (this.data.items.length === 0) {
       await this.loadFirstPage();
     }

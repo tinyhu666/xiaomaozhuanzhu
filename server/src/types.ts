@@ -103,5 +103,7 @@ export interface NewsItem {
   hidden: boolean;
   /** True for admin-curated items; fetcher will never overwrite these. */
   manual: boolean;
+  /** True for authoritative items (e.g. CICPA 官方公告); sort to top. */
+  pinned: boolean;
 }
 

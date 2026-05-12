@@ -77,7 +77,8 @@ const TABLE_STATEMENTS = [
     fetched_at DATETIME(3) NOT NULL,
     hidden TINYINT(1) NOT NULL DEFAULT 0,
     manual TINYINT(1) NOT NULL DEFAULT 0,
-    KEY idx_news_published (hidden, published_at DESC),
+    pinned TINYINT(1) NOT NULL DEFAULT 0,
+    KEY idx_news_pin_pub (hidden, pinned DESC, published_at DESC),
     KEY idx_news_category_published (category, hidden, published_at DESC),
     UNIQUE KEY uk_source_url (source, url)
   )`
@@ -140,6 +141,7 @@ export async function ensureMySqlSchema(env: EnvMap = process.env) {
       await connection.query(statement);
     }
     await migrateUsersIdentitySchema(connection, plan.databaseName);
+    await migrateNewsItemsSchema(connection, plan.databaseName);
   } finally {
     await connection.end();
   }
@@ -192,6 +194,40 @@ async function migrateUsersIdentitySchema(connection: Connection, dbName: string
   if (!columnMap.has("admin_remark")) {
     await connection.query(
       "ALTER TABLE users ADD COLUMN admin_remark VARCHAR(60) NOT NULL DEFAULT '' AFTER profile_completed"
+    );
+  }
+}
+
+/**
+ * v0.9.0 → v0.9.1 migration: news_items gained a `pinned` flag so
+ * authoritative items (官方公告) can sort to the top regardless of date.
+ * Safe to re-run.
+ */
+async function migrateNewsItemsSchema(connection: Connection, dbName: string) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'news_items'`,
+    [dbName]
+  );
+  const columns = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+  if (columns.size === 0) return; // table doesn't exist yet → CREATE handles it.
+
+  if (!columns.has("pinned")) {
+    await connection.query(
+      "ALTER TABLE news_items ADD COLUMN pinned TINYINT(1) NOT NULL DEFAULT 0 AFTER manual"
+    );
+  }
+
+  const [indexes] = await connection.query<RowDataPacket[]>(
+    `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'news_items' AND INDEX_NAME = 'idx_news_pin_pub'
+      LIMIT 1`,
+    [dbName]
+  );
+  if (!indexes.length) {
+    await connection.query(
+      "ALTER TABLE news_items ADD KEY idx_news_pin_pub (hidden, pinned DESC, published_at DESC)"
     );
   }
 }

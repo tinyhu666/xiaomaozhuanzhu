@@ -1,10 +1,6 @@
 <view class="page-shell profile-page">
   <view class="profile-hero">
-    <button
-      class="profile-hero__avatar"
-      open-type="chooseAvatar"
-      bindchooseavatar="onChooseAvatar"
-    >
+    <view class="profile-hero__avatar-wrap">
       <image
         wx:if="{{profile.avatarUrl}}"
         class="profile-hero__avatar-img"
@@ -12,19 +8,40 @@
         mode="aspectFill"
       />
       <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
-      <view class="profile-hero__avatar-edit">编辑</view>
-    </button>
+      <button
+        class="profile-hero__avatar-btn"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatar"
+        aria-label="选择头像"
+      >
+        <text class="profile-hero__avatar-edit">编辑</text>
+      </button>
+    </view>
     <view class="profile-hero__body">
       <input
         class="profile-hero__nickname"
         type="nickname"
-        placeholder="点击设置昵称"
+        placeholder="点此设置昵称"
         value="{{profile.nickname}}"
+        focus="{{nicknameFocus}}"
         bindblur="onNicknameBlur"
       />
-      <text class="profile-hero__hint">长按头像/昵称可使用微信资料</text>
+      <text class="profile-hero__hint">点头像换头像 · 点昵称栏改昵称</text>
     </view>
   </view>
+
+  <!-- One-tap "use my WeChat profile" CTA. The avatar picker runs
+       first; on success we auto-focus the nickname input so the user
+       lands directly on WeChat's nickname keyboard prompt. -->
+  <button
+    wx:if="{{!profile.profileCompleted}}"
+    class="profile-cta"
+    open-type="chooseAvatar"
+    bindchooseavatar="onUseWechatProfile"
+  >
+    <text class="profile-cta__icon">✨</text>
+    <text class="profile-cta__label">使用微信资料 · 一键填充</text>
+  </button>
 
   <view class="stat-grid">
     <view class="stat-tile">

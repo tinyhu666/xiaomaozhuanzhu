@@ -171,7 +171,7 @@ describe("GET /api/news", () => {
 
   it("serves an empty list with no items, no auth required", async () => {
     const store = new MemoryStore();
-    const app = createApp({ store, clock: { now: () => new Date("2025-05-01T00:00:00Z") } });
+    const app = createApp({ store, clock: { now: () => new Date("2025-05-01T00:00:00Z") }, seedNews: false });
     const response = await request(app).get("/api/news").expect(200);
     expect(response.body.items).toEqual([]);
     expect(response.body.nextBefore).toBe(null);
@@ -185,7 +185,7 @@ describe("GET /api/news", () => {
       makeNews("c", "news",     "2025-05-01")
     ]);
 
-    const app = createApp({ store, clock: { now: () => new Date("2025-05-02T00:00:00Z") } });
+    const app = createApp({ store, clock: { now: () => new Date("2025-05-02T00:00:00Z") }, seedNews: false });
     const all = await request(app).get("/api/news").expect(200);
     expect(all.body.items.map((it: { id: string }) => it.id)).toEqual(["c", "b", "a"]);
 
@@ -205,7 +205,7 @@ describe("GET /api/news", () => {
       makeNews("b", "news", "2025-02-01"),
       makeNews("c", "news", "2025-03-01")
     ]);
-    const app = createApp({ store, clock: { now: () => new Date("2025-04-01T00:00:00Z") } });
+    const app = createApp({ store, clock: { now: () => new Date("2025-04-01T00:00:00Z") }, seedNews: false });
     const firstPage = await request(app).get("/api/news?limit=2").expect(200);
     expect(firstPage.body.items.length).toBe(2);
     expect(firstPage.body.nextBefore).toBeTruthy();
@@ -217,12 +217,29 @@ describe("GET /api/news", () => {
     expect(secondPage.body.items[0].id).toBe("a");
   });
 
+  it("pinned items sort above non-pinned regardless of date", async () => {
+    const store = new MemoryStore();
+    await store.upsertNewsBatch([
+      makeNews("recent", "news", "2025-05-01"),
+      makeNews("older", "news", "2025-01-01")
+    ]);
+    // Mark `older` as pinned via the manual-upsert path.
+    await store.putNewsManual({
+      ...makeNews("older", "news", "2025-01-01", { pinned: true, manual: true })
+    });
+
+    const app = createApp({ store, clock: { now: () => new Date("2025-06-01T00:00:00Z") }, seedNews: false });
+    const response = await request(app).get("/api/news").expect(200);
+    // Pinned (older) comes first even though `recent` has a later date.
+    expect(response.body.items.map((it: { id: string }) => it.id)).toEqual(["older", "recent"]);
+  });
+
   it("/api/news/:id 404s for missing and for hidden items", async () => {
     const store = new MemoryStore();
     await store.upsertNewsBatch([makeNews("z", "announce", "2025-05-01")]);
     await store.setNewsHidden("z", true);
 
-    const app = createApp({ store, clock: { now: () => new Date("2025-05-02T00:00:00Z") } });
+    const app = createApp({ store, clock: { now: () => new Date("2025-05-02T00:00:00Z") }, seedNews: false });
     await request(app).get("/api/news/does-not-exist").expect(404);
     await request(app).get("/api/news/z").expect(404);
   });
@@ -233,7 +250,7 @@ describe("Lazy refresh kickoff", () => {
     __resetNewsRefreshStateForTests();
   });
 
-  it("triggers the first time and respects the 3h cooldown thereafter", async () => {
+  it("triggers the first time and respects the 24h cooldown thereafter", async () => {
     const store = new MemoryStore();
     const fetcher = vi.fn<NewsFetcher>(async () => SAMPLE_LIST_HTML);
 
@@ -248,19 +265,24 @@ describe("Lazy refresh kickoff", () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     await new Promise<void>((resolve) => setImmediate(resolve));
 
-    // Same-hour call: cooldown.
-    const third = maybeKickoffNewsRefresh(store, new Date("2025-05-01T00:30:00Z"), fetcher);
+    // Same-day call: cooldown.
+    const third = maybeKickoffNewsRefresh(store, new Date("2025-05-01T12:00:00Z"), fetcher);
     expect(third.triggered).toBe(false);
     expect(third.reason).toBe("cooldown");
 
-    // 4h later: re-triggers.
-    const later = maybeKickoffNewsRefresh(store, new Date("2025-05-01T04:30:00Z"), fetcher);
+    // 25h later: re-triggers (cooldown is 24h now).
+    const later = maybeKickoffNewsRefresh(store, new Date("2025-05-02T01:00:00Z"), fetcher);
     expect(later.triggered).toBe(true);
   });
 });
 
 /** Helper: build a fully-formed NewsItem for store tests. */
-function makeNews(id: string, category: "announce" | "outline" | "news", date: string) {
+function makeNews(
+  id: string,
+  category: "announce" | "outline" | "news",
+  date: string,
+  options: { pinned?: boolean; manual?: boolean } = {}
+) {
   return {
     id,
     source: "cicpa",
@@ -272,6 +294,7 @@ function makeNews(id: string, category: "announce" | "outline" | "news", date: s
     publishedAt: `${date}T00:00:00.000+08:00`,
     fetchedAt: "2025-05-01T00:00:00.000Z",
     hidden: false,
-    manual: false
+    manual: options.manual ?? false,
+    pinned: options.pinned ?? false
   };
 }

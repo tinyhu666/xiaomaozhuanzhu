@@ -212,7 +212,10 @@ export function listEntryToNewsItem(
     publishedAt: entry.publishedAt,
     fetchedAt,
     hidden: false,
-    manual: false
+    manual: false,
+    // Fetched items are listed by date; the seed (manual=1) already
+    // marks the "always-on" reference cards as pinned.
+    pinned: false
   };
 }
 
@@ -356,7 +359,11 @@ export async function refreshAllNews(
  * cloud-run deployment; if we ever scale horizontally we'd move this
  * into a small `news_meta` table.
  */
-const REFRESH_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3h
+// Refresh at most once per calendar day. CICPA publishes new
+// announcements at most a few times per week, so polling more often
+// is wasteful. Cron is unavailable on the auto-suspending cloud-run
+// instance, so we lazily refresh on the first user read each day.
+const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 let inflight: Promise<NewsRefreshSummary> | null = null;
 let lastSuccessfulAt = 0;
 

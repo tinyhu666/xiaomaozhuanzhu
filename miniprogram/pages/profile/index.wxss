@@ -21,28 +21,31 @@
     0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.1);
 }
 
-.profile-hero__avatar {
+/*
+ * WeChat <button> elements ship with hard-coded width/min-width rules
+ * that override CSS even when we set width: 132rpx — that's what made
+ * the avatar render as a wide ellipse on iOS. Fix: a fixed-size
+ * <view> wrapper controls the visual circle (with overflow:hidden),
+ * and a transparent absolute-positioned button sits on top purely as
+ * the chooseAvatar tap target.
+ */
+.profile-hero__avatar-wrap {
   position: relative;
   width: 132rpx;
   height: 132rpx;
-  padding: 0;
-  margin: 0;
+  flex-shrink: 0;
   border-radius: 50%;
-  border: none;
+  overflow: hidden;
   background: linear-gradient(135deg, #c2ead2 0%, #6fc99a 100%);
+  box-shadow: 0 8rpx 20rpx rgba(46, 169, 133, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-  box-shadow: 0 8rpx 20rpx rgba(46, 169, 133, 0.18);
-}
-
-.profile-hero__avatar::after {
-  border: none;
 }
 
 .profile-hero__avatar-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
@@ -52,17 +55,77 @@
   line-height: 1;
 }
 
-.profile-hero__avatar-edit {
+.profile-hero__avatar-btn {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  line-height: 1;
+}
+
+.profile-hero__avatar-btn::after {
+  border: none;
+}
+
+.profile-hero__avatar-edit {
+  width: 100%;
   padding: 6rpx 0 8rpx;
   font-size: 18rpx;
   color: #fff;
   background: rgba(34, 129, 104, 0.85);
   text-align: center;
   letter-spacing: 1rpx;
+}
+
+/* One-tap "use WeChat profile" CTA — shown only while onboarding. */
+.profile-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  width: 100%;
+  margin: 0;
+  padding: 22rpx 28rpx;
+  border: none;
+  border-radius: 22rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.6rpx;
+  background: linear-gradient(135deg, #3ebd97 0%, #228168 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.32),
+    0 10rpx 22rpx rgba(46, 169, 133, 0.24);
+  line-height: 1.2;
+}
+
+.profile-cta::after {
+  border: none;
+}
+
+.profile-cta:active {
+  transform: scale(0.985);
+  opacity: 0.92;
+}
+
+.profile-cta__icon {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.profile-cta__label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5rpx;
 }
 
 .profile-hero__body {

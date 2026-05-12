@@ -8,6 +8,7 @@ import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject }
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
 import { getExamSchedule } from "./domain/exam-dates";
 import { maybeKickoffNewsRefresh } from "./domain/news";
+import { ensureNewsSeed } from "./domain/news-seed";
 import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
@@ -25,6 +26,11 @@ type CreateAppOptions = {
   clock?: Clock;
   storage?: StorageClient;
   store?: DataStore;
+  /**
+   * Install the curated「动态」seed on createApp(). Defaults to true.
+   * Tests that depend on an empty store should pass `seedNews: false`.
+   */
+  seedNews?: boolean;
 };
 
 const profileSchema = z.object({
@@ -88,6 +94,15 @@ export function createApp(options: CreateAppOptions = {}) {
   const store = options.store ?? createDataStore();
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
+
+  // Install the curated「动态」seed once per process start. Fire-and-
+  // forget — the seed is idempotent and small (7 items), so failure
+  // here just means the user sees fetched-only content on this boot.
+  if (options.seedNews !== false) {
+    void ensureNewsSeed(store, clock.now()).catch((error) => {
+      console.warn("[news] seed install failed", error);
+    });
+  }
 
   app.use(express.json({ limit: "1mb" }));
 

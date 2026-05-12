@@ -473,10 +473,10 @@ export class MySQLStore {
     }
     const sql =
       `SELECT id, source, category, title, summary, content, url,
-              published_at, fetched_at, hidden, manual
+              published_at, fetched_at, hidden, manual, pinned
          FROM news_items
         ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY published_at DESC, id DESC
+        ORDER BY pinned DESC, published_at DESC, id DESC
         LIMIT ?`;
     params.push(limit);
     const [rows] = await this.pool.query<RowDataPacket[]>(sql, params);
@@ -486,7 +486,7 @@ export class MySQLStore {
   async getNewsById(id: string) {
     const [rows] = await this.pool.query<RowDataPacket[]>(
       `SELECT id, source, category, title, summary, content, url,
-              published_at, fetched_at, hidden, manual
+              published_at, fetched_at, hidden, manual, pinned
          FROM news_items WHERE id = ? LIMIT 1`,
       [id]
     );
@@ -505,7 +505,7 @@ export class MySQLStore {
       await conn.beginTransaction();
       for (const item of items) {
         const [existingRows] = await conn.query<RowDataPacket[]>(
-          "SELECT id, hidden, manual FROM news_items WHERE source = ? AND url = ? LIMIT 1",
+          "SELECT id, hidden, manual, pinned FROM news_items WHERE source = ? AND url = ? LIMIT 1",
           [item.source, item.url]
         );
         const existing = existingRows[0];
@@ -514,11 +514,12 @@ export class MySQLStore {
           continue;
         }
         const preservedHidden = existing ? Boolean(existing.hidden) : item.hidden;
+        const preservedPinned = existing ? Boolean(existing.pinned) : item.pinned;
         if (existing) {
           await conn.execute(
             `UPDATE news_items
                 SET category = ?, title = ?, summary = ?, content = ?,
-                    published_at = ?, fetched_at = ?, hidden = ?
+                    published_at = ?, fetched_at = ?, hidden = ?, pinned = ?
               WHERE id = ?`,
             [
               item.category,
@@ -528,6 +529,7 @@ export class MySQLStore {
               toMySQLDateTimeRequired(item.publishedAt),
               toMySQLDateTimeRequired(item.fetchedAt),
               preservedHidden ? 1 : 0,
+              preservedPinned ? 1 : 0,
               String(existing.id)
             ]
           );
@@ -536,8 +538,8 @@ export class MySQLStore {
           await conn.execute(
             `INSERT INTO news_items
               (id, source, category, title, summary, content, url,
-               published_at, fetched_at, hidden, manual)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)`,
+               published_at, fetched_at, hidden, manual, pinned)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
             [
               item.id,
               item.source,
@@ -547,7 +549,8 @@ export class MySQLStore {
               item.content,
               item.url,
               toMySQLDateTimeRequired(item.publishedAt),
-              toMySQLDateTimeRequired(item.fetchedAt)
+              toMySQLDateTimeRequired(item.fetchedAt),
+              item.pinned ? 1 : 0
             ]
           );
           inserted += 1;
@@ -567,8 +570,8 @@ export class MySQLStore {
     await this.pool.execute(
       `INSERT INTO news_items
         (id, source, category, title, summary, content, url,
-         published_at, fetched_at, hidden, manual)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+         published_at, fetched_at, hidden, manual, pinned)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
        ON DUPLICATE KEY UPDATE
          category = VALUES(category),
          title = VALUES(title),
@@ -577,6 +580,7 @@ export class MySQLStore {
          published_at = VALUES(published_at),
          fetched_at = VALUES(fetched_at),
          hidden = VALUES(hidden),
+         pinned = VALUES(pinned),
          manual = 1`,
       [
         item.id,
@@ -588,7 +592,8 @@ export class MySQLStore {
         item.url,
         toMySQLDateTimeRequired(item.publishedAt),
         toMySQLDateTimeRequired(item.fetchedAt),
-        item.hidden ? 1 : 0
+        item.hidden ? 1 : 0,
+        item.pinned ? 1 : 0
       ]
     );
     return { ...item, manual: true };
@@ -709,7 +714,8 @@ function mapNewsRow(row: RowDataPacket): NewsItem {
     publishedAt: toIsoString(row.published_at),
     fetchedAt: toIsoString(row.fetched_at),
     hidden: Boolean(row.hidden),
-    manual: Boolean(row.manual)
+    manual: Boolean(row.manual),
+    pinned: Boolean(row.pinned)
   };
 }
 

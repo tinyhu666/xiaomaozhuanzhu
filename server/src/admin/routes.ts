@@ -559,7 +559,10 @@ function parseManualNewsBody(body: unknown, now: Date): NewsItem {
     publishedAt,
     fetchedAt: now.toISOString(),
     hidden: false,
-    manual: true
+    manual: true,
+    // Admin-curated items default to pinned so they sort above
+    // fetched articles; admin can flip via the pinned PATCH below.
+    pinned: typeof raw.pinned === "boolean" ? raw.pinned : true
   };
 }
 
@@ -591,6 +594,12 @@ function mergeManualPatch(existing: NewsItem, body: unknown, now: Date): NewsIte
     next.category = cat as NewsCategory;
   }
   if (raw.publishedAt !== undefined) next.publishedAt = parsePublishedAt(raw.publishedAt);
+  if (raw.pinned !== undefined) {
+    if (typeof raw.pinned !== "boolean") {
+      throw new AppError(400, "INVALID_INPUT", "pinned must be a boolean");
+    }
+    next.pinned = raw.pinned;
+  }
   next.manual = true;
   next.fetchedAt = now.toISOString();
   return next;
