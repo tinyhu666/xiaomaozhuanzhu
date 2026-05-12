@@ -250,7 +250,7 @@ describe("Lazy refresh kickoff", () => {
     __resetNewsRefreshStateForTests();
   });
 
-  it("triggers the first time and respects the 24h cooldown thereafter", async () => {
+  it("triggers the first time and respects the 2h cooldown thereafter", async () => {
     const store = new MemoryStore();
     const fetcher = vi.fn<NewsFetcher>(async () => SAMPLE_LIST_HTML);
 
@@ -265,13 +265,13 @@ describe("Lazy refresh kickoff", () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     await new Promise<void>((resolve) => setImmediate(resolve));
 
-    // Same-day call: cooldown.
-    const third = maybeKickoffNewsRefresh(store, new Date("2025-05-01T12:00:00Z"), fetcher);
+    // 1h later: still within cooldown.
+    const third = maybeKickoffNewsRefresh(store, new Date("2025-05-01T01:00:00Z"), fetcher);
     expect(third.triggered).toBe(false);
     expect(third.reason).toBe("cooldown");
 
-    // 25h later: re-triggers (cooldown is 24h now).
-    const later = maybeKickoffNewsRefresh(store, new Date("2025-05-02T01:00:00Z"), fetcher);
+    // 3h later: re-triggers (cooldown is 2h now).
+    const later = maybeKickoffNewsRefresh(store, new Date("2025-05-01T03:00:00Z"), fetcher);
     expect(later.triggered).toBe(true);
   });
 });

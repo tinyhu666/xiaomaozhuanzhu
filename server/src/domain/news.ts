@@ -359,11 +359,12 @@ export async function refreshAllNews(
  * cloud-run deployment; if we ever scale horizontally we'd move this
  * into a small `news_meta` table.
  */
-// Refresh at most once per calendar day. CICPA publishes new
-// announcements at most a few times per week, so polling more often
-// is wasteful. Cron is unavailable on the auto-suspending cloud-run
-// instance, so we lazily refresh on the first user read each day.
-const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
+// Lazy refresh window. The first /api/news read after this gap kicks
+// off a background re-fetch; subsequent reads serve the existing
+// cache. 2h is a reasonable trade-off between freshness (CICPA can
+// drop time-sensitive notices during 报名 / 缴费 / 出分 windows) and
+// avoiding wasted egress on the auto-suspending cloud-run instance.
+const REFRESH_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2h
 let inflight: Promise<NewsRefreshSummary> | null = null;
 let lastSuccessfulAt = 0;
 
