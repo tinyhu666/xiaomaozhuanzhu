@@ -1,0 +1,67 @@
+<view class="page-shell settings-page">
+  <view class="settings-section">
+    <view class="settings-section__title">学习目标</view>
+    <view class="settings-section__hint">为每日 / 每周的专注时长设定目标。0 = 不设。</view>
+    <view class="settings-section__body">
+      <view wx:for="{{goalRows}}" wx:key="key" class="settings-row">
+        <view class="settings-row__text">
+          <text class="settings-row__label">{{item.label}}</text>
+          <text class="settings-row__desc">{{item.description}}</text>
+        </view>
+        <view class="settings-row__stepper">
+          <view
+            class="settings-row__step {{!item.canDecrement ? 'is-disabled' : ''}}"
+            data-key="{{item.key}}"
+            data-dir="down"
+            bindtap="onStepperTap"
+          >−</view>
+          <view class="settings-row__value-wrap">
+            <text class="settings-row__value">{{item.displayValue}}</text>
+            <text wx:if="{{item.unit}}" class="settings-row__unit">{{item.unit}}</text>
+          </view>
+          <view
+            class="settings-row__step {{!item.canIncrement ? 'is-disabled' : ''}}"
+            data-key="{{item.key}}"
+            data-dir="up"
+            bindtap="onStepperTap"
+          >+</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-section">
+    <view class="settings-section__title">番茄钟参数</view>
+    <view class="settings-section__hint">业界默认是 25-5-15-4，但每个人节奏不同，按自己的来。</view>
+    <view class="settings-section__body">
+      <view wx:for="{{pomodoroRows}}" wx:key="key" class="settings-row">
+        <view class="settings-row__text">
+          <text class="settings-row__label">{{item.label}}</text>
+          <text class="settings-row__desc">{{item.description}}</text>
+        </view>
+        <view class="settings-row__stepper">
+          <view
+            class="settings-row__step {{!item.canDecrement ? 'is-disabled' : ''}}"
+            data-key="{{item.key}}"
+            data-dir="down"
+            bindtap="onStepperTap"
+          >−</view>
+          <view class="settings-row__value-wrap">
+            <text class="settings-row__value">{{item.displayValue}}</text>
+            <text wx:if="{{item.unit}}" class="settings-row__unit">{{item.unit}}</text>
+          </view>
+          <view
+            class="settings-row__step {{!item.canIncrement ? 'is-disabled' : ''}}"
+            data-key="{{item.key}}"
+            data-dir="up"
+            bindtap="onStepperTap"
+          >+</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="settings-reset" bindtap="onResetTap">恢复默认设置</view>
+
+  <view class="settings-foot">设置仅保存在当前设备。已记录的学习数据存于云端，不受设置影响。</view>
+</view>

@@ -17,7 +17,7 @@
     },
     {
       "root": "package-profile",
-      "pages": ["badges/index", "subjects/index", "share/index"]
+      "pages": ["badges/index", "subjects/index", "share/index", "settings/index", "poster/index"]
     },
     {
       "root": "package-news",

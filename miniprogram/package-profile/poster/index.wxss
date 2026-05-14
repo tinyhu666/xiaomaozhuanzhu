@@ -1,0 +1,95 @@
+.poster-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  align-items: center;
+}
+
+/* Off-screen canvas — required for measuring/drawing but never shown
+   directly to the user. The rendered PNG (via canvasToTempFilePath)
+   is what we actually display through <image src="{{tempFilePath}}">.
+   Positioning it off-screen avoids a "flash of raw canvas" before
+   the PNG export completes. */
+.poster-page__canvas {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 375px;
+  height: 600px;
+}
+
+.poster-page__intro {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.poster-page__title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.poster-page__sub {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  line-height: 1.55;
+}
+
+.poster-page__loading {
+  width: 100%;
+  padding: 60rpx 0;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 26rpx;
+}
+
+.poster-page__error {
+  width: 100%;
+  padding: 40rpx;
+  border-radius: 24rpx;
+  background: rgba(229, 123, 123, 0.08);
+  border: 1rpx dashed rgba(229, 123, 123, 0.32);
+  color: #b3322b;
+  font-size: 24rpx;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.poster-page__preview-wrap {
+  width: 100%;
+  border-radius: 32rpx;
+  overflow: hidden;
+  box-shadow:
+    0 24rpx 60rpx -12rpx rgba(46, 169, 133, 0.22),
+    0 4rpx 14rpx -4rpx rgba(0, 0, 0, 0.06);
+}
+
+.poster-page__preview {
+  width: 100%;
+  display: block;
+}
+
+.poster-page__actions {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+  margin-top: 8rpx;
+}
+
+.poster-page__actions .cta-button,
+.poster-page__actions .ghost-button {
+  flex: 1;
+}
+
+.poster-page__tip {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.65;
+  text-align: center;
+  letter-spacing: 0.2rpx;
+}

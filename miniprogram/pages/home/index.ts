@@ -2,12 +2,20 @@
 import { runtimeConfig } from "../../config/runtime";
 import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, SessionMode } from "../../types/models";
 import { abandonSession, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import { getSettings, type UserSettings } from "../../utils/settings";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
 import { formatDuration, getSessionActions } from "../../utils/view-models";
 
 /* ---------- Pomodoro constants ---------- */
 const SUBJECTS = ["会计", "审计", "税法", "财管", "经济法", "战略"] as const;
-const POMODORO = {
+/**
+ * Default pomodoro parameters — used when the user hasn't set their
+ * own in the settings page. v0.12 onward we look up the live values
+ * from utils/settings.getSettings() on demand, so these are just
+ * static fallbacks (and the source of truth for "what is industry
+ * standard").
+ */
+const POMODORO_DEFAULTS = {
   focusSec: 25 * 60,
   shortBreakSec: 5 * 60,
   longBreakSec: 15 * 60,
@@ -40,6 +48,7 @@ type HomePageData = {
   goalProgress: number;
   goalText: string;
   goalReached: boolean;
+  weeklyGoal: { visible: boolean; text: string; progress: number; reached: boolean };
   pausedMinutes: number;
   makeup: MakeupOpportunity | null;
   makeupLoading: boolean;
@@ -73,6 +82,28 @@ let timerHandle: number | undefined;
  * frame; we only sync to the page when the displayed values change.
  */
 let pomodoroState: PomodoroState | null = null;
+/**
+ * Pomodoro config snapshot taken at session start. We capture the
+ * user's settings once-per-session so a mid-session settings change
+ * (very rare — user would have to navigate away) doesn't desync the
+ * state-machine clock. Reset to defaults whenever no pomodoro session
+ * is active.
+ */
+let pomodoroConfig = {
+  focusSec: POMODORO_DEFAULTS.focusSec,
+  shortBreakSec: POMODORO_DEFAULTS.shortBreakSec,
+  longBreakSec: POMODORO_DEFAULTS.longBreakSec,
+  cyclesPerSet: POMODORO_DEFAULTS.cyclesPerSet
+};
+
+function snapshotPomodoroConfigFromSettings(settings: UserSettings) {
+  pomodoroConfig = {
+    focusSec: settings.pomodoroFocusMin * 60,
+    shortBreakSec: settings.pomodoroShortBreakMin * 60,
+    longBreakSec: settings.pomodoroLongBreakMin * 60,
+    cyclesPerSet: settings.pomodoroCyclesPerSet
+  };
+}
 
 Page<{}, HomePageData>({
   data: {
@@ -89,6 +120,7 @@ Page<{}, HomePageData>({
     goalProgress: 0,
     goalText: `0m / ${formatDuration(DAILY_TARGET_MINUTES)}`,
     goalReached: false,
+    weeklyGoal: { visible: false, text: "", progress: 0, reached: false },
     pausedMinutes: 0,
     makeup: null,
     makeupLoading: false,
@@ -100,7 +132,7 @@ Page<{}, HomePageData>({
     pomodoroPhase: null,
     pomodoroPhaseLabel: "",
     pomodoroCyclesCompleted: 0,
-    pomodoroCycleDots: Array.from({ length: POMODORO.cyclesPerSet }, () => ({ done: false })),
+    pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })),
     nextExam: null
   },
 
@@ -197,16 +229,34 @@ Page<{}, HomePageData>({
   async loadHomeStats() {
     try {
       const home = await getHome();
+      const settings = getSettings();
+      const dailyTarget = settings.dailyGoalMinutes;
       const todayMinutes = home.today.totalMinutes ?? 0;
-      const goalProgress = Math.min(100, Math.round((todayMinutes / DAILY_TARGET_MINUTES) * 100));
+      const goalProgress = Math.min(100, Math.round((todayMinutes / dailyTarget) * 100));
+
+      // Weekly progress view-model (hidden when target = 0). We pull
+      // thisWeekMinutes from /home's existing weeklyReview block, so
+      // no new server work is needed.
+      const weeklyTarget = settings.weeklyGoalMinutes;
+      const thisWeekMinutes = home.weeklyReview?.thisWeekMinutes ?? 0;
+      const weeklyGoal = weeklyTarget > 0
+        ? {
+            visible: true,
+            text: `${formatDuration(thisWeekMinutes)} / ${formatDuration(weeklyTarget)}`,
+            progress: Math.min(100, Math.round((thisWeekMinutes / weeklyTarget) * 100)),
+            reached: thisWeekMinutes >= weeklyTarget
+          }
+        : { visible: false, text: "", progress: 0, reached: false };
+
       this.setData({
         profile: home.profile,
         todayMinutesText: formatDuration(todayMinutes),
         streakText: `${home.summary.currentStreakDays}天`,
         streakDays: home.summary.currentStreakDays || 0,
         goalProgress,
-        goalText: `${formatDuration(todayMinutes)} / ${formatDuration(DAILY_TARGET_MINUTES)}`,
-        goalReached: todayMinutes >= DAILY_TARGET_MINUTES,
+        goalText: `${formatDuration(todayMinutes)} / ${formatDuration(dailyTarget)}`,
+        goalReached: todayMinutes >= dailyTarget,
+        weeklyGoal,
         makeup: home.makeupAvailable ?? null,
         nextExam: this.pickNextExam(home.examSchedule)
       });
@@ -299,6 +349,13 @@ Page<{}, HomePageData>({
     //  - free session or no session → clear
     if (isPomodoro && session) {
       if (!pomodoroState) {
+        // App reopened mid-session — re-snapshot config from current
+        // settings. The state-machine then catches up against those
+        // durations. If the user changed settings while a pomodoro
+        // was running on another tab, this picks up the new values,
+        // which is the more useful behavior than silently sticking
+        // to whatever the session started with.
+        snapshotPomodoroConfigFromSettings(getSettings());
         pomodoroState = {
           phase: "focus",
           phaseStartMs: new Date(session.startedAt).getTime(),
@@ -320,7 +377,7 @@ Page<{}, HomePageData>({
           pomodoroPhase: null,
           pomodoroPhaseLabel: "",
           pomodoroCyclesCompleted: 0,
-          pomodoroCycleDots: Array.from({ length: POMODORO.cyclesPerSet }, () => ({ done: false })) };
+          pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })) };
     this.setData({
       activeSession: session,
       actions: getSessionActions(session?.status ?? null),
@@ -365,16 +422,16 @@ Page<{}, HomePageData>({
       pomodoroPhase: state.phase,
       pomodoroPhaseLabel: phaseLabel,
       pomodoroCyclesCompleted: state.cyclesCompleted,
-      pomodoroCycleDots: Array.from({ length: POMODORO.cyclesPerSet }, (_, i) => ({
-        done: i < (state.cyclesCompleted % POMODORO.cyclesPerSet)
+      pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, (_, i) => ({
+        done: i < (state.cyclesCompleted % pomodoroConfig.cyclesPerSet)
       }))
     };
   },
 
   pomodoroPhaseLength(phase: PomodoroPhase): number {
-    if (phase === "focus") return POMODORO.focusSec;
-    if (phase === "longBreak") return POMODORO.longBreakSec;
-    return POMODORO.shortBreakSec;
+    if (phase === "focus") return pomodoroConfig.focusSec;
+    if (phase === "longBreak") return pomodoroConfig.longBreakSec;
+    return pomodoroConfig.shortBreakSec;
   },
 
   /**
@@ -409,7 +466,7 @@ Page<{}, HomePageData>({
     if (wasFocus) {
       pomodoroState.cyclesCompleted += 1;
       // Long break every Nth focus cycle.
-      nextPhase = pomodoroState.cyclesCompleted % POMODORO.cyclesPerSet === 0
+      nextPhase = pomodoroState.cyclesCompleted % pomodoroConfig.cyclesPerSet === 0
         ? "longBreak"
         : "shortBreak";
     } else {
@@ -542,6 +599,10 @@ Page<{}, HomePageData>({
     // also where we tell the server which mode + subject we're
     // starting in so the session row carries both from creation.
     pomodoroState = null;
+    // Snapshot pomodoro params from settings at start time so the
+    // running session uses the user's custom durations rather than
+    // the static defaults.
+    snapshotPomodoroConfigFromSettings(getSettings());
     const subject = this.data.selectedSubject;
     const mode = this.data.selectedMode;
     await this.runSessionAction(

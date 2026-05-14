@@ -687,6 +687,61 @@
   font-weight: 600;
 }
 
+/* Weekly progress row — sits under the daily bar in the same card.
+   Visually quieter (thinner track, smaller text) so the daily metric
+   stays the primary focus. */
+.goal-card__weekly {
+  margin-top: 18rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed rgba(46, 169, 133, 0.16);
+}
+
+.goal-card__weekly-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.goal-card__weekly-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.goal-card__weekly-value {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+}
+
+.goal-card__weekly-value.is-reached {
+  color: var(--mint-600);
+}
+
+.goal-card__weekly-track {
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  overflow: hidden;
+}
+
+.goal-card__weekly-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8aa6f0 0%, #4a6ed9 100%);
+  border-radius: 999rpx;
+  transition: width 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.goal-card__weekly-fill.is-reached {
+  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
+}
+
 .makeup-banner {
   position: relative;
   display: flex;

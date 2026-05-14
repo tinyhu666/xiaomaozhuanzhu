@@ -129,7 +129,7 @@
     <view class="goal-card__head">
       <view class="goal-card__title-wrap">
         <text class="goal-card__title">今日目标</text>
-        <text class="goal-card__sub">建议每天专注 1.5 小时</text>
+        <text class="goal-card__sub">在「我的 · 学习设置」里可以改</text>
       </view>
       <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
     </view>
@@ -137,6 +137,20 @@
       <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
     </view>
     <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成，继续保持！</text>
+
+    <!-- Weekly progress: only shown when the user opts in by setting
+         a non-zero weekly target in settings. Compact second row
+         under the day bar so it feels like "today + this week" rather
+         than a separate card. -->
+    <view wx:if="{{weeklyGoal.visible}}" class="goal-card__weekly">
+      <view class="goal-card__weekly-row">
+        <text class="goal-card__weekly-label">本周</text>
+        <text class="goal-card__weekly-value {{weeklyGoal.reached ? 'is-reached' : ''}}">{{weeklyGoal.text}}</text>
+      </view>
+      <view class="goal-card__weekly-track">
+        <view class="goal-card__weekly-fill {{weeklyGoal.reached ? 'is-reached' : ''}}" style="width: {{weeklyGoal.progress}}%"></view>
+      </view>
+    </view>
   </view>
 
   <text class="home-version">v{{appVersion}}</text>

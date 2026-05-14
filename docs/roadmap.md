@@ -1,6 +1,20 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.11.0 — 学习时段洞察 + 科目分布饼图 + 个人记录卡片。
+> 当前版本 v0.12.0 — 学习设置自定义 + 学习日报分享卡 + 每周目标进度。
+
+## v0.12.0 已上线（基于市场调研）
+
+调研结论（详见 commit message）：
+- 📍 高 ROI 路径：用户自定义目标 (MyStudyLife / Harmony AI) + 分享卡片 (小红书 #学习打卡 千万 UGC)
+- 📍 长期方向（暂未做）：白噪音、自习室、AI 答疑
+- 📍 不做：题库 / 公式速查（偏内容，越权工具定位）
+
+已上线：
+- **学习设置页**（`package-profile/settings`）：6 项可调 — 每日目标 / 每周目标 / 番茄钟 4 项参数。每项带 stepper + 范围校验 + "恢复默认"。持久化到 `wx.setStorageSync('cpa.settings.v1')`，全部带 clamping。
+- **每周目标进度条**（首页）：当 weeklyGoalMinutes > 0 才出现，在「今日目标」下方一行带蓝色渐变进度条；用 weeklyReview.thisWeekMinutes（已有）做数据源，无后端改动。
+- **学习日报分享卡**（`package-profile/poster`）：canvas 2D 在 1125×1800 backing 上绘制竖版海报。包含品牌行 + 用户头像（圆形 + 白边） + 昵称（带溢出截断） + 大号 hero 数字 + 2×2 数据网格 + 每日金句 + footer slogan。`canvasToTempFilePath` 导出 PNG，支持「保存到相册」「转发好友」「长按图片」三条分享路径。
+- **首页 pomodoro 接入用户设置**：开始计时时 snapshot 一次 settings，state machine 使用用户自定义的专注/休息/cycles 数。
+- **测试**：98/98 通过（新增 7 个 settings 单元测试覆盖 clamping / 缺失字段 / 损坏存储 / off-sentinel）。
 
 ## v0.11.0 已上线（数据洞察三件套）
 

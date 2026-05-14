@@ -1,0 +1,43 @@
+<view class="page-shell poster-page">
+  <!--
+    The canvas is rendered at half-size (375×600) on screen for
+    preview; canvasToTempFilePath then renders it at 3× the backing
+    resolution so the saved PNG looks crisp on retina. We position it
+    off-screen until ready, then show the temp image instead so the
+    user gets a real image preview (and the share APIs accept the
+    image cleanly).
+  -->
+  <canvas
+    id="poster"
+    type="2d"
+    class="poster-page__canvas"
+    style="width: 375px; height: 600px;"
+  ></canvas>
+
+  <view class="poster-page__intro">
+    <text class="poster-page__title">学习日报</text>
+    <text class="poster-page__sub">把你今天的专注，分享给世界。长按图片转发或保存到相册。</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="poster-page__loading">正在生成…</view>
+
+  <view wx:elif="{{errorMessage}}" class="poster-page__error">
+    <text>{{errorMessage}}</text>
+  </view>
+
+  <view wx:elif="{{tempFilePath}}" class="poster-page__preview-wrap">
+    <image
+      class="poster-page__preview"
+      src="{{tempFilePath}}"
+      mode="widthFix"
+      show-menu-by-longpress="true"
+    />
+  </view>
+
+  <view wx:if="{{tempFilePath}}" class="poster-page__actions">
+    <button class="cta-button" bindtap="onSaveTap">保存到相册</button>
+    <button class="ghost-button" open-type="share">分享给好友</button>
+  </view>
+
+  <text wx:if="{{tempFilePath}}" class="poster-page__tip">提示：长按图片可直接转发到朋友圈或好友。</text>
+</view>

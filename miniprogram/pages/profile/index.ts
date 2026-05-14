@@ -297,5 +297,13 @@ Page<{}, ProfilePageData>({
 
   openShare() {
     wx.navigateTo({ url: "/package-profile/share/index" });
+  },
+
+  openPoster() {
+    wx.navigateTo({ url: "/package-profile/poster/index" });
+  },
+
+  openSettings() {
+    wx.navigateTo({ url: "/package-profile/settings/index" });
   }
 });
