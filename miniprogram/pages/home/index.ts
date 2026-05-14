@@ -1,27 +1,9 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
-import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, WeeklyReview } from "../../types/models";
-import { getCalendar, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity } from "../../types/models";
+import { getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
-import { buildMonthGrid, formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
-
-type WeeklyReviewView = {
-  weekRangeText: string;
-  thisWeekText: string;
-  lastWeekText: string;
-  bestDayText: string;
-  topSubjectText: string;
-  changeText: string;
-  changeDirection: "up" | "down" | "flat";
-  days: Array<{
-    date: string;
-    dayLabel: string;
-    totalMinutes: number;
-    fillPct: number;
-    isToday: boolean;
-    isFuture: boolean;
-  }>;
-};
+import { formatDuration, getSessionActions } from "../../utils/view-models";
 
 type HomePageData = {
   profile: HomeResponse["profile"] | null;
@@ -30,12 +12,6 @@ type HomePageData = {
   todayMinutesText: string;
   streakText: string;
   streakDays: number;
-  quoteEn: string;
-  quoteZh: string;
-  quoteDateLabel: string;
-  monthLabel: string;
-  monthTotalText: string;
-  monthGrid: ReturnType<typeof buildMonthGrid>;
   actions: string[];
   actionLoading: boolean;
   actionLoadingLabel: string;
@@ -43,7 +19,6 @@ type HomePageData = {
   goalText: string;
   goalReached: boolean;
   pausedMinutes: number;
-  weekly: WeeklyReviewView | null;
   makeup: MakeupOpportunity | null;
   makeupLoading: boolean;
   appVersion: string;
@@ -71,12 +46,6 @@ Page<{}, HomePageData>({
     todayMinutesText: "0m",
     streakText: "0天",
     streakDays: 0,
-    quoteEn: "One page at a time.",
-    quoteZh: "一页一页，也是在前进。",
-    quoteDateLabel: "",
-    monthLabel: "",
-    monthTotalText: "0m",
-    monthGrid: [],
     actions: ["start"],
     actionLoading: false,
     actionLoadingLabel: "",
@@ -84,7 +53,6 @@ Page<{}, HomePageData>({
     goalText: `0m / ${formatDuration(DAILY_TARGET_MINUTES)}`,
     goalReached: false,
     pausedMinutes: 0,
-    weekly: null,
     makeup: null,
     makeupLoading: false,
     appVersion: runtimeConfig.appVersion,
@@ -115,25 +83,13 @@ Page<{}, HomePageData>({
   },
 
   async refreshAll() {
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const today = `${month}-${String(now.getDate()).padStart(2, "0")}`;
-    const quote = getDailyQuote(today);
-    // Render the heat-map skeleton immediately so users always see the
-    // calendar grid (with day numbers + today highlight), even before the
-    // network responds. The grid is overwritten with real heat values
-    // once /api/calendar resolves.
-    this.setData({
-      quoteEn: quote.en,
-      quoteZh: quote.zh,
-      quoteDateLabel: `${now.getMonth() + 1}月${now.getDate()}日`,
-      monthLabel: `${now.getMonth() + 1}月学习热力图`,
-      monthGrid: this.data.monthGrid.length ? this.data.monthGrid : buildMonthGrid(month, {})
-    });
-
+    // Home page is intentionally minimal now: just timer + countdown
+    // + today's goal. Calendar / weekly review / quote moved out of
+    // home so the "what should I do right now" question is answered
+    // in one screen. Heat map lives in its own tab.
     wx.showNavigationBarLoading();
     try {
-      await Promise.all([this.loadHomeStats(), this.loadCalendar(month)]);
+      await this.loadHomeStats();
     } finally {
       wx.hideNavigationBarLoading();
     }
@@ -152,7 +108,6 @@ Page<{}, HomePageData>({
         goalProgress,
         goalText: `${formatDuration(todayMinutes)} / ${formatDuration(DAILY_TARGET_MINUTES)}`,
         goalReached: todayMinutes >= DAILY_TARGET_MINUTES,
-        weekly: this.buildWeeklyView(home.weeklyReview ?? null),
         makeup: home.makeupAvailable ?? null,
         nextExam: this.pickNextExam(home.examSchedule)
       });
@@ -218,87 +173,6 @@ Page<{}, HomePageData>({
     };
   },
 
-  buildWeeklyView(weekly: WeeklyReview | null): WeeklyReviewView | null {
-    if (!weekly) return null;
-    if (weekly.thisWeekMinutes === 0 && weekly.lastWeekMinutes === 0) return null;
-    const formatRange = (start: string, end: string) => `${start.slice(5).replace("-", ".")} – ${end.slice(5).replace("-", ".")}`;
-    const diff = weekly.thisWeekMinutes - weekly.lastWeekMinutes;
-    let changeDirection: "up" | "down" | "flat" = "flat";
-    let changeText = "持平上周";
-    if (weekly.lastWeekMinutes === 0 && weekly.thisWeekMinutes > 0) {
-      changeDirection = "up";
-      changeText = "比上周多了 " + formatDuration(weekly.thisWeekMinutes);
-    } else if (diff > 0) {
-      changeDirection = "up";
-      const ratio = Math.round((diff / Math.max(weekly.lastWeekMinutes, 1)) * 100);
-      changeText = `比上周多 ${formatDuration(diff)}（+${ratio}%）`;
-    } else if (diff < 0) {
-      changeDirection = "down";
-      const ratio = Math.round((Math.abs(diff) / Math.max(weekly.lastWeekMinutes, 1)) * 100);
-      changeText = `比上周少 ${formatDuration(Math.abs(diff))}（-${ratio}%）`;
-    }
-    const bestDayText = weekly.bestDay.date
-      ? `${weekly.bestDay.date.slice(5).replace("-", ".")} · ${formatDuration(weekly.bestDay.totalMinutes)}`
-      : "本周还没开始记录";
-    const topSubjectText = weekly.topSubject
-      ? `${weekly.topSubject.subject} · ${formatDuration(weekly.topSubject.totalMinutes)}`
-      : "尚无主科";
-    return {
-      weekRangeText: formatRange(weekly.weekStart, weekly.weekEnd),
-      thisWeekText: formatDuration(weekly.thisWeekMinutes),
-      lastWeekText: formatDuration(weekly.lastWeekMinutes),
-      bestDayText,
-      topSubjectText,
-      changeText,
-      changeDirection,
-      days: this.buildWeekDays(weekly.weekStart, weekly.bestDay.totalMinutes)
-    };
-  },
-
-  /**
-   * Build the 7-day mini bar chart for the weekly review card. We
-   * derive per-day minutes from the already-loaded monthGrid (set by
-   * loadCalendar) so this doesn't cost an extra API call. If the
-   * week spans two months (Mon falls in last month), the leading
-   * faded cells in the next-month grid carry no totalMinutes — those
-   * bars render as zero, which is visually fine.
-   */
-  buildWeekDays(weekStartIso: string, bestDayMinutes: number) {
-    const labels = ["一", "二", "三", "四", "五", "六", "日"];
-    const today = new Date();
-    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-    const start = new Date(weekStartIso + "T00:00:00+08:00");
-    const lookup = new Map<string, number>();
-    for (const cell of this.data.monthGrid as Array<{ date: string; totalMinutes: number }>) {
-      lookup.set(cell.date, cell.totalMinutes);
-    }
-
-    const minutesByDay: number[] = [];
-    const dayKeys: string[] = [];
-    for (let i = 0; i < 7; i += 1) {
-      const day = new Date(start.getTime() + i * 86400000);
-      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
-      dayKeys.push(key);
-      minutesByDay.push(lookup.get(key) ?? 0);
-    }
-
-    // Scale bar height so the tallest day is ~100%, with a floor so
-    // a single 10-minute day doesn't render as a giant bar.
-    const peak = Math.max(...minutesByDay, bestDayMinutes || 0, 90);
-    return dayKeys.map((key, index) => {
-      const minutes = minutesByDay[index];
-      return {
-        date: key,
-        dayLabel: labels[index],
-        totalMinutes: minutes,
-        fillPct: Math.round((minutes / peak) * 100),
-        isToday: key === todayKey,
-        isFuture: key > todayKey
-      };
-    });
-  },
-
   async handleMakeup() {
     if (!this.data.makeup || this.data.makeupLoading) return;
     this.setData({ makeupLoading: true });
@@ -314,24 +188,6 @@ Page<{}, HomePageData>({
       });
     } finally {
       this.setData({ makeupLoading: false });
-    }
-  },
-
-  async loadCalendar(month: string) {
-    try {
-      const calendar = await getCalendar(month);
-      const monthTotalMinutes = Object.values(calendar.days).reduce((sum, day) => sum + day.totalMinutes, 0);
-      this.setData({
-        monthTotalText: formatDuration(monthTotalMinutes),
-        monthGrid: buildMonthGrid(month, calendar.days)
-      });
-    } catch (error) {
-      console.error("[home] loadCalendar failed", error);
-      // Fall back to an empty grid so the user still sees day numbers
-      // instead of a blank panel.
-      this.setData({
-        monthGrid: buildMonthGrid(month, {})
-      });
     }
   },
 
@@ -515,12 +371,5 @@ Page<{}, HomePageData>({
 
   refreshStatsInBackground() {
     this.loadHomeStats().catch(() => {});
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    this.loadCalendar(month).catch(() => {});
-  },
-
-  // The home heat-map block was removed (duplicated the dedicated
-  // calendar tab); the per-day navigation handlers it used to wire up
-  // (handlePreviewDay / openCalendar) are no longer referenced.
+  }
 });

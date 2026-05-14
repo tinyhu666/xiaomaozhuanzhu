@@ -21,15 +21,6 @@
     <text wx:if="{{nextExam.fallback}}" class="exam-countdown__fallback">* 暂以 {{nextExam.sourceYear}} 年公告为参考</text>
   </view>
 
-  <view class="quote-card">
-    <text class="quote-card__mark">"</text>
-    <view class="quote-card__chip">
-      <text class="quote-card__chip-text">{{quoteDateLabel}}</text>
-    </view>
-    <text class="quote-card__en">{{quoteEn}}</text>
-    <text class="quote-card__zh">{{quoteZh}}</text>
-  </view>
-
   <view class="timer-card {{activeSession ? 'is-active' : ''}}">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
@@ -95,45 +86,6 @@
       <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
     </view>
     <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成，继续保持！</text>
-  </view>
-
-  <view wx:if="{{weekly}}" class="weekly-card">
-    <view class="weekly-card__header">
-      <view class="weekly-card__title-wrap">
-        <text class="weekly-card__title">本周复盘</text>
-        <text class="weekly-card__range">{{weekly.weekRangeText}}</text>
-      </view>
-      <text class="weekly-card__total">{{weekly.thisWeekText}}</text>
-    </view>
-    <text class="weekly-card__change weekly-card__change--{{weekly.changeDirection}}">{{weekly.changeText}}</text>
-
-    <view class="weekly-card__bars">
-      <view
-        wx:for="{{weekly.days}}"
-        wx:key="date"
-        class="weekly-card__bar {{item.isToday ? 'is-today' : ''}} {{item.isFuture ? 'is-future' : ''}}"
-      >
-        <view class="weekly-card__bar-track">
-          <view class="weekly-card__bar-fill" style="height: {{item.fillPct}}%"></view>
-        </view>
-        <text class="weekly-card__bar-label">{{item.dayLabel}}</text>
-      </view>
-    </view>
-
-    <view class="weekly-card__rows">
-      <view class="weekly-card__row">
-        <text class="weekly-card__row-label">最长一天</text>
-        <text class="weekly-card__row-value">{{weekly.bestDayText}}</text>
-      </view>
-      <view class="weekly-card__row">
-        <text class="weekly-card__row-label">主要科目</text>
-        <text class="weekly-card__row-value">{{weekly.topSubjectText}}</text>
-      </view>
-      <view class="weekly-card__row">
-        <text class="weekly-card__row-label">上周</text>
-        <text class="weekly-card__row-value">{{weekly.lastWeekText}}</text>
-      </view>
-    </view>
   </view>
 
   <text class="home-version">v{{appVersion}}</text>
