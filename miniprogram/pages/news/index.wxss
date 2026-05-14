@@ -155,6 +155,13 @@
   color: var(--text-main);
   line-height: 1.45;
   letter-spacing: 0.2rpx;
+  /* Clamp long titles to 2 lines so each row stays roughly the same
+     height — keeps the list scannable. Anything longer is in the
+     summary / detail page anyway. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .news-foot {

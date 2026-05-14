@@ -22,7 +22,227 @@
 .home-page > view:nth-child(3) { animation-delay: 0.16s; }
 .home-page > view:nth-child(4) { animation-delay: 0.22s; }
 .home-page > view:nth-child(5) { animation-delay: 0.28s; }
-.home-page > .home-version { animation-delay: 0.34s; }
+.home-page > view:nth-child(6) { animation-delay: 0.34s; }
+.home-page > .home-version { animation-delay: 0.4s; }
+
+/* ============================================================
+   Exam countdown — the most prominent card after the timer.
+   Four urgency tiers (calm / soon / urgent / imminent) that shift
+   the palette from mint to amber to red as the exam approaches.
+   The number pulses gently; the background has a slow ambient
+   shimmer; the imminent tier adds a heartbeat ring to demand
+   attention. All animations are GPU-cheap (transform + opacity).
+   ============================================================ */
+.exam-countdown {
+  position: relative;
+  overflow: hidden;
+  padding: 28rpx 32rpx 30rpx;
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(46, 169, 133, 0.14);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.55),
+    0 14rpx 36rpx -8rpx rgba(46, 169, 133, 0.18);
+  /* Default palette — mint (calm/soon shares the base) */
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.35), transparent 45%),
+    linear-gradient(180deg, #f3fcf7 0%, #d9f1e6 100%);
+}
+
+.exam-countdown__glow {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94, 195, 157, 0.45), transparent 70%);
+  filter: blur(6rpx);
+  pointer-events: none;
+  animation: exam-pulse 4.5s ease-in-out infinite;
+}
+
+@keyframes exam-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+.exam-countdown__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  z-index: 1;
+}
+
+.exam-countdown__pill {
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #155946;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1rpx solid rgba(46, 169, 133, 0.22);
+  letter-spacing: 0.4rpx;
+}
+
+.exam-countdown__date {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #155946;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+  opacity: 0.85;
+}
+
+.exam-countdown__number-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  margin-top: 10rpx;
+  padding-bottom: 6rpx;
+  z-index: 1;
+}
+
+.exam-countdown__number {
+  font-size: 132rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: #155946;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1rpx;
+  /* Tiny breathing animation to draw the eye without being noisy. */
+  animation: exam-breath 3.2s ease-in-out infinite;
+  transform-origin: bottom left;
+  text-shadow: 0 4rpx 14rpx rgba(46, 169, 133, 0.18);
+}
+
+@keyframes exam-breath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.exam-countdown__unit {
+  margin-left: 12rpx;
+  margin-bottom: 14rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #155946;
+  opacity: 0.7;
+  letter-spacing: 1rpx;
+}
+
+.exam-countdown__motivation {
+  display: block;
+  margin-top: 8rpx;
+  position: relative;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #155946;
+  letter-spacing: 0.3rpx;
+  line-height: 1.5;
+  z-index: 1;
+  opacity: 0.92;
+}
+
+.exam-countdown__fallback {
+  display: block;
+  margin-top: 8rpx;
+  position: relative;
+  font-size: 18rpx;
+  color: #155946;
+  opacity: 0.55;
+  z-index: 1;
+}
+
+/* --- Urgency tier overrides ---------------------------------- */
+
+/* soon: ≤ 90 days — warm mint, slightly more saturated */
+.exam-countdown--soon {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 138, 0.32), transparent 45%),
+    linear-gradient(180deg, #fff6e6 0%, #ffe6c0 100%);
+  border-color: rgba(229, 158, 87, 0.22);
+}
+.exam-countdown--soon .exam-countdown__glow {
+  background: radial-gradient(circle, rgba(229, 158, 87, 0.5), transparent 70%);
+}
+.exam-countdown--soon .exam-countdown__pill,
+.exam-countdown--soon .exam-countdown__date,
+.exam-countdown--soon .exam-countdown__number,
+.exam-countdown--soon .exam-countdown__unit,
+.exam-countdown--soon .exam-countdown__motivation,
+.exam-countdown--soon .exam-countdown__fallback {
+  color: #8a4d10;
+}
+.exam-countdown--soon .exam-countdown__pill {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(229, 158, 87, 0.28);
+}
+
+/* urgent: ≤ 30 days — amber/orange */
+.exam-countdown--urgent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 159, 90, 0.35), transparent 45%),
+    linear-gradient(180deg, #fff0e0 0%, #ffd2a8 100%);
+  border-color: rgba(229, 122, 50, 0.28);
+}
+.exam-countdown--urgent .exam-countdown__glow {
+  background: radial-gradient(circle, rgba(255, 138, 60, 0.55), transparent 70%);
+  animation-duration: 3s;
+}
+.exam-countdown--urgent .exam-countdown__pill,
+.exam-countdown--urgent .exam-countdown__date,
+.exam-countdown--urgent .exam-countdown__number,
+.exam-countdown--urgent .exam-countdown__unit,
+.exam-countdown--urgent .exam-countdown__motivation,
+.exam-countdown--urgent .exam-countdown__fallback {
+  color: #7a330a;
+}
+.exam-countdown--urgent .exam-countdown__pill {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(229, 122, 50, 0.32);
+}
+.exam-countdown--urgent .exam-countdown__number {
+  animation-duration: 2.4s;
+}
+
+/* imminent: ≤ 7 days — red, fast pulse, halo ring */
+.exam-countdown--imminent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 122, 122, 0.4), transparent 45%),
+    linear-gradient(180deg, #ffe6e6 0%, #ffc4c4 100%);
+  border-color: rgba(217, 80, 80, 0.32);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.55),
+    0 14rpx 36rpx -8rpx rgba(217, 80, 80, 0.28);
+}
+.exam-countdown--imminent .exam-countdown__glow {
+  background: radial-gradient(circle, rgba(229, 80, 80, 0.55), transparent 70%);
+  animation-duration: 1.8s;
+}
+.exam-countdown--imminent .exam-countdown__pill,
+.exam-countdown--imminent .exam-countdown__date,
+.exam-countdown--imminent .exam-countdown__number,
+.exam-countdown--imminent .exam-countdown__unit,
+.exam-countdown--imminent .exam-countdown__motivation,
+.exam-countdown--imminent .exam-countdown__fallback {
+  color: #7a1a1a;
+}
+.exam-countdown--imminent .exam-countdown__pill {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(217, 80, 80, 0.4);
+}
+.exam-countdown--imminent .exam-countdown__number {
+  animation: exam-heartbeat 1.4s ease-in-out infinite;
+}
+@keyframes exam-heartbeat {
+  0%, 30%, 70%, 100% { transform: scale(1); }
+  15% { transform: scale(1.08); }
+  45% { transform: scale(1.04); }
+}
 
 /* Quote card: editorial pull-quote feel. Layered surface with one
    restored watermark glyph + a left-side mint hairline rail (book-

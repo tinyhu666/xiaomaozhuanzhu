@@ -184,7 +184,10 @@ export function createApp(options: CreateAppOptions = {}) {
         lastSummary: latestCompleted?.summary ?? ""
       },
       weeklyReview: buildWeeklyReview(dailyStats, sessions, todayKey),
-      makeupAvailable: findMakeupOpportunity(dailyStats, sessions, todayKey)
+      makeupAvailable: findMakeupOpportunity(dailyStats, sessions, todayKey),
+      // Cheap to compute (constant table lookup); ship on /home so the
+      // home-page countdown card doesn't need a second round-trip.
+      examSchedule: getExamSchedule(clock.now())
     });
   }));
 

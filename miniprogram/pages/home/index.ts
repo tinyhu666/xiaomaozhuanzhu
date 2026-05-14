@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
-import type { ActiveSession, HomeResponse, MakeupOpportunity, WeeklyReview } from "../../types/models";
+import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, WeeklyReview } from "../../types/models";
 import { getCalendar, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
 import { buildMonthGrid, formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
@@ -48,6 +48,15 @@ type HomePageData = {
   makeupLoading: boolean;
   appVersion: string;
   showEmptyHint: boolean;
+  nextExam: null | {
+    subject: string;
+    dateLabel: string;
+    daysRemaining: number;
+    fallback: boolean;
+    sourceYear: number;
+    urgency: "calm" | "soon" | "urgent" | "imminent";
+    motivation: string;
+  };
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -79,7 +88,8 @@ Page<{}, HomePageData>({
     makeup: null,
     makeupLoading: false,
     appVersion: runtimeConfig.appVersion,
-    showEmptyHint: true
+    showEmptyHint: true,
+    nextExam: null
   },
 
   async onShow() {
@@ -143,7 +153,8 @@ Page<{}, HomePageData>({
         goalText: `${formatDuration(todayMinutes)} / ${formatDuration(DAILY_TARGET_MINUTES)}`,
         goalReached: todayMinutes >= DAILY_TARGET_MINUTES,
         weekly: this.buildWeeklyView(home.weeklyReview ?? null),
-        makeup: home.makeupAvailable ?? null
+        makeup: home.makeupAvailable ?? null,
+        nextExam: this.pickNextExam(home.examSchedule)
       });
       this.applyActiveSession(home.activeSession ?? null);
       this.refreshEmptyHint();
@@ -164,6 +175,47 @@ Page<{}, HomePageData>({
         duration: 2400
       });
     }
+  },
+
+  /**
+   * Pick the subject whose exam is closest in the future. If multiple
+   * subjects share the same date (typical for CPA), prefer 会计 as the
+   * anchor — it's the heaviest and most-commonly-attempted subject.
+   *
+   * Adds an urgency tier (calm / soon / urgent / imminent) that drives
+   * the home-page card's color + animation, and a tier-appropriate
+   * one-liner so the countdown actually nudges behavior instead of
+   * just displaying a number.
+   */
+  pickNextExam(schedule?: ExamDateInfo[]) {
+    if (!schedule || !schedule.length) return null;
+    const future = schedule.filter((e) => e.daysRemaining >= 0);
+    if (!future.length) return null;
+    future.sort((a, b) => a.daysRemaining - b.daysRemaining);
+    const minDays = future[0].daysRemaining;
+    const sameDay = future.filter((e) => e.daysRemaining === minDays);
+    const preferred = sameDay.find((e) => e.subject === "会计") ?? sameDay[0];
+    let urgency: "calm" | "soon" | "urgent" | "imminent" = "calm";
+    let motivation = "稳扎稳打，每天 1.5h，足以拿下。";
+    if (minDays <= 7) {
+      urgency = "imminent";
+      motivation = "考前一周，回归错题与公式，不要再刷新题。";
+    } else if (minDays <= 30) {
+      urgency = "urgent";
+      motivation = "进入冲刺月，每天 3h+ 模考节奏，错题三刷。";
+    } else if (minDays <= 90) {
+      urgency = "soon";
+      motivation = "强化阶段，主攻高频考点 + 真题。";
+    }
+    return {
+      subject: preferred.subject,
+      dateLabel: preferred.date.replace(/-/g, ".").slice(2),
+      daysRemaining: preferred.daysRemaining,
+      fallback: preferred.fallback,
+      sourceYear: preferred.sourceYear,
+      urgency,
+      motivation
+    };
   },
 
   buildWeeklyView(weekly: WeeklyReview | null): WeeklyReviewView | null {

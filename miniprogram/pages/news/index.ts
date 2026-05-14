@@ -86,18 +86,24 @@ Page<{}, NewsPageData>({
   },
 
   async loadFirstPage() {
+    // Capture the tab at request-time. If the user switches categories
+    // before the response lands, we discard the stale result to avoid
+    // racing the newer in-flight load.
+    const requestedTab = this.data.activeCategory;
     this.setData({ loading: true, errorMessage: "" });
     try {
       const result = await getNewsList({
-        category: this.data.activeCategory,
+        category: requestedTab,
         limit: 30
       });
+      if (requestedTab !== this.data.activeCategory) return;
       this.setData({
         items: (result.items ?? []).map(decorate),
         nextBefore: result.nextBefore ?? null,
         loading: false
       });
     } catch (error) {
+      if (requestedTab !== this.data.activeCategory) return;
       console.error("[news] load failed", error);
       this.setData({
         loading: false,
@@ -108,13 +114,18 @@ Page<{}, NewsPageData>({
 
   async loadMore() {
     if (this.data.loadingMore || !this.data.nextBefore) return;
+    const requestedTab = this.data.activeCategory;
+    const cursor = this.data.nextBefore;
     this.setData({ loadingMore: true });
     try {
       const result = await getNewsList({
-        category: this.data.activeCategory,
+        category: requestedTab,
         limit: 30,
-        before: this.data.nextBefore
+        before: cursor
       });
+      // Discard if user switched tabs mid-request, otherwise we'd
+      // append items from category A onto category B's list.
+      if (requestedTab !== this.data.activeCategory) return;
       const merged = [...this.data.items, ...(result.items ?? []).map(decorate)];
       this.setData({
         items: merged,
@@ -122,6 +133,7 @@ Page<{}, NewsPageData>({
         loadingMore: false
       });
     } catch (error) {
+      if (requestedTab !== this.data.activeCategory) return;
       console.warn("[news] load more failed", error);
       this.setData({ loadingMore: false });
     }

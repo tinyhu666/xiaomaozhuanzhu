@@ -66,6 +66,7 @@ export type HomeResponse = {
   };
   weeklyReview?: WeeklyReview;
   makeupAvailable?: MakeupOpportunity | null;
+  examSchedule?: ExamDateInfo[];
 };
 
 export type CalendarDayResponse = {
