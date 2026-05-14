@@ -471,13 +471,25 @@ export const adminIndexHtml = `<!DOCTYPE html>
     // (so the bar represents an average rather than absolute total —
     // counting all distinct dates we have stats for, including 0-min
     // days, would be misleading; we average over recorded days).
+    //
+    // IMPORTANT: weekday must be computed timezone-independently. The
+    // previous version used "new Date(date+T08:00:00+08:00).getDay()"
+    // which returns weekday in the *browser* local zone — admins on
+    // e.g. UTC-5 saw all dates shifted one weekday back, which is
+    // why Tuesday and Saturday looked empty even when sessions on
+    // those days existed. Parse the YYYY-MM-DD parts directly and
+    // use Date.UTC + getUTCDay() so the result is identical no
+    // matter where the admin opens the dashboard from.
     var totals = [0,0,0,0,0,0,0];
     var counts = [0,0,0,0,0,0,0];
     (dailyStats || []).forEach(function (s) {
       if (!s.date) return;
-      // Mon-first: JS getDay() returns 0=Sun; convert to 0=Mon..6=Sun
-      var jsDay = new Date(s.date + "T08:00:00+08:00").getDay();
-      var idx = (jsDay + 6) % 7;
+      var parts = String(s.date).slice(0, 10).split("-");
+      if (parts.length !== 3) return;
+      var y = +parts[0], m = +parts[1], d = +parts[2];
+      if (!y || !m || !d) return;
+      var utcDay = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0=Sun..6=Sat
+      var idx = (utcDay + 6) % 7;                                // 0=Mon..6=Sun
       totals[idx] += s.totalMinutes || 0;
       counts[idx] += 1;
     });
