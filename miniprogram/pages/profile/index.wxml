@@ -1,4 +1,13 @@
 <view class="page-shell profile-page">
+  <!--
+    Hero — the official WeChat "登录 / 完善资料" pattern: tap the
+    avatar to choose from your WeChat photos (open-type=chooseAvatar);
+    tap the nickname row to pull your WeChat nickname into the input
+    (type=nickname). These are the only two APIs WeChat still allows
+    for self-served profile capture since 2022, so there is no
+    cleaner / one-click path possible. We just make the two tap
+    targets visually obvious and stop adding extra CTAs.
+  -->
   <view class="profile-hero">
     <view class="profile-hero__avatar-wrap">
       <image
@@ -14,7 +23,7 @@
         bindchooseavatar="onChooseAvatar"
         aria-label="选择头像"
       >
-        <text class="profile-hero__avatar-edit">编辑</text>
+        <text class="profile-hero__avatar-edit">{{profile.avatarUrl ? '换头像' : '设头像'}}</text>
       </button>
     </view>
     <view class="profile-hero__body">
@@ -26,22 +35,17 @@
         focus="{{nicknameFocus}}"
         bindblur="onNicknameBlur"
       />
-      <text class="profile-hero__hint">点头像换头像 · 点昵称栏改昵称</text>
+      <text class="profile-hero__hint">点头像换头像 · 点昵称栏从微信导入</text>
     </view>
   </view>
 
-  <!-- One-tap "use my WeChat profile" CTA. The avatar picker runs
-       first; on success we auto-focus the nickname input so the user
-       lands directly on WeChat's nickname keyboard prompt. -->
-  <button
-    wx:if="{{!profile.profileCompleted}}"
-    class="profile-cta"
-    open-type="chooseAvatar"
-    bindchooseavatar="onUseWechatProfile"
-  >
-    <text class="profile-cta__icon">✨</text>
-    <text class="profile-cta__label">使用微信资料 · 一键填充</text>
-  </button>
+  <!-- Daily quote — small, persistent personality on the profile page
+       (moved out of home in v0.9.3 to keep home action-focused). -->
+  <view class="profile-quote">
+    <view class="profile-quote__chip">{{quoteDateLabel}}</view>
+    <text class="profile-quote__en">{{quoteEn}}</text>
+    <text class="profile-quote__zh">{{quoteZh}}</text>
+  </view>
 
   <view class="stat-grid">
     <view class="stat-tile">
@@ -60,15 +64,6 @@
       <text class="stat-tile__value">{{longestStreak}}<text class="stat-tile__unit">天</text></text>
       <text class="stat-tile__label">最长连签</text>
     </view>
-  </view>
-
-  <view wx:if="{{nextExam}}" class="exam-card">
-    <view class="exam-card__row">
-      <text class="exam-card__label">距下一科 CPA 考试</text>
-      <text class="exam-card__date">{{nextExam.subject}} · {{nextExam.dateLabel}}</text>
-    </view>
-    <text class="exam-card__big">{{nextExam.daysRemaining}}<text class="exam-card__unit"> 天</text></text>
-    <text wx:if="{{nextExam.fallback}}" class="exam-card__hint">* 暂以 {{nextExam.sourceYear}} 年公告为参考，待今年正式时间公布后会自动更新</text>
   </view>
 
   <view class="menu-list">

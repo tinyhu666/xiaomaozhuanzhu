@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
-import type { Badge, ExamDateInfo, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
+import type { Badge, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
 import { getProfileDashboard, saveProfile, uploadAvatar } from "../../utils/api";
-import { formatDuration } from "../../utils/view-models";
+import { formatDuration, getDailyQuote } from "../../utils/view-models";
 
 type ProfilePageData = {
   profile: { nickname: string; avatarUrl: string; profileCompleted: boolean };
@@ -15,13 +15,9 @@ type ProfilePageData = {
   subjectsHint: string;
   shareHint: string;
   appVersion: string;
-  nextExam: null | {
-    subject: string;
-    dateLabel: string;
-    daysRemaining: number;
-    fallback: boolean;
-    sourceYear: number;
-  };
+  quoteEn: string;
+  quoteZh: string;
+  quoteDateLabel: string;
 };
 
 Page<{}, ProfilePageData>({
@@ -36,13 +32,26 @@ Page<{}, ProfilePageData>({
     subjectsHint: "—",
     shareHint: "未开启",
     appVersion: runtimeConfig.appVersion,
-    nextExam: null
+    quoteEn: "One page at a time.",
+    quoteZh: "一页一页，也是在前进。",
+    quoteDateLabel: ""
   },
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     // 4 tabs: 首页 / 日历 / 动态 / 我的 → profile is index 3
     tabBar?.setData?.({ selected: 3 });
+    // Refresh the daily quote each time the user opens this tab so a
+    // re-entry mid-day picks a different line. getDailyQuote already
+    // persists "last shown" to avoid back-to-back duplicates.
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const quote = getDailyQuote(today);
+    this.setData({
+      quoteEn: quote.en,
+      quoteZh: quote.zh,
+      quoteDateLabel: `${now.getMonth() + 1}月${now.getDate()}日`
+    });
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[profile] ensureProfile failed", error);
     });
@@ -85,8 +94,7 @@ Page<{}, ProfilePageData>({
         longestStreak: summary.longestStreakDays || 0,
         badgeProgressLabel: totalBadges ? `已解锁 ${unlocked} / ${totalBadges}` : "—",
         subjectsHint: subjectsLabel,
-        shareHint: dashboard.profile?.isPublic ? "已开启" : "未开启",
-        nextExam: this.pickNextExam(dashboard.examSchedule)
+        shareHint: dashboard.profile?.isPublic ? "已开启" : "未开启"
       });
     } catch (error) {
       console.error("[profile] dashboard failed", error);
@@ -99,40 +107,8 @@ Page<{}, ProfilePageData>({
     }
   },
 
-  /**
-   * Pick the subject whose exam is closest in the future. If multiple
-   * subjects share the same date (most CPA weekends do), prefer 会计
-   * which is the heaviest subject and the natural "anchor".
-   */
-  pickNextExam(schedule?: ExamDateInfo[]) {
-    if (!schedule || !schedule.length) return null;
-    const future = schedule.filter((e) => e.daysRemaining >= 0);
-    if (!future.length) return null;
-    future.sort((a, b) => a.daysRemaining - b.daysRemaining);
-    const minDays = future[0].daysRemaining;
-    const sameDay = future.filter((e) => e.daysRemaining === minDays);
-    const preferred = sameDay.find((e) => e.subject === "会计") ?? sameDay[0];
-    return {
-      subject: preferred.subject,
-      dateLabel: preferred.date.replace(/-/g, ".").slice(2), // 25.08.23
-      daysRemaining: preferred.daysRemaining,
-      fallback: preferred.fallback,
-      sourceYear: preferred.sourceYear
-    };
-  },
-
   async onChooseAvatar(event: WechatMiniprogram.CustomEvent) {
     await this.handleChosenAvatar(event, false);
-  },
-
-  /**
-   * Triggered by the "使用微信资料 · 一键填充" CTA. Same upload flow as
-   * the small avatar tap, but additionally auto-focuses the nickname
-   * input on success so the user lands directly on WeChat's nickname
-   * picker keyboard — i.e. one CTA fills both fields with two taps.
-   */
-  async onUseWechatProfile(event: WechatMiniprogram.CustomEvent) {
-    await this.handleChosenAvatar(event, true);
   },
 
   async handleChosenAvatar(event: WechatMiniprogram.CustomEvent, focusNicknameAfter: boolean) {
