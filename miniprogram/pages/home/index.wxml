@@ -21,16 +21,56 @@
     <text wx:if="{{nextExam.fallback}}" class="exam-countdown__fallback">* 暂以 {{nextExam.sourceYear}} 年公告为参考</text>
   </view>
 
-  <view class="timer-card {{activeSession ? 'is-active' : ''}}">
+  <!--
+    Pre-start picker: mode toggle (自由/番茄) + subject chip row.
+    Hidden once a session is live — switching mode mid-session would
+    be confusing. The picker silently locks during the active session
+    and reappears after completion / abandon.
+  -->
+  <view wx:if="{{!activeSession}}" class="picker-card">
+    <view class="picker-card__modes">
+      <view
+        class="picker-card__mode {{selectedMode === 'free' ? 'is-active' : ''}}"
+        data-mode="free"
+        bindtap="onTapModeOption"
+      >
+        <text class="picker-card__mode-icon">⏱</text>
+        <text class="picker-card__mode-label">自由计时</text>
+      </view>
+      <view
+        class="picker-card__mode {{selectedMode === 'pomodoro' ? 'is-active' : ''}}"
+        data-mode="pomodoro"
+        bindtap="onTapModeOption"
+      >
+        <text class="picker-card__mode-icon">🍅</text>
+        <text class="picker-card__mode-label">番茄钟</text>
+      </view>
+    </view>
+    <view class="picker-card__subjects">
+      <text class="picker-card__hint">选个今天要学的科目（可选）</text>
+      <view class="picker-card__chip-row">
+        <view
+          wx:for="{{subjectChips}}"
+          wx:key="label"
+          class="picker-chip {{item.active ? 'is-active' : ''}}"
+          data-label="{{item.label}}"
+          bindtap="onTapSubjectChip"
+        >{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}}">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
         <view class="timer-card__status {{activeSession && activeSession.status === 'running' ? 'is-running' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">
           <view wx:if="{{activeSession && activeSession.status === 'running'}}" class="timer-card__status-dot"></view>
-          <text class="timer-card__status-text">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : '专注中') : '准备开始'}}</text>
+          <text class="timer-card__status-text">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : (activeSession.mode === 'pomodoro' ? pomodoroPhaseLabel : '专注中')) : '准备开始'}}</text>
         </view>
         <text wx:if="{{activeSession && activeSession.status === 'paused' && pausedMinutes > 0}}" class="timer-card__pause-hint">已暂停 {{pausedMinutes}} 分钟</text>
       </view>
       <view class="timer-card__meta">
+        <text wx:if="{{activeSession && activeSession.subject}}" class="timer-card__subject-pill">{{activeSession.subject}}</text>
         <text>今日 {{todayMinutesText}}</text>
         <text class="timer-card__streak">
           <text wx:if="{{streakDays >= 3}}" class="timer-card__flame">🔥</text>
@@ -40,7 +80,18 @@
     </view>
 
     <text class="timer-card__clock">{{timerText}}</text>
-    <text wx:if="{{showEmptyHint}}" class="timer-card__hint">点击下方按钮，开始今天第一次专注</text>
+
+    <!-- Pomodoro cycle dots — only shown when running a pomodoro. -->
+    <view wx:if="{{activeSession && activeSession.mode === 'pomodoro'}}" class="timer-card__cycles">
+      <view
+        wx:for="{{pomodoroCycleDots}}"
+        wx:key="index"
+        class="timer-card__cycle-dot {{item.done ? 'is-done' : ''}}"
+      ></view>
+      <text wx:if="{{pomodoroCyclesCompleted > 4}}" class="timer-card__cycle-extra">+{{pomodoroCyclesCompleted - 4}}</text>
+    </view>
+
+    <text wx:if="{{showEmptyHint}}" class="timer-card__hint">点击下方按钮开始专注</text>
 
     <button
       wx:if="{{actions[0] === 'start'}}"
@@ -48,7 +99,7 @@
       bindtap="handleStart"
       loading="{{actionLoading}}"
       disabled="{{actionLoading}}"
-    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : '开始'}}</button>
+    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : (selectedMode === 'pomodoro' ? '开始番茄' : '开始')}}</button>
 
     <view wx:else class="timer-card__actions">
       <button

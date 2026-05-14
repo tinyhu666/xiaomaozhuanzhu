@@ -15,12 +15,17 @@ export type PauseSegment = {
   endedAt: string;
 };
 
+export type SessionMode = "free" | "pomodoro";
+
 export type ActiveSession = {
   id: string;
   status: "running" | "paused";
+  mode: SessionMode;
   startedAt: string;
   currentPauseStartedAt: string | null;
   pauseSegments: PauseSegment[];
+  pomodoroCycles: number;
+  subject: string | null;
   effectiveMinutes: number;
 };
 

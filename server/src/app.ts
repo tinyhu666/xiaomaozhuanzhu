@@ -52,6 +52,10 @@ const completeSchema = z.object({
   summary: z.string().trim().min(1).max(80),
   subject: z.enum(SUBJECTS).nullable().optional(),
   tags: z.array(z.enum(TAGS)).max(6).default([]),
+  // Cycles completed during the session — only meaningful for
+  // pomodoro mode. We accept it from any session for forward-
+  // compat; free-mode sessions just ignore the field.
+  pomodoroCycles: z.number().int().min(0).max(32).optional(),
   photos: z
     .array(
       z.object({
@@ -65,6 +69,19 @@ const completeSchema = z.object({
     .min(1)
     .max(3)
 });
+
+const startSessionSchema = z
+  .object({
+    // Optional subject pre-tag — the miniprogram now offers a chip
+    // row above the timer so the user can pick before they hit
+    // start. The complete-step still allows overriding.
+    subject: z.enum(SUBJECTS).nullable().optional(),
+    // Which timer mode the user is starting in. Defaults to "free"
+    // so older clients keep working unchanged.
+    mode: z.enum(["free", "pomodoro"]).optional()
+  })
+  .optional()
+  .default({});
 
 const shareSchema = z.object({
   isPublic: z.boolean(),
@@ -254,7 +271,8 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.post("/api/sessions/start", withUser(store, clock, async (_request, response, context) => {
+  app.post("/api/sessions/start", withUser(store, clock, async (request, response, context) => {
+    const payload = parse(startSessionSchema, request.body ?? {});
     const currentSession = await store.getCurrentSession(context.user.id);
 
     if (currentSession?.status === "running") {
@@ -270,13 +288,15 @@ export function createApp(options: CreateAppOptions = {}) {
       id: randomUUID(),
       userId: context.user.id,
       status: "running",
+      mode: payload.mode ?? "free",
       startedAt: now,
       endedAt: null,
       currentPauseStartedAt: null,
       pauseSegments: [],
       durationMinutes: 0,
+      pomodoroCycles: 0,
       summary: "",
-      subject: null,
+      subject: (payload.subject ?? null) as Subject | null,
       tags: [],
       createdAt: now,
       updatedAt: now
@@ -339,11 +359,13 @@ export function createApp(options: CreateAppOptions = {}) {
       id: randomUUID(),
       userId: context.user.id,
       status: "makeup",
+      mode: "free",
       startedAt: dayMidnight.toISOString(),
       endedAt: new Date(dayMidnight.getTime() + 60_000).toISOString(),
       currentPauseStartedAt: null,
       pauseSegments: [],
       durationMinutes: 0,
+      pomodoroCycles: 0,
       summary: "（补签）",
       subject: null,
       tags: [],
@@ -403,6 +425,9 @@ export function createApp(options: CreateAppOptions = {}) {
     session.subject = (payload.subject ?? null) as Subject | null;
     session.tags = payload.tags as SessionTag[];
     session.durationMinutes = calculateDurationMinutes(session.startedAt, now, session.pauseSegments);
+    if (typeof payload.pomodoroCycles === "number") {
+      session.pomodoroCycles = payload.pomodoroCycles;
+    }
     session.updatedAt = now;
     await store.saveSession(session);
     await store.savePhotos(
@@ -949,9 +974,12 @@ function serializeActiveSession(session: StudySession, now: Date) {
   return {
     id: session.id,
     status: session.status,
+    mode: session.mode,
     startedAt: session.startedAt,
     currentPauseStartedAt: session.currentPauseStartedAt,
     pauseSegments: session.pauseSegments,
+    pomodoroCycles: session.pomodoroCycles,
+    subject: session.subject,
     effectiveMinutes:
       session.status === "completed" && session.endedAt
         ? session.durationMinutes

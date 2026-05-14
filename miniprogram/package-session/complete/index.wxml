@@ -2,6 +2,7 @@
   <view class="hero-card">
     <view class="badge">结束学习</view>
     <view class="title" style="margin-top: 18rpx;">这次专注了 {{durationText}}</view>
+    <view wx:if="{{pomodoroBadgeText}}" class="badge" style="margin-top: 14rpx; background: rgba(229, 122, 50, 0.12); color: #b3551a;">{{pomodoroBadgeText}}</view>
     <view class="subtitle">拍一张照片，再写一句总结，把今天的努力稳稳记下来。</view>
   </view>
 

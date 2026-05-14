@@ -1,6 +1,15 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.9.0 — 「我的」+「动态」tab 已上线；考试动态从 CICPA 抓取，3 小时懒刷新。
+> 当前版本 v0.10.0 — 番茄钟模式上线 + 开始前选科目 + UI 质感升级。
+
+## v0.10.0 已上线（专注质量 + UX）
+
+- **番茄钟模式**：计时器卡上方加 `自由计时 / 番茄钟` segmented toggle。番茄钟下倒计时 25min 专注 + 5min 休息，每 4 个 cycle 后长休 15min。自动切换状态时 `wx.vibrateShort` + toast 通知；底部 4 个圆点可视化已完成的番茄数；超过 4 个用 "+N" 显示。打卡页带上番茄数。
+- **后台切回静默追赶**：用户切到其它 tab 再回来时，所有错过的相位静默推进，只有前台 tick 跨越相位才会发通知，不再"回到首页一口气弹 6 个 toast"。
+- **开始前选科目**：计时器卡上方多了 6 个科目 chip；选中后高亮 + 上浮；持久化到 `wx.setStorageSync('cpa.lastSubject', ...)`，下次默认勾选。开始计时 → 后端记录到 session.subject。结束打卡页自动预填该科目，不用再选第二次。
+- **服务端 schema**：`study_sessions` 加 `mode` ('free' | 'pomodoro') 和 `pomodoro_cycles` 列，幂等迁移。`POST /api/sessions/start` 接受可选 `subject` + `mode`。`POST /api/sessions/:id/complete` 接受可选 `pomodoroCycles`（0–32）。
+- **测试**：82 个全部通过（新增 3 个针对 pomodoro + subject 的 happy path / 边界 / 校验失败）。
+- **UI 质感**：picker chip 用 cubic-bezier(0.2, 0.8, 0.3, 1) 标准曲线 + scale press 态；番茄钟激活时整张 timer-card 微微染色（暖橙 hue）；mode toggle 是 segmented + 渐变填充。
 > 下面的规划按"用户价值密度 × 实现成本"排序，每个 phase 可独立交付。
 
 ---

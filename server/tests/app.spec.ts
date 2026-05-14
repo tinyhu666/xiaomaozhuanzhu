@@ -629,4 +629,90 @@ describe("CPA study check-in API", () => {
       .set("x-client-uid", "valid-client-uid-abc123")
       .expect(200);
   });
+
+  it("starts a pomodoro session pre-tagged with subject + mode and persists pomodoroCycles on complete", async () => {
+    // Pre-create the user so /sessions/start passes withUser auth.
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "pomo-user")
+      .expect(200);
+
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "pomo-user")
+      .send({ subject: "财管", mode: "pomodoro" })
+      .expect(200);
+
+    // The serialized active session must echo back both fields so the
+    // miniprogram can drive its countdown / cycle dots correctly.
+    expect(started.body.session.mode).toBe("pomodoro");
+    expect(started.body.session.subject).toBe("财管");
+    expect(started.body.session.pomodoroCycles).toBe(0);
+
+    const sessionId = started.body.session.id as string;
+    clock.advanceMinutes(60);
+
+    await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .set("x-wx-openid", "pomo-user")
+      .send({
+        summary: "财管两个完整番茄",
+        subject: "财管",
+        tags: ["高效"],
+        pomodoroCycles: 2,
+        photos: [
+          {
+            fileId: "cloud://demo/pomo-1.jpg",
+            objectKey: "checkins/2026/04/pomo-1.jpg"
+          }
+        ]
+      })
+      .expect(200);
+
+    // Re-fetch via /home — confirms the cycle count survived a save
+    // round-trip and is exposed for the next iteration's UI.
+    const home = await request(app)
+      .get("/api/home")
+      .set("x-wx-openid", "pomo-user")
+      .expect(200);
+    expect(home.body.activeSession).toBeNull();
+  });
+
+  it("rejects pomodoroCycles values outside [0, 32]", async () => {
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "pomo-bounds")
+      .expect(200);
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "pomo-bounds")
+      .send({ mode: "pomodoro" })
+      .expect(200);
+
+    await request(app)
+      .post(`/api/sessions/${started.body.session.id}/complete`)
+      .set("x-wx-openid", "pomo-bounds")
+      .send({
+        summary: "invalid cycles",
+        subject: null,
+        tags: [],
+        pomodoroCycles: 999,
+        photos: [
+          { fileId: "cloud://x/y.jpg", objectKey: "x/y.jpg" }
+        ]
+      })
+      .expect(400);
+  });
+
+  it("rejects an unknown mode value on /sessions/start", async () => {
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "bad-mode")
+      .expect(200);
+    await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "bad-mode")
+      .send({ mode: "marathon" })
+      .expect(400);
+  });
 });

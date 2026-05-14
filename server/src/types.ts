@@ -2,6 +2,13 @@ import type { SessionTag, Subject } from "./constants";
 
 export type SessionStatus = "running" | "paused" | "completed" | "abandoned" | "makeup";
 
+/**
+ * "free" = the original free-running stopwatch.
+ * "pomodoro" = 25-min focus / 5-min break cycles. The session row is
+ * still a single record; cycle count is captured on completion.
+ */
+export type SessionMode = "free" | "pomodoro";
+
 export interface User {
   id: string;
   openid: string | null;
@@ -41,11 +48,14 @@ export interface StudySession {
   id: string;
   userId: string;
   status: SessionStatus;
+  mode: SessionMode;
   startedAt: string;
   endedAt: string | null;
   currentPauseStartedAt: string | null;
   pauseSegments: PauseSegment[];
   durationMinutes: number;
+  /** Pomodoro cycles completed in this session (0 for free mode). */
+  pomodoroCycles: number;
   summary: string;
   subject: Subject | null;
   tags: SessionTag[];

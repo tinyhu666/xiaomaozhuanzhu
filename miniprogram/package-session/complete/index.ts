@@ -24,6 +24,9 @@ type CompletePageData = {
   tagChips: ChipView[];
   photos: LocalPhoto[];
   submitting: boolean;
+  /** Pomodoro cycles completed in this session — display + submit. */
+  pomodoroCycles: number;
+  pomodoroBadgeText: string;
 };
 
 function makeChips(values: string[]): ChipView[] {
@@ -38,14 +41,23 @@ Page<{}, CompletePageData>({
     subjectChips: makeChips(SUBJECTS),
     tagChips: makeChips(TAGS),
     photos: [],
-    submitting: false
+    submitting: false,
+    pomodoroCycles: 0,
+    pomodoroBadgeText: ""
   },
 
   onLoad(query) {
     const minutes = Number(query.minutes ?? 0);
+    const preselected = String(query.subject ?? "");
+    const cycles = Math.max(0, Math.min(32, Number(query.cycles ?? 0) | 0));
     this.setData({
       sessionId: String(query.sessionId ?? ""),
-      durationText: `${minutes} 分钟`
+      durationText: `${minutes} 分钟`,
+      // If the home page pre-selected a subject, light up that chip
+      // so the user doesn't have to choose twice.
+      subjectChips: SUBJECTS.map((value) => ({ value, selected: value === preselected })),
+      pomodoroCycles: cycles,
+      pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
     });
   },
 
@@ -161,7 +173,8 @@ Page<{}, CompletePageData>({
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,
           objectKey: photo.objectKey
-        }))
+        })),
+        pomodoroCycles: this.data.pomodoroCycles || 0
       });
       wx.showToast({
         title: "打卡完成",

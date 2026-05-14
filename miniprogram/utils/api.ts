@@ -261,10 +261,11 @@ export function getHome() {
   });
 }
 
-export function startSession() {
+export function startSession(payload: { subject?: string | null; mode?: "free" | "pomodoro" } = {}) {
   return callContainer<{ session: HomeResponse["activeSession"]; reused: boolean }>({
     path: "/sessions/start",
-    method: "POST"
+    method: "POST",
+    data: payload
   });
 }
 
@@ -303,6 +304,7 @@ export function completeSession(
     subject: string | null;
     tags: string[];
     photos: SessionPhoto[];
+    pomodoroCycles?: number;
   }
 ) {
   return callContainer<{

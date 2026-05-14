@@ -25,11 +25,13 @@ const TABLE_STATEMENTS = [
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     status VARCHAR(16) NOT NULL,
+    mode VARCHAR(16) NOT NULL DEFAULT 'free',
     started_at DATETIME(3) NOT NULL,
     ended_at DATETIME(3) NULL,
     current_pause_started_at DATETIME(3) NULL,
     pause_segments_json JSON NULL,
     duration_minutes INT NOT NULL DEFAULT 0,
+    pomodoro_cycles INT NOT NULL DEFAULT 0,
     summary VARCHAR(80) NOT NULL DEFAULT '',
     subject VARCHAR(16) NULL,
     tags_json JSON NULL,
@@ -142,6 +144,7 @@ export async function ensureMySqlSchema(env: EnvMap = process.env) {
     }
     await migrateUsersIdentitySchema(connection, plan.databaseName);
     await migrateNewsItemsSchema(connection, plan.databaseName);
+    await migrateSessionsModeSchema(connection, plan.databaseName);
   } finally {
     await connection.end();
   }
@@ -228,6 +231,36 @@ async function migrateNewsItemsSchema(connection: Connection, dbName: string) {
   if (!indexes.length) {
     await connection.query(
       "ALTER TABLE news_items ADD KEY idx_news_pin_pub (hidden, pinned DESC, published_at DESC)"
+    );
+  }
+}
+
+/**
+ * v0.9 → v0.10 migration: study_sessions gained a `mode`
+ * ('free' | 'pomodoro') and a `pomodoro_cycles` counter so a single
+ * session can record how many 25-min cycles were completed. Both
+ * default to neutral values that make old rows look like ordinary
+ * free-timer sessions, so no historical interpretation breaks.
+ * Safe to re-run.
+ */
+async function migrateSessionsModeSchema(connection: Connection, dbName: string) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'study_sessions'`,
+    [dbName]
+  );
+  const columns = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+  if (columns.size === 0) return; // table doesn't exist yet — CREATE handles it.
+
+  if (!columns.has("mode")) {
+    await connection.query(
+      "ALTER TABLE study_sessions ADD COLUMN mode VARCHAR(16) NOT NULL DEFAULT 'free' AFTER status"
+    );
+  }
+  if (!columns.has("pomodoro_cycles")) {
+    await connection.query(
+      "ALTER TABLE study_sessions ADD COLUMN pomodoro_cycles INT NOT NULL DEFAULT 0 AFTER duration_minutes"
     );
   }
 }

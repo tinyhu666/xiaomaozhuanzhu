@@ -74,11 +74,13 @@ type SessionRow = RowDataPacket & {
   id: string;
   user_id: string;
   status: StudySession["status"];
+  mode: string | null;
   started_at: string;
   ended_at: string | null;
   current_pause_started_at: string | null;
   pause_segments_json: string | null;
   duration_minutes: number;
+  pomodoro_cycles: number | null;
   summary: string;
   subject: string | null;
   tags_json: string | null;
@@ -277,14 +279,16 @@ export class MySQLStore {
   async saveSession(session: StudySession) {
     await this.pool.execute(
       `INSERT INTO study_sessions
-        (id, user_id, status, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, summary, subject, tags_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, user_id, status, mode, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, pomodoro_cycles, summary, subject, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         status = VALUES(status),
+        mode = VALUES(mode),
         ended_at = VALUES(ended_at),
         current_pause_started_at = VALUES(current_pause_started_at),
         pause_segments_json = VALUES(pause_segments_json),
         duration_minutes = VALUES(duration_minutes),
+        pomodoro_cycles = VALUES(pomodoro_cycles),
         summary = VALUES(summary),
         subject = VALUES(subject),
         tags_json = VALUES(tags_json),
@@ -293,11 +297,13 @@ export class MySQLStore {
         session.id,
         session.userId,
         session.status,
+        session.mode,
         toMySQLDateTimeRequired(session.startedAt),
         toMySQLDateTime(session.endedAt),
         toMySQLDateTime(session.currentPauseStartedAt),
         JSON.stringify(session.pauseSegments),
         session.durationMinutes,
+        session.pomodoroCycles,
         session.summary,
         session.subject,
         JSON.stringify(session.tags),
@@ -678,11 +684,13 @@ function mapSessionRow(row: SessionRow): StudySession {
     id: String(row.id),
     userId: String(row.user_id),
     status: row.status,
+    mode: (row.mode === "pomodoro" ? "pomodoro" : "free") as StudySession["mode"],
     startedAt: toIsoString(row.started_at),
     endedAt: toNullableIsoString(row.ended_at),
     currentPauseStartedAt: toNullableIsoString(row.current_pause_started_at),
     pauseSegments,
     durationMinutes: Number(row.duration_minutes ?? 0),
+    pomodoroCycles: Number(row.pomodoro_cycles ?? 0),
     summary: String(row.summary ?? ""),
     subject: (row.subject as StudySession["subject"]) ?? null,
     tags,
