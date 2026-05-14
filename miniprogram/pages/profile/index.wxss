@@ -206,6 +206,146 @@
 /* (Exam countdown card removed from 我的 in v0.9.4 — it now lives on
    the home page as the prominent hero countdown.) */
 
+/* ============================================================
+   v0.11 personal-record highlights — three small cards that
+   surface meaningful "best ever" numbers. The colored left edge
+   is a single pseudo-element so cards stay light visually but
+   still feel distinct from the standard stat-tiles.
+   ============================================================ */
+.record-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.record-card {
+  position: relative;
+  padding: 22rpx 18rpx 18rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.06);
+}
+
+.record-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6rpx;
+  border-radius: 4rpx 0 0 4rpx;
+}
+
+.record-card--bestDay::before { background: linear-gradient(180deg, #5fc491 0%, #2ea985 100%); }
+.record-card--bestWeek::before { background: linear-gradient(180deg, #8aa6f0 0%, #4a6ed9 100%); }
+
+.record-card__label {
+  display: block;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.record-card__value {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+  line-height: 1.1;
+}
+
+.record-card__caption {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 18rpx;
+  color: var(--text-sub);
+  opacity: 0.7;
+}
+
+/* ============================================================
+   v0.11 学习时段 insights card — 24-bar sparkline with peak
+   highlight + one-sentence summary line.
+   ============================================================ */
+.insights-card {
+  position: relative;
+  padding: 24rpx 26rpx 18rpx;
+  border-radius: 24rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.insights-card__head {
+  margin-bottom: 18rpx;
+}
+
+.insights-card__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.insights-card__sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  line-height: 1.5;
+}
+
+.insights-card__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4rpx;
+  height: 120rpx;
+  padding: 0 2rpx;
+}
+
+.insights-card__bar {
+  flex: 1;
+  min-height: 4rpx;
+  border-radius: 4rpx 4rpx 0 0;
+  background: rgba(46, 169, 133, 0.22);
+  transition: all 0.36s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.insights-card__bar.is-peak {
+  background: linear-gradient(180deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.32);
+}
+
+.insights-card__axis {
+  display: flex;
+  gap: 4rpx;
+  margin-top: 8rpx;
+  padding: 0 2rpx;
+}
+
+.insights-card__axis-label {
+  flex: 1;
+  text-align: center;
+  font-size: 16rpx;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.2rpx;
+}
+
 /* ----- Menu list ----- */
 .menu-list {
   border-radius: 28rpx;

@@ -178,3 +178,111 @@
   opacity: 0.7;
   letter-spacing: 0.3rpx;
 }
+
+/* ============================================================
+   v0.11 subject distribution donut. CSS-only — conic-gradient
+   for the ring, a smaller white disc on top for the hole.
+   Modern WeChat MP (≥ 2.10) renders this fine; older runtimes
+   degrade to a single-color disc but the legend below carries
+   the full data.
+   ============================================================ */
+.donut-card {
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  padding: 28rpx 26rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.donut-card__visual {
+  flex-shrink: 0;
+}
+
+.donut-card__ring {
+  position: relative;
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 50%;
+  /* `background` is set inline from the conic-gradient view-model.
+     Fallback solid color in case the runtime can't parse it. */
+  background: var(--mint-300);
+  box-shadow: 0 8rpx 22rpx rgba(46, 169, 133, 0.16);
+}
+
+.donut-card__hole {
+  position: absolute;
+  inset: 26rpx;
+  border-radius: 50%;
+  background: #fbfffd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
+}
+
+.donut-card__center-label {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.4rpx;
+  line-height: 1;
+}
+
+.donut-card__center-sub {
+  margin-top: 6rpx;
+  font-size: 18rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+}
+
+.donut-card__legend {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.donut-card__legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 22rpx;
+  color: var(--text-main);
+}
+
+.donut-card__legend-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-card__legend-name {
+  font-weight: 600;
+  letter-spacing: 0.2rpx;
+}
+
+.donut-card__legend-time {
+  flex: 1;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  text-align: right;
+}
+
+.donut-card__legend-percent {
+  width: 60rpx;
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+}

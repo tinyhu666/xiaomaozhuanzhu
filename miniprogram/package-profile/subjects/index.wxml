@@ -11,6 +11,28 @@
     <text wx:if="{{anyFallback}}" class="overall-card__footnote">* 标 ✱ 的科目暂以上一年公告时间为参考，待今年正式时间公布后会自动更新</text>
   </view>
 
+  <!-- v0.11 subject distribution donut. Only shows when at least one
+       subject has minutes; otherwise the 6 subject cards below tell
+       the same "not yet" story. -->
+  <view wx:if="{{donut.hasData}}" class="donut-card">
+    <view class="donut-card__visual">
+      <view class="donut-card__ring" style="{{donut.style}}">
+        <view class="donut-card__hole">
+          <text class="donut-card__center-label">{{donut.centerLabel}}</text>
+          <text class="donut-card__center-sub">{{donut.centerSub}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="donut-card__legend">
+      <view wx:for="{{donut.segments}}" wx:key="subject" class="donut-card__legend-row">
+        <view class="donut-card__legend-dot" style="background:{{item.color}};"></view>
+        <text class="donut-card__legend-name">{{item.subject}}</text>
+        <text class="donut-card__legend-time">{{item.totalText}}</text>
+        <text class="donut-card__legend-percent">{{item.percent}}%</text>
+      </view>
+    </view>
+  </view>
+
   <view class="subject-list">
     <view
       wx:for="{{subjects}}"

@@ -159,6 +159,28 @@ export type NewsDetailResponse = {
   item: NewsDetail;
 };
 
+export type BestWeek = {
+  weekStart: string;
+  totalMinutes: number;
+};
+
+export type DashboardRecords = {
+  bestDay: { date: string | null; totalMinutes: number };
+  longestStreakDays: number;
+  bestWeek: BestWeek | null;
+};
+
+export type DashboardPatterns = {
+  /** 24 entries — cumulative minutes per Shanghai hour (00..23). */
+  hourly: number[];
+  /** 7 entries — average minutes per weekday (Mon..Sun, index 0=Mon). */
+  weekday: number[];
+  /** Index of the hour with most cumulative minutes, or null. */
+  peakHour: number | null;
+  /** Index of the weekday with highest average minutes, or null. */
+  peakWeekday: number | null;
+};
+
 export type ProfileDashboardResponse = {
   profile: UserProfile;
   summary: {
@@ -175,4 +197,6 @@ export type ProfileDashboardResponse = {
   };
   badges?: Badge[];
   examSchedule?: ExamDateInfo[];
+  records?: DashboardRecords;
+  patterns?: DashboardPatterns;
 };

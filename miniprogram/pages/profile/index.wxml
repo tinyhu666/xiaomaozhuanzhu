@@ -47,6 +47,44 @@
     <text class="profile-quote__zh">{{quoteZh}}</text>
   </view>
 
+  <!-- v0.11 personal-record highlight cards: 3 small cards, always
+       rendered so the layout doesn't shift after the first session.
+       Hidden when nothing recorded yet to avoid showing three "—". -->
+  <view wx:if="{{highlights.length}}" class="record-row">
+    <view
+      wx:for="{{highlights}}"
+      wx:key="key"
+      class="record-card record-card--{{item.key}}"
+    >
+      <text class="record-card__label">{{item.label}}</text>
+      <text class="record-card__value">{{item.value}}</text>
+      <text class="record-card__caption">{{item.caption}}</text>
+    </view>
+  </view>
+
+  <!-- v0.11 insights card: 24-bar sparkline + peak-hour / peak-weekday
+       sentence. Only renders once the user has any data; otherwise
+       it'd show an empty chart on first open. -->
+  <view wx:if="{{insights.hasData}}" class="insights-card">
+    <view class="insights-card__head">
+      <view>
+        <text class="insights-card__title">学习时段</text>
+        <text class="insights-card__sub">你最高效的时段是 {{insights.peakHourLabel}}，{{insights.peakWeekdayLabel}} 平均最长</text>
+      </view>
+    </view>
+    <view class="insights-card__chart">
+      <view
+        wx:for="{{insights.bars}}"
+        wx:key="index"
+        class="insights-card__bar {{item.isPeak ? 'is-peak' : ''}}"
+        style="height: {{item.height}}%"
+      ></view>
+    </view>
+    <view class="insights-card__axis">
+      <text wx:for="{{insights.bars}}" wx:key="index" class="insights-card__axis-label">{{item.hourLabel}}</text>
+    </view>
+  </view>
+
   <view class="stat-grid">
     <view class="stat-tile">
       <text class="stat-tile__value">{{totalText}}</text>

@@ -9,7 +9,14 @@ import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek }
 import { getExamSchedule } from "./domain/exam-dates";
 import { maybeKickoffNewsRefresh } from "./domain/news";
 import { ensureNewsSeed } from "./domain/news-seed";
-import { buildDayContributions, calculateDurationMinutes, rebuildDailyStats } from "./domain/stats";
+import {
+  buildDayContributions,
+  buildHourlyPattern,
+  buildWeekdayPattern,
+  calculateDurationMinutes,
+  findBestWeek,
+  rebuildDailyStats
+} from "./domain/stats";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
 import { createStorageClient, type StorageClient } from "./storage/default-storage";
@@ -247,6 +254,18 @@ export function createApp(options: CreateAppOptions = {}) {
 
     const examSchedule = getExamSchedule(clock.now());
 
+    // -----------------------------------------------------------
+    // v0.11 insights: derived "when do you focus best" patterns
+    // and the all-time best-week record. Cheap to compute (small
+    // N for one user) so we ship them alongside the dashboard
+    // payload instead of adding a separate endpoint round-trip.
+    // -----------------------------------------------------------
+    const hourlyPattern = buildHourlyPattern(sessions);
+    const weekdayPattern = buildWeekdayPattern(dailyStats.values());
+    const peakHour = pickPeakIndex(hourlyPattern);
+    const peakWeekday = pickPeakIndex(weekdayPattern);
+    const bestWeek = findBestWeek(dailyStats.values());
+
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
       summary: {
@@ -267,6 +286,17 @@ export function createApp(options: CreateAppOptions = {}) {
         subjectTotals: subjectsWithProgress.map((item) => ({ subject: item.subject, totalMinutes: item.totalMinutes })),
         completedSubjectCount: completedSubjects.size
       }),
+      records: {
+        bestDay,
+        longestStreakDays,
+        bestWeek
+      },
+      patterns: {
+        hourly: hourlyPattern,
+        weekday: weekdayPattern,
+        peakHour,
+        peakWeekday
+      },
       examSchedule
     });
   }));
@@ -997,6 +1027,24 @@ function emptyDailyStat(userId: string, date: string, updatedAt: string): DailyS
     streakDays: 0,
     updatedAt
   };
+}
+
+/**
+ * Returns the index of the largest positive entry, or null when the
+ * whole array is zero (i.e. user has never studied — no peak yet).
+ * Ties pick the earliest index, which keeps the displayed "peak"
+ * stable across small swings in close hours.
+ */
+function pickPeakIndex(values: number[]): number | null {
+  let bestIdx: number | null = null;
+  let bestValue = 0;
+  for (let i = 0; i < values.length; i += 1) {
+    if (values[i] > bestValue) {
+      bestValue = values[i];
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
 }
 
 function parseNewsCategoryParam(raw: unknown): NewsCategory | "all" {

@@ -450,6 +450,27 @@ describe("CPA study check-in API", () => {
     );
     expect(exam?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(exam?.daysRemaining).toBeGreaterThanOrEqual(0);
+
+    // v0.11 — insights + records surface on /me/dashboard so the
+    // profile page can render its highlights + 学习时段 chart
+    // without a second round-trip.
+    expect(dashboard.body.patterns.hourly).toHaveLength(24);
+    expect(dashboard.body.patterns.weekday).toHaveLength(7);
+    const totalHourly = (dashboard.body.patterns.hourly as number[])
+      .reduce((sum: number, v: number) => sum + v, 0);
+    // The two completed sessions in this test totaled 225 minutes;
+    // hourly distribution should sum to the same.
+    expect(totalHourly).toBe(225);
+    expect(dashboard.body.patterns.peakHour).not.toBeNull();
+
+    expect(dashboard.body.records.longestStreakDays).toBe(1);
+    expect(dashboard.body.records.bestDay).toEqual({
+      date: "2026-04-16",
+      totalMinutes: 225
+    });
+    expect(dashboard.body.records.bestWeek).toMatchObject({
+      totalMinutes: 225
+    });
   });
 
   it("recovers a one-day streak gap via makeup and refuses again within 7 days", async () => {
