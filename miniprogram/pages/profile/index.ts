@@ -23,37 +23,40 @@ function hourLabel(hour: number): string {
   return `${period} ${h12} 点`;
 }
 
-type HighlightCard = {
-  key: "bestDay" | "bestWeek";
+/**
+ * v0.15: collapsed the old "records" row (single-day-longest / best-
+ * week) into the same 4-tile stat grid as the cumulative numbers,
+ * so the page has one place to look for "how am I doing" instead of
+ * two competing blocks.
+ */
+type StatTileView = {
+  key: string;
   label: string;
   value: string;
+  unit: string;
   caption: string;
+  tone: "mint" | "amber" | "blue" | "rose";
 };
 
 type InsightView = {
   hasData: boolean;
   peakHourLabel: string;
   peakWeekdayLabel: string;
-  bars: Array<{ height: number; hourLabel: string; isPeak: boolean }>;
+  /** 24 bars — no axis labels in v0.15 (the peak callout above the chart
+   *  carries the only word the user actually needs). */
+  bars: Array<{ height: number; isPeak: boolean }>;
 };
 
 type ProfilePageData = {
   profile: { nickname: string; avatarUrl: string; profileCompleted: boolean };
   nicknameFocus: boolean;
-  totalText: string;
-  completedCount: number;
-  currentStreak: number;
-  longestStreak: number;
   badgeProgressLabel: string;
   subjectsHint: string;
   shareHint: string;
   appVersion: string;
   quoteEn: string;
   quoteZh: string;
-  quoteDateLabel: string;
-  /** Three "personal record" cards shown below the hero. */
-  highlights: HighlightCard[];
-  /** Hourly + weekday focus pattern card. `hasData=false` hides it. */
+  statTiles: StatTileView[];
   insights: InsightView;
 };
 
@@ -61,18 +64,13 @@ Page<{}, ProfilePageData>({
   data: {
     profile: { nickname: "", avatarUrl: "", profileCompleted: false },
     nicknameFocus: false,
-    totalText: "0m",
-    completedCount: 0,
-    currentStreak: 0,
-    longestStreak: 0,
     badgeProgressLabel: "—",
     subjectsHint: "—",
     shareHint: "未开启",
     appVersion: runtimeConfig.appVersion,
     quoteEn: "One page at a time.",
     quoteZh: "一页一页，也是在前进。",
-    quoteDateLabel: "",
-    highlights: [],
+    statTiles: [],
     insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] }
   },
 
@@ -86,11 +84,7 @@ Page<{}, ProfilePageData>({
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const quote = getDailyQuote(today);
-    this.setData({
-      quoteEn: quote.en,
-      quoteZh: quote.zh,
-      quoteDateLabel: `${now.getMonth() + 1}月${now.getDate()}日`
-    });
+    this.setData({ quoteEn: quote.en, quoteZh: quote.zh });
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[profile] ensureProfile failed", error);
     });
@@ -127,14 +121,10 @@ Page<{}, ProfilePageData>({
           avatarUrl: dashboard.profile?.avatarUrl || "",
           profileCompleted: Boolean(dashboard.profile?.profileCompleted)
         },
-        totalText: formatDuration(summary.totalMinutes || 0),
-        completedCount: summary.completedSessionCount || 0,
-        currentStreak: summary.currentStreakDays || 0,
-        longestStreak: summary.longestStreakDays || 0,
         badgeProgressLabel: totalBadges ? `已解锁 ${unlocked} / ${totalBadges}` : "—",
         subjectsHint: subjectsLabel,
         shareHint: dashboard.profile?.isPublic ? "已开启" : "未开启",
-        highlights: this.buildHighlights(dashboard),
+        statTiles: this.buildStatTiles(dashboard),
         insights: this.buildInsightsView(dashboard.patterns)
       });
     } catch (error) {
@@ -216,65 +206,76 @@ Page<{}, ProfilePageData>({
    * size (avoids layout shift after first session).
    */
   /**
-   * Two "personal record" cards. We deliberately don't show 最长连签
-   * here because it already lives in the stat-grid below — two
-   * identical "5 天" numbers a few rpx apart would look like a bug.
-   * If you want to add a third record, pick something the stat-grid
-   * doesn't already surface (e.g. peak single-session, weekend
-   * power-week).
+   * The four-tile grid: 累计学习 / 完成打卡 / 最长连签 / 单日最长.
+   * Picking these four because:
+   *   - 累计学习 / 完成打卡: cumulative totals (effort recap)
+   *   - 最长连签: streak record (consistency)
+   *   - 单日最长: peak-day record (intensity)
+   * Current-streak is intentionally absent — it's already on the
+   * home page as part of the timer-card meta line, and duplicating
+   * it here just creates two competing "5 天" numbers.
    */
-  buildHighlights(dashboard: ProfileDashboardResponse): HighlightCard[] {
+  buildStatTiles(dashboard: ProfileDashboardResponse): StatTileView[] {
+    const summary = dashboard.summary || ({} as ProfileDashboardResponse["summary"]);
     const records = dashboard.records;
     const bestDay = records?.bestDay ?? dashboard.bestDay ?? { date: null, totalMinutes: 0 };
-    const bestWeek = records?.bestWeek ?? null;
-
-    const bestDayCaption = bestDay.date
-      ? bestDay.date.slice(5).replace("-", ".")
-      : "—";
-    const bestWeekCaption = bestWeek?.weekStart
-      ? `${bestWeek.weekStart.slice(5).replace("-", ".")} 起`
-      : "—";
+    const longestStreak = records?.longestStreakDays ?? summary.longestStreakDays ?? 0;
+    const totalMinutes = summary.totalMinutes ?? 0;
+    const completedCount = summary.completedSessionCount ?? 0;
 
     return [
+      {
+        key: "total",
+        label: "累计学习",
+        value: formatDuration(totalMinutes),
+        unit: "",
+        caption: "",
+        tone: "mint"
+      },
+      {
+        key: "completed",
+        label: "完成打卡",
+        value: String(completedCount),
+        unit: completedCount > 0 ? "次" : "",
+        caption: "",
+        tone: "blue"
+      },
+      {
+        key: "longestStreak",
+        label: "最长连签",
+        value: longestStreak > 0 ? String(longestStreak) : "—",
+        unit: longestStreak > 0 ? "天" : "",
+        caption: "",
+        tone: "amber"
+      },
       {
         key: "bestDay",
         label: "单日最长",
         value: bestDay.totalMinutes > 0 ? formatDuration(bestDay.totalMinutes) : "—",
-        caption: bestDayCaption
-      },
-      {
-        key: "bestWeek",
-        label: "最佳一周",
-        value: bestWeek && bestWeek.totalMinutes > 0 ? formatDuration(bestWeek.totalMinutes) : "—",
-        caption: bestWeekCaption
+        unit: "",
+        caption: bestDay.date ? bestDay.date.slice(5).replace("-", ".") : "",
+        tone: "rose"
       }
     ];
   },
 
   /**
-   * Convert the server's raw 24-bin hourly pattern into a sparkline-
-   * style mini chart: each hour becomes a vertical bar whose height
-   * is proportional to that hour's share of the peak. We also emit
-   * the peak hour label ("晚上 8 点") and the peak weekday label
-   * ("周三") so the user gets a one-line "你最高效的时段是 X" sentence
-   * with no further math.
+   * 24-bin hourly pattern → sparkline view-model. The card around
+   * this chart was compacted in v0.15 (single-line peak callout
+   * instead of a 2-line title/subtitle block); the per-bar shape
+   * stays the same.
    */
   buildInsightsView(patterns?: ProfileDashboardResponse["patterns"]): InsightView {
     if (!patterns || !patterns.hourly?.length) {
       return { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] };
     }
-    // Hide the card entirely when the user has zero minutes recorded
-    // anywhere — a flat zero chart is not informative.
     const hourlySum = patterns.hourly.reduce((sum, value) => sum + value, 0);
     if (hourlySum <= 0) {
       return { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] };
     }
     const max = Math.max(...patterns.hourly, 1);
     const bars = patterns.hourly.map((minutes, hour) => ({
-      // Floor at 4% so empty hours still render a tiny stub bar,
-      // making the chart look like a chart instead of a gap row.
       height: minutes > 0 ? Math.max(8, Math.round((minutes / max) * 100)) : 4,
-      hourLabel: hour % 6 === 0 ? `${hour}时` : "",
       isPeak: patterns.peakHour !== null && hour === patterns.peakHour
     }));
 

@@ -1,43 +1,57 @@
 .profile-page {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 22rpx;
 }
 
-/* ----- Hero (avatar + nickname) ----- */
+/* Staggered fade-up — each child card slides up by 14rpx and fades
+   in. Cubic-bezier matches the rest of the app's standard curve. */
+@keyframes profile-fade-up {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-page > view,
+.profile-page > .profile-version {
+  animation: profile-fade-up 0.42s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+.profile-page > view:nth-child(1) { animation-delay: 0.04s; }
+.profile-page > view:nth-child(2) { animation-delay: 0.1s; }
+.profile-page > view:nth-child(3) { animation-delay: 0.16s; }
+.profile-page > view:nth-child(4) { animation-delay: 0.22s; }
+.profile-page > view:nth-child(5) { animation-delay: 0.28s; }
+.profile-page > view:nth-child(6) { animation-delay: 0.34s; }
+.profile-page > .profile-version { animation-delay: 0.4s; }
+
+/* ============================================================
+   Hero — avatar + nickname.
+   ============================================================ */
 .profile-hero {
   position: relative;
   display: flex;
   align-items: center;
   gap: 26rpx;
-  padding: 32rpx;
+  padding: 30rpx 32rpx;
   border-radius: 28rpx;
   background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.18), transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.12);
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.2), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
   box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.1);
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.8),
+    0 10rpx 28rpx -6rpx rgba(46, 169, 133, 0.08);
 }
 
-/*
- * WeChat <button> elements ship with hard-coded width/min-width rules
- * that override CSS even when we set width: 132rpx — that's what made
- * the avatar render as a wide ellipse on iOS. Fix: a fixed-size
- * <view> wrapper controls the visual circle (with overflow:hidden),
- * and a transparent absolute-positioned button sits on top purely as
- * the chooseAvatar tap target.
- */
 .profile-hero__avatar-wrap {
   position: relative;
-  width: 132rpx;
-  height: 132rpx;
+  width: 124rpx;
+  height: 124rpx;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
   background: linear-gradient(135deg, #c2ead2 0%, #6fc99a 100%);
-  box-shadow: 0 8rpx 20rpx rgba(46, 169, 133, 0.18);
+  box-shadow: 0 6rpx 18rpx rgba(46, 169, 133, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +65,7 @@
 }
 
 .profile-hero__avatar-placeholder {
-  font-size: 64rpx;
+  font-size: 60rpx;
   line-height: 1;
 }
 
@@ -70,14 +84,6 @@
   align-items: flex-end;
   justify-content: center;
   line-height: 1;
-  /*
-   * Three layers of "no overlay please":
-   *   - tap-highlight: removes the iOS blue flash on tap
-   *   - touch-callout: prevents the long-press select-image menu
-   *     from rendering over the button (also blue)
-   *   - active: forces our own transparent override over whatever
-   *     WeChat's button base style wants to do
-   */
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   outline: none;
@@ -96,7 +102,7 @@
 
 .profile-hero__avatar-edit {
   width: 100%;
-  padding: 6rpx 0 8rpx;
+  padding: 5rpx 0 7rpx;
   font-size: 18rpx;
   color: #fff;
   background: rgba(34, 129, 104, 0.85);
@@ -104,70 +110,19 @@
   letter-spacing: 1rpx;
 }
 
-/* Daily quote — small editorial card moved here from home in v0.9.4
-   so the home page stays focused on actions and the profile page
-   carries the daily-personality content. Compact compared to the
-   home version: no large mark glyph, smaller English line, no side
-   rail — just enough to feel hand-crafted without dominating. */
-.profile-quote {
-  position: relative;
-  padding: 22rpx 26rpx 24rpx;
-  border-radius: 24rpx;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 38%),
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.06);
-}
-
-.profile-quote__chip {
-  display: inline-flex;
-  padding: 4rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.1);
-  border: 1rpx solid rgba(46, 169, 133, 0.16);
-  font-size: 18rpx;
-  font-weight: 700;
-  color: var(--mint-600);
-  letter-spacing: 1.2rpx;
-  margin-bottom: 14rpx;
-}
-
-.profile-quote__en {
-  display: block;
-  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
-  font-size: 30rpx;
-  font-weight: 600;
-  line-height: 1.35;
-  color: #155946;
-  letter-spacing: 0.2rpx;
-}
-
-.profile-quote__zh {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  font-weight: 400;
-  line-height: 1.65;
-  color: var(--text-sub);
-  letter-spacing: 0.4rpx;
-}
-
 .profile-hero__body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 4rpx;
 }
 
 .profile-hero__nickname {
-  font-size: 40rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: var(--text-main);
-  letter-spacing: 0.4rpx;
+  letter-spacing: 0.3rpx;
   background: transparent;
   padding: 4rpx 0;
 }
@@ -176,9 +131,14 @@
   font-size: 20rpx;
   color: var(--text-sub);
   letter-spacing: 0.3rpx;
+  opacity: 0.78;
 }
 
-/* ----- Stat grid 4 tiles ----- */
+/* ============================================================
+   Stat grid — 2×2. Each tile carries label / big value / optional
+   caption. A 6rpx colored left strip differentiates the four
+   "tone" themes (mint / blue / amber / rose).
+   ============================================================ */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -186,23 +146,45 @@
 }
 
 .stat-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
-  padding: 24rpx 24rpx;
-  border-radius: 24rpx;
+  gap: 8rpx;
+  padding: 22rpx 22rpx 20rpx 26rpx;
+  border-radius: 22rpx;
   background:
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 8rpx 24rpx -4rpx rgba(46, 169, 133, 0.06);
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.05);
+  overflow: hidden;
+}
+
+.stat-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4rpx;
+}
+
+.stat-tile--mint::before  { background: linear-gradient(180deg, #5fc491 0%, #2ea985 100%); }
+.stat-tile--blue::before  { background: linear-gradient(180deg, #8aa6f0 0%, #4a6ed9 100%); }
+.stat-tile--amber::before { background: linear-gradient(180deg, #ffb86b 0%, #e57b2b 100%); }
+.stat-tile--rose::before  { background: linear-gradient(180deg, #f3a0a0 0%, #d96e6e 100%); }
+
+.stat-tile__label {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
 }
 
 .stat-tile__value {
-  font-size: 44rpx;
+  font-size: 40rpx;
   font-weight: 800;
-  color: var(--mint-600);
+  color: var(--text-main);
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.3rpx;
@@ -210,232 +192,205 @@
 }
 
 .stat-tile__unit {
-  font-size: 26rpx;
+  font-size: 22rpx;
   font-weight: 600;
   margin-left: 4rpx;
-  color: var(--mint-500);
-}
-
-.stat-tile__label {
-  font-size: 22rpx;
   color: var(--text-sub);
-  letter-spacing: 0.4rpx;
-}
-
-/* (Exam countdown card removed from 我的 in v0.9.4 — it now lives on
-   the home page as the prominent hero countdown.) */
-
-/* ============================================================
-   v0.11 personal-record highlights — three small cards that
-   surface meaningful "best ever" numbers. The colored left edge
-   is a single pseudo-element so cards stay light visually but
-   still feel distinct from the standard stat-tiles.
-   ============================================================ */
-.record-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14rpx;
-}
-
-.record-card {
-  position: relative;
-  padding: 22rpx 18rpx 18rpx;
-  border-radius: 24rpx;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.06);
-}
-
-.record-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 6rpx;
-  border-radius: 4rpx 0 0 4rpx;
-}
-
-.record-card--bestDay::before { background: linear-gradient(180deg, #5fc491 0%, #2ea985 100%); }
-.record-card--bestWeek::before { background: linear-gradient(180deg, #8aa6f0 0%, #4a6ed9 100%); }
-
-.record-card__label {
-  display: block;
-  font-size: 22rpx;
-  color: var(--text-sub);
-  letter-spacing: 0.3rpx;
-}
-
-.record-card__value {
-  display: block;
-  margin-top: 8rpx;
-  font-size: 36rpx;
-  font-weight: 800;
-  color: var(--text-main);
-  font-feature-settings: "tnum" 1;
-  font-variant-numeric: tabular-nums;
   letter-spacing: 0.2rpx;
-  line-height: 1.1;
 }
 
-.record-card__caption {
-  display: block;
-  margin-top: 6rpx;
+.stat-tile__caption {
   font-size: 18rpx;
   color: var(--text-sub);
   opacity: 0.7;
+  letter-spacing: 0.2rpx;
 }
 
 /* ============================================================
-   v0.11 学习时段 insights card — 24-bar sparkline with peak
-   highlight + one-sentence summary line.
+   Insights — single-line head + 24-bar sparkline. Bars use a
+   stagger-grow animation (controlled by inline animation-delay
+   on each .insights-card__bar so first-render feels alive).
    ============================================================ */
 .insights-card {
   position: relative;
-  padding: 24rpx 26rpx 18rpx;
-  border-radius: 24rpx;
+  padding: 22rpx 26rpx 20rpx;
+  border-radius: 22rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.08);
+    0 6rpx 20rpx -4rpx rgba(46, 169, 133, 0.06);
 }
 
 .insights-card__head {
-  margin-bottom: 18rpx;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
 }
 
 .insights-card__title {
-  display: block;
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: 0.3rpx;
 }
 
-.insights-card__sub {
-  display: block;
-  margin-top: 6rpx;
+.insights-card__peak {
   font-size: 22rpx;
-  color: var(--text-sub);
+  font-weight: 600;
+  color: var(--mint-600);
   letter-spacing: 0.2rpx;
-  line-height: 1.5;
+  font-feature-settings: "tnum" 1;
 }
 
 .insights-card__chart {
   display: flex;
   align-items: flex-end;
   gap: 4rpx;
-  height: 120rpx;
+  height: 96rpx;
   padding: 0 2rpx;
+}
+
+@keyframes insights-bar-grow {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
 }
 
 .insights-card__bar {
   flex: 1;
-  min-height: 4rpx;
-  border-radius: 4rpx 4rpx 0 0;
-  background: rgba(46, 169, 133, 0.22);
-  transition: all 0.36s cubic-bezier(0.2, 0.8, 0.3, 1);
+  min-height: 3rpx;
+  border-radius: 3rpx 3rpx 0 0;
+  background: rgba(46, 169, 133, 0.2);
+  transform-origin: bottom;
+  animation: insights-bar-grow 0.52s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
 .insights-card__bar.is-peak {
   background: linear-gradient(180deg, #63cba8 0%, #2ea985 100%);
-  box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.32);
+  box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.3);
 }
 
-.insights-card__axis {
-  display: flex;
-  gap: 4rpx;
-  margin-top: 8rpx;
-  padding: 0 2rpx;
+/* ============================================================
+   Quote — minimal italic block, no card chrome. Decorative.
+   ============================================================ */
+.profile-quote {
+  padding: 4rpx 8rpx;
 }
 
-.insights-card__axis-label {
-  flex: 1;
-  text-align: center;
-  font-size: 16rpx;
-  color: var(--text-sub);
-  font-feature-settings: "tnum" 1;
+.profile-quote__en {
+  display: block;
+  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
+  font-size: 28rpx;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.5;
+  color: #155946;
   letter-spacing: 0.2rpx;
 }
 
-/* ----- Menu list ----- */
+.profile-quote__zh {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+/* ============================================================
+   Menu list — staggered fade-in for each item gives a sense of
+   "page is composing itself" without being noisy.
+   ============================================================ */
 .menu-list {
-  border-radius: 28rpx;
+  border-radius: 26rpx;
   background:
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 8rpx 24rpx -4rpx rgba(46, 169, 133, 0.06);
+    0 6rpx 22rpx -4rpx rgba(46, 169, 133, 0.06);
   overflow: hidden;
+}
+
+@keyframes menu-item-slide {
+  from { opacity: 0; transform: translateX(-12rpx); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .menu-item {
   display: flex;
   align-items: center;
   gap: 18rpx;
-  padding: 26rpx 28rpx;
-  border-top: 1rpx solid rgba(46, 169, 133, 0.08);
-  transition: background 0.15s ease;
+  padding: 22rpx 26rpx;
+  border-top: 1rpx solid rgba(46, 169, 133, 0.06);
+  transition: background 0.18s ease;
+  animation: menu-item-slide 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
-.menu-item:first-child {
-  border-top: none;
-}
+.menu-item:first-child { border-top: none; }
+.menu-item:nth-child(1) { animation-delay: 0.42s; }
+.menu-item:nth-child(2) { animation-delay: 0.48s; }
+.menu-item:nth-child(3) { animation-delay: 0.54s; }
+.menu-item:nth-child(4) { animation-delay: 0.6s; }
+.menu-item:nth-child(5) { animation-delay: 0.66s; }
 
 .menu-item:active {
   background: rgba(46, 169, 133, 0.06);
 }
 
 .menu-item__icon {
-  width: 60rpx;
-  height: 60rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 16rpx;
   background: rgba(46, 169, 133, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30rpx;
+  font-size: 28rpx;
+  flex-shrink: 0;
 }
 
 .menu-item__body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 3rpx;
+  min-width: 0;
 }
 
 .menu-item__title {
   font-size: 28rpx;
   font-weight: 700;
   color: var(--text-main);
-  letter-spacing: 0.4rpx;
+  letter-spacing: 0.3rpx;
 }
 
 .menu-item__hint {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: var(--text-sub);
-  letter-spacing: 0.3rpx;
+  letter-spacing: 0.2rpx;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-item__chevron {
   font-size: 32rpx;
   color: var(--text-sub);
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 .profile-version {
   display: block;
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   text-align: center;
-  font-size: 20rpx;
-  color: rgba(94, 125, 117, 0.55);
+  font-size: 18rpx;
+  color: rgba(94, 125, 117, 0.5);
   letter-spacing: 1rpx;
 }

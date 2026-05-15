@@ -1,12 +1,8 @@
 <view class="page-shell profile-page">
   <!--
-    Hero — the official WeChat "登录 / 完善资料" pattern: tap the
-    avatar to choose from your WeChat photos (open-type=chooseAvatar);
-    tap the nickname row to pull your WeChat nickname into the input
-    (type=nickname). These are the only two APIs WeChat still allows
-    for self-served profile capture since 2022, so there is no
-    cleaner / one-click path possible. We just make the two tap
-    targets visually obvious and stop adding extra CTAs.
+    Hero — official WeChat profile-capture pattern (chooseAvatar +
+    type=nickname). The verbose hint line was dropped in v0.15;
+    the two tap targets are clear enough without further explanation.
   -->
   <view class="profile-hero">
     <view class="profile-hero__avatar-wrap">
@@ -17,14 +13,6 @@
         mode="aspectFill"
       />
       <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
-      <!--
-        hover-class="none" turns off WeChat's default button hover
-        overlay (a translucent darken that some iOS renderings show
-        with a blueish tint). The CSS additionally sets
-        `-webkit-tap-highlight-color: transparent` and forces the
-        :active background back to transparent, killing the residual
-        blue tap-flash some users reported in v0.12.
-      -->
       <button
         class="profile-hero__avatar-btn"
         hover-class="none"
@@ -43,73 +31,47 @@
         focus="{{nicknameFocus}}"
         bindblur="onNicknameBlur"
       />
-      <text class="profile-hero__hint">点头像换头像 · 点昵称栏从微信导入</text>
+      <text wx:if="{{!profile.nickname}}" class="profile-hero__hint">支持一键导入微信昵称</text>
     </view>
   </view>
 
-  <!-- Daily quote — small, persistent personality on the profile page
-       (moved out of home in v0.9.3 to keep home action-focused). -->
-  <view class="profile-quote">
-    <view class="profile-quote__chip">{{quoteDateLabel}}</view>
-    <text class="profile-quote__en">{{quoteEn}}</text>
-    <text class="profile-quote__zh">{{quoteZh}}</text>
-  </view>
-
-  <!-- v0.11 personal-record highlight cards: 3 small cards, always
-       rendered so the layout doesn't shift after the first session.
-       Hidden when nothing recorded yet to avoid showing three "—". -->
-  <view wx:if="{{highlights.length}}" class="record-row">
-    <view
-      wx:for="{{highlights}}"
-      wx:key="key"
-      class="record-card record-card--{{item.key}}"
-    >
-      <text class="record-card__label">{{item.label}}</text>
-      <text class="record-card__value">{{item.value}}</text>
-      <text class="record-card__caption">{{item.caption}}</text>
+  <!--
+    Compact 2×2 stat grid — merged the "personal records" row in
+    v0.15. Each tile carries label + value + tiny caption (for
+    records) or no caption (for cumulative totals). Removed the
+    separate insights title text from the old 3-section layout.
+  -->
+  <view class="stat-grid">
+    <view wx:for="{{statTiles}}" wx:key="key" class="stat-tile stat-tile--{{item.tone}}">
+      <text class="stat-tile__label">{{item.label}}</text>
+      <text class="stat-tile__value">{{item.value}}<text wx:if="{{item.unit}}" class="stat-tile__unit">{{item.unit}}</text></text>
+      <text wx:if="{{item.caption}}" class="stat-tile__caption">{{item.caption}}</text>
     </view>
   </view>
 
-  <!-- v0.11 insights card: 24-bar sparkline + peak-hour / peak-weekday
-       sentence. Only renders once the user has any data; otherwise
-       it'd show an empty chart on first open. -->
+  <!--
+    Insights — 24h focus pattern. Compacted in v0.15: smaller title
+    block (no separate "title + sub" rows), thinner bars, peak hour
+    callout pinned on the right. Only renders when there's data.
+  -->
   <view wx:if="{{insights.hasData}}" class="insights-card">
     <view class="insights-card__head">
-      <view>
-        <text class="insights-card__title">学习时段</text>
-        <text class="insights-card__sub">你最高效的时段是 {{insights.peakHourLabel}}，{{insights.peakWeekdayLabel}} 平均最长</text>
-      </view>
+      <text class="insights-card__title">学习时段</text>
+      <text class="insights-card__peak">{{insights.peakHourLabel}} · {{insights.peakWeekdayLabel}}</text>
     </view>
     <view class="insights-card__chart">
       <view
         wx:for="{{insights.bars}}"
         wx:key="index"
         class="insights-card__bar {{item.isPeak ? 'is-peak' : ''}}"
-        style="height: {{item.height}}%"
+        style="height: {{item.height}}%; animation-delay: {{index * 18}}ms;"
       ></view>
-    </view>
-    <view class="insights-card__axis">
-      <text wx:for="{{insights.bars}}" wx:key="index" class="insights-card__axis-label">{{item.hourLabel}}</text>
     </view>
   </view>
 
-  <view class="stat-grid">
-    <view class="stat-tile">
-      <text class="stat-tile__value">{{totalText}}</text>
-      <text class="stat-tile__label">累计学习</text>
-    </view>
-    <view class="stat-tile">
-      <text class="stat-tile__value">{{completedCount}}</text>
-      <text class="stat-tile__label">完成打卡</text>
-    </view>
-    <view class="stat-tile">
-      <text class="stat-tile__value">{{currentStreak}}<text class="stat-tile__unit">天</text></text>
-      <text class="stat-tile__label">当前连签</text>
-    </view>
-    <view class="stat-tile">
-      <text class="stat-tile__value">{{longestStreak}}<text class="stat-tile__unit">天</text></text>
-      <text class="stat-tile__label">最长连签</text>
-    </view>
+  <view class="profile-quote">
+    <text class="profile-quote__en">{{quoteEn}}</text>
+    <text class="profile-quote__zh">— {{quoteZh}}</text>
   </view>
 
   <view class="menu-list">
@@ -129,11 +91,11 @@
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
-    <view class="menu-item" bindtap="openShare">
-      <view class="menu-item__icon">🔗</view>
+    <view class="menu-item" bindtap="openSettings">
+      <view class="menu-item__icon">⚙️</view>
       <view class="menu-item__body">
-        <text class="menu-item__title">公开学习页</text>
-        <text class="menu-item__hint">{{shareHint}}</text>
+        <text class="menu-item__title">学习设置</text>
+        <text class="menu-item__hint">目标 · 番茄钟</text>
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
@@ -141,15 +103,15 @@
       <view class="menu-item__icon">🎴</view>
       <view class="menu-item__body">
         <text class="menu-item__title">学习日报</text>
-        <text class="menu-item__hint">生成可分享的打卡图片</text>
+        <text class="menu-item__hint">生成可分享的打卡卡片</text>
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
-    <view class="menu-item" bindtap="openSettings">
-      <view class="menu-item__icon">⚙️</view>
+    <view class="menu-item" bindtap="openShare">
+      <view class="menu-item__icon">🔗</view>
       <view class="menu-item__body">
-        <text class="menu-item__title">学习设置</text>
-        <text class="menu-item__hint">每日目标 · 周目标 · 番茄钟参数</text>
+        <text class="menu-item__title">公开学习页</text>
+        <text class="menu-item__hint">{{shareHint}}</text>
       </view>
       <text class="menu-item__chevron">›</text>
     </view>

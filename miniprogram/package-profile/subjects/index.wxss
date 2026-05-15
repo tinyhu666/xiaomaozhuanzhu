@@ -1,17 +1,40 @@
 .subjects-page {
   display: flex;
   flex-direction: column;
-  gap: 22rpx;
+  gap: 20rpx;
 }
 
+@keyframes subjects-fade-up {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.subjects-page > view,
+.subjects-page > .subjects-footnote {
+  animation: subjects-fade-up 0.42s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+.subjects-page > view:nth-child(1) { animation-delay: 0.02s; }
+.subjects-page > view:nth-child(2) { animation-delay: 0.08s; }
+.subjects-page > view:nth-child(3) { animation-delay: 0.14s; }
+.subjects-page > .subjects-footnote { animation-delay: 0.2s; }
+
+/* ============================================================
+   Overall progress card — slimmed: title + big number row,
+   thin progress bar, single hint line. Footnote moved to the
+   bottom of the page (it applied to subject cards, not this
+   summary, so it was confusing here).
+   ============================================================ */
 .overall-card {
-  padding: 32rpx;
-  border-radius: 28rpx;
+  padding: 26rpx 28rpx;
+  border-radius: 26rpx;
   background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.22), transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, #f3faf6 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.12);
-  box-shadow: 0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.1);
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.2), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f4faf7 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
 .overall-card__row {
@@ -22,7 +45,7 @@
 }
 
 .overall-card__title {
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: 0.4rpx;
@@ -33,12 +56,27 @@
   font-weight: 800;
   color: var(--mint-600);
   font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.4rpx;
+  line-height: 1;
+}
+
+.overall-card__pct {
+  font-size: 28rpx;
+  font-weight: 700;
+  margin-left: 4rpx;
+  color: var(--mint-500);
+  letter-spacing: 0.4rpx;
+}
+
+@keyframes track-fill-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 .overall-card__track {
   margin-top: 14rpx;
-  height: 12rpx;
+  height: 10rpx;
   border-radius: 999rpx;
   background: rgba(46, 169, 133, 0.08);
   overflow: hidden;
@@ -48,7 +86,8 @@
   height: 100%;
   background: linear-gradient(90deg, #6fc99a 0%, #2ea985 100%);
   border-radius: inherit;
-  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transform-origin: left center;
+  animation: track-fill-grow 0.85s cubic-bezier(0.2, 0.8, 0.3, 1) 0.1s backwards;
 }
 
 .overall-card__hint {
@@ -56,149 +95,32 @@
   margin-top: 14rpx;
   font-size: 22rpx;
   color: var(--text-sub);
-  letter-spacing: 0.3rpx;
-}
-
-.overall-card__highlight {
-  font-weight: 700;
-  color: var(--mint-600);
-}
-
-.overall-card__footnote {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 18rpx;
-  color: var(--text-sub);
-  opacity: 0.7;
-}
-
-/* ----- Subject cards ----- */
-.subject-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.subject-card {
-  padding: 24rpx 26rpx;
-  border-radius: 24rpx;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: 0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.06);
-}
-
-.subject-card__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.subject-card__name-wrap {
-  display: flex;
-  align-items: baseline;
-  gap: 6rpx;
-}
-
-.subject-card__name {
-  font-size: 32rpx;
-  font-weight: 800;
-  color: var(--text-main);
-  letter-spacing: 0.4rpx;
-}
-
-.subject-card__fallback {
-  font-size: 18rpx;
-  color: var(--text-sub);
-  opacity: 0.6;
-}
-
-.subject-card__pct {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
   font-feature-settings: "tnum" 1;
-}
-
-.subject-card__pct.is-reached {
-  color: var(--mint-600);
-}
-
-.subject-card__track {
-  margin-top: 14rpx;
-  height: 10rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
-  overflow: hidden;
-}
-
-.subject-card__fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6fc99a 0%, #2ea985 100%);
-  border-radius: inherit;
-  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.subject-card__fill.is-reached {
-  background: linear-gradient(90deg, #2ea985 0%, #155946 100%);
-}
-
-.subject-card__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-  margin-top: 14rpx;
-}
-
-.subject-card__hours {
-  font-size: 22rpx;
-  color: var(--text-sub);
-  letter-spacing: 0.3rpx;
-  font-feature-settings: "tnum" 1;
-}
-
-.subject-card__countdown {
-  font-size: 22rpx;
-  font-weight: 700;
-  color: var(--mint-600);
-  letter-spacing: 0.3rpx;
-  font-feature-settings: "tnum" 1;
-}
-
-.subject-card__countdown.is-urgent {
-  color: #c2782b;
-}
-
-.subject-card__exam-date {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 20rpx;
-  color: var(--text-sub);
-  opacity: 0.7;
-  letter-spacing: 0.3rpx;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================
-   v0.11 subject distribution donut. CSS-only — conic-gradient
-   for the ring, a smaller white disc on top for the hole.
-   Modern WeChat MP (≥ 2.10) renders this fine; older runtimes
-   degrade to a single-color disc but the legend below carries
-   the full data.
+   Subject distribution donut — CSS conic-gradient.
    ============================================================ */
+@keyframes donut-fade-in {
+  from { opacity: 0; transform: scale(0.92) rotate(-8deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
 .donut-card {
   display: flex;
   align-items: center;
-  gap: 28rpx;
-  padding: 28rpx 26rpx;
-  border-radius: 28rpx;
+  gap: 26rpx;
+  padding: 26rpx;
+  border-radius: 26rpx;
   background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 38%),
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.08);
+    0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.06);
 }
 
 .donut-card__visual {
@@ -207,18 +129,17 @@
 
 .donut-card__ring {
   position: relative;
-  width: 220rpx;
-  height: 220rpx;
+  width: 210rpx;
+  height: 210rpx;
   border-radius: 50%;
-  /* `background` is set inline from the conic-gradient view-model.
-     Fallback solid color in case the runtime can't parse it. */
   background: var(--mint-300);
-  box-shadow: 0 8rpx 22rpx rgba(46, 169, 133, 0.16);
+  box-shadow: 0 6rpx 18rpx rgba(46, 169, 133, 0.14);
+  animation: donut-fade-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) 0.1s backwards;
 }
 
 .donut-card__hole {
   position: absolute;
-  inset: 26rpx;
+  inset: 24rpx;
   border-radius: 50%;
   background: #fbfffd;
   display: flex;
@@ -229,7 +150,7 @@
 }
 
 .donut-card__center-label {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 800;
   color: var(--text-main);
   font-feature-settings: "tnum" 1;
@@ -249,7 +170,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 8rpx;
 }
 
 .donut-card__legend-row {
@@ -261,28 +182,143 @@
 }
 
 .donut-card__legend-dot {
-  width: 14rpx;
-  height: 14rpx;
+  width: 12rpx;
+  height: 12rpx;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.06);
 }
 
 .donut-card__legend-name {
+  flex: 1;
   font-weight: 600;
   letter-spacing: 0.2rpx;
 }
 
-.donut-card__legend-time {
-  flex: 1;
-  color: var(--text-sub);
-  font-feature-settings: "tnum" 1;
-  text-align: right;
-}
-
 .donut-card__legend-percent {
-  width: 60rpx;
-  text-align: right;
   font-weight: 700;
   color: var(--text-main);
   font-feature-settings: "tnum" 1;
+  letter-spacing: 0.2rpx;
+}
+
+/* ============================================================
+   Subject list — slimmed cards. Three info blocks per card:
+   head row (name + optional countdown + percent), thin track,
+   single "hours / target" caption.
+   ============================================================ */
+.subject-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.subject-card {
+  padding: 22rpx 24rpx;
+  border-radius: 22rpx;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.05);
+}
+
+.subject-card.is-reached {
+  background:
+    linear-gradient(180deg, #f4fdf8 0%, #e8f7ee 100%);
+  border-color: rgba(46, 169, 133, 0.2);
+}
+
+.subject-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.subject-card__name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.subject-card__name {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.subject-card__countdown {
+  padding: 3rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.2);
+  font-size: 18rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  letter-spacing: 0.3rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.subject-card__countdown.is-urgent {
+  background: rgba(217, 80, 80, 0.12);
+  border-color: rgba(217, 80, 80, 0.3);
+  color: #b3322b;
+}
+
+.subject-card__pct {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.3rpx;
+}
+
+.subject-card__pct.is-reached {
+  color: #155946;
+}
+
+.subject-card__track {
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.08);
+  overflow: hidden;
+}
+
+.subject-card__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6fc99a 0%, #2ea985 100%);
+  border-radius: inherit;
+  transform-origin: left center;
+  animation: track-fill-grow 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 0.18s backwards;
+}
+
+.subject-card__fill.is-reached {
+  background: linear-gradient(90deg, #ffc870 0%, #f0a93b 100%);
+}
+
+.subject-card__hours {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.subjects-footnote {
+  display: block;
+  margin-top: 6rpx;
+  padding: 0 4rpx;
+  font-size: 18rpx;
+  color: var(--text-sub);
+  opacity: 0.65;
+  line-height: 1.6;
+  letter-spacing: 0.2rpx;
 }

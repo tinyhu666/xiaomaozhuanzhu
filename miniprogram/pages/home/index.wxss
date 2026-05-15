@@ -80,20 +80,10 @@
   font-weight: 700;
 }
 
-.picker-card__subjects {
-  margin-top: 16rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.picker-card__hint {
-  font-size: 22rpx;
-  color: var(--text-sub);
-  letter-spacing: 0.3rpx;
-}
-
+/* v0.15: hint line removed; chip row now sits directly under the
+   mode toggle with a tighter margin. */
 .picker-card__chip-row {
+  margin-top: 14rpx;
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;

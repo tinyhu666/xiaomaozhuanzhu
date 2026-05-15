@@ -2,18 +2,19 @@
   <view class="overall-card">
     <view class="overall-card__row">
       <text class="overall-card__title">六科总进度</text>
-      <text class="overall-card__value">{{overallPct}}%</text>
+      <text class="overall-card__value">{{overallPct}}<text class="overall-card__pct">%</text></text>
     </view>
     <view class="overall-card__track">
       <view class="overall-card__fill" style="width: {{overallPct}}%"></view>
     </view>
-    <text class="overall-card__hint">{{totalText}} / 1220h · 距最近一科考试还有 <text class="overall-card__highlight">{{nextDaysRemaining}} 天</text></text>
-    <text wx:if="{{anyFallback}}" class="overall-card__footnote">* 标 ✱ 的科目暂以上一年公告时间为参考，待今年正式时间公布后会自动更新</text>
+    <text class="overall-card__hint">{{totalText}} / 1220h · 距最近一科 {{nextDaysRemaining}} 天</text>
   </view>
 
-  <!-- v0.11 subject distribution donut. Only shows when at least one
-       subject has minutes; otherwise the 6 subject cards below tell
-       the same "not yet" story. -->
+  <!--
+    v0.11 subject distribution donut. Only renders when at least
+    one subject has minutes; the donut + legend together replace
+    what would otherwise be a flat list of all-zeros.
+  -->
   <view wx:if="{{donut.hasData}}" class="donut-card">
     <view class="donut-card__visual">
       <view class="donut-card__ring" style="{{donut.style}}">
@@ -27,22 +28,27 @@
       <view wx:for="{{donut.segments}}" wx:key="subject" class="donut-card__legend-row">
         <view class="donut-card__legend-dot" style="background:{{item.color}};"></view>
         <text class="donut-card__legend-name">{{item.subject}}</text>
-        <text class="donut-card__legend-time">{{item.totalText}}</text>
         <text class="donut-card__legend-percent">{{item.percent}}%</text>
       </view>
     </view>
   </view>
 
+  <!--
+    v0.15 — slimmed subject cards. Each row now reads as one line
+    plus a progress bar: 科目名 + 倒计时角标 + 进度百分比 + 进度条
+    + 单行已学/目标. The standalone exam-date line was redundant
+    with the countdown chip, so it's been removed.
+  -->
   <view class="subject-list">
     <view
       wx:for="{{subjects}}"
       wx:key="subject"
-      class="subject-card"
+      class="subject-card {{item.reached ? 'is-reached' : ''}}"
     >
       <view class="subject-card__head">
         <view class="subject-card__name-wrap">
           <text class="subject-card__name">{{item.subject}}</text>
-          <text wx:if="{{item.fallback}}" class="subject-card__fallback">✱</text>
+          <text wx:if="{{item.daysRemaining > 0}}" class="subject-card__countdown {{item.daysRemaining <= 30 ? 'is-urgent' : ''}}">{{item.daysRemaining}} 天</text>
         </view>
         <text class="subject-card__pct {{item.reached ? 'is-reached' : ''}}">{{item.progressPct}}%</text>
       </view>
@@ -52,11 +58,9 @@
           style="width: {{item.progressPct}}%"
         ></view>
       </view>
-      <view class="subject-card__meta">
-        <text class="subject-card__hours">已学 {{item.totalText}} · 目标 {{item.targetText}}</text>
-        <text class="subject-card__countdown {{item.daysRemaining <= 30 ? 'is-urgent' : ''}}">距考试 {{item.daysRemaining}} 天</text>
-      </view>
-      <text class="subject-card__exam-date">考试日期：{{item.examDateLabel}}</text>
+      <text class="subject-card__hours">{{item.totalText}} / {{item.targetText}}</text>
     </view>
   </view>
+
+  <text wx:if="{{anyFallback}}" class="subjects-footnote">* 倒计时暂以上一年公告时间为参考，待官方公布后会自动更新</text>
 </view>

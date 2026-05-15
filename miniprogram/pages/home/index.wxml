@@ -51,17 +51,14 @@
         <text class="picker-card__mode-label">番茄钟</text>
       </view>
     </view>
-    <view class="picker-card__subjects">
-      <text class="picker-card__hint">选个今天要学的科目（可选）</text>
-      <view class="picker-card__chip-row">
-        <view
-          wx:for="{{subjectChips}}"
-          wx:key="label"
-          class="picker-chip {{item.active ? 'is-active' : ''}}"
-          data-label="{{item.label}}"
-          bindtap="onTapSubjectChip"
-        >{{item.label}}</view>
-      </view>
+    <view class="picker-card__chip-row">
+      <view
+        wx:for="{{subjectChips}}"
+        wx:key="label"
+        class="picker-chip {{item.active ? 'is-active' : ''}}"
+        data-label="{{item.label}}"
+        bindtap="onTapSubjectChip"
+      >{{item.label}}</view>
     </view>
   </view>
 

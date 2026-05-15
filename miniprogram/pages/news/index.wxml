@@ -1,7 +1,7 @@
 <view class="page-shell news-page">
   <view class="news-hero">
     <view class="news-hero__title">考试动态</view>
-    <view class="news-hero__subtitle">CPA 报名 / 大纲 / 备考资料 · 来源：中注协 + 编辑精选</view>
+    <view class="news-hero__subtitle">CPA 公告 / 大纲 / 备考资料</view>
   </view>
 
   <view class="news-tabs">
