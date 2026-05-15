@@ -308,6 +308,35 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
+  /**
+   * Lightweight completed-sessions list for the 「小猫花园」 page —
+   * each completed session becomes a "cat" in the collection. We
+   * cap the response at 200 rows because:
+   *   1. The garden UI grids them in 5×N, so 200 fits ~40 rows
+   *      before the visual interest diminishes.
+   *   2. A power user with 500+ sessions wouldn't want to scroll
+   *      that far anyway.
+   * Returns minimal fields — no photos, no pause segments, no
+   * summary text — since the garden view-model only needs each
+   * session's identity, subject, mode, duration, and timestamps.
+   */
+  app.get("/api/me/sessions", withUser(store, clock, async (_request, response, context) => {
+    const sessions = (await store.listSessions(context.user.id))
+      .filter((s) => s.status === "completed")
+      .slice(0, 200);
+    response.json({
+      items: sessions.map((s) => ({
+        id: s.id,
+        subject: s.subject,
+        mode: s.mode,
+        durationMinutes: s.durationMinutes,
+        pomodoroCycles: s.pomodoroCycles,
+        startedAt: s.startedAt,
+        endedAt: s.endedAt
+      }))
+    });
+  }));
+
   app.post("/api/sessions/start", withUser(store, clock, async (request, response, context) => {
     const payload = parse(startSessionSchema, request.body ?? {});
     const currentSession = await store.getCurrentSession(context.user.id);

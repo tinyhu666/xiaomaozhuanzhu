@@ -1,5 +1,11 @@
 // @ts-nocheck
 import {
+  AUDIO_SCENES,
+  getAudioScene,
+  setAudioScene,
+  type AudioScene
+} from "../../utils/audio";
+import {
   DEFAULT_SETTINGS,
   SETTINGS_BOUNDS,
   getSettings,
@@ -30,9 +36,18 @@ type SettingRowVM = {
   canIncrement: boolean;
 };
 
+type AudioSceneVM = {
+  key: AudioScene;
+  label: string;
+  emoji: string;
+  description: string;
+  active: boolean;
+};
+
 type SettingsPageData = {
   goalRows: SettingRowVM[];
   pomodoroRows: SettingRowVM[];
+  audioScenes: AudioSceneVM[];
 };
 
 const ROW_TEMPLATES: Array<{
@@ -105,8 +120,19 @@ function rowFor(settings: UserSettings, template: typeof ROW_TEMPLATES[number]):
   };
 }
 
+function buildAudioScenes(active: AudioScene): AudioSceneVM[] {
+  return AUDIO_SCENES.map((s) => ({
+    key: s.key,
+    label: s.label,
+    emoji: s.emoji,
+    description: s.description,
+    active: s.key === active
+  }));
+}
+
 function buildPageRows(settings: UserSettings) {
   return {
+    audioScenes: buildAudioScenes(getAudioScene()),
     goalRows: ROW_TEMPLATES.filter((t) => t.group === "goal").map((t) => rowFor(settings, t)),
     pomodoroRows: ROW_TEMPLATES.filter((t) => t.group === "pomodoro").map((t) => rowFor(settings, t))
   };
@@ -115,7 +141,8 @@ function buildPageRows(settings: UserSettings) {
 Page<{}, SettingsPageData>({
   data: {
     goalRows: [],
-    pomodoroRows: []
+    pomodoroRows: [],
+    audioScenes: []
   },
 
   onLoad() {
@@ -141,6 +168,19 @@ Page<{}, SettingsPageData>({
     if (next < bounds.min || next > bounds.max) return;
     const updated = saveSettings({ [key]: next });
     this.rebuild(updated);
+  },
+
+  /**
+   * Pick (or clear) the ambient audio scene. The audio module
+   * persists the choice + hot-swaps the playing track if a session
+   * is currently running, so the user hears the change immediately
+   * if they switch mid-session.
+   */
+  onTapAudioScene(event: WechatMiniprogram.BaseEvent) {
+    const key = event.currentTarget.dataset.key as AudioScene;
+    if (!key) return;
+    setAudioScene(key);
+    this.setData({ audioScenes: buildAudioScenes(key) });
   },
 
   /**

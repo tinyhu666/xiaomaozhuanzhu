@@ -338,6 +338,7 @@
 .menu-item:nth-child(3) { animation-delay: 0.54s; }
 .menu-item:nth-child(4) { animation-delay: 0.6s; }
 .menu-item:nth-child(5) { animation-delay: 0.66s; }
+.menu-item:nth-child(6) { animation-delay: 0.72s; }
 
 .menu-item:active {
   background: rgba(46, 169, 133, 0.06);

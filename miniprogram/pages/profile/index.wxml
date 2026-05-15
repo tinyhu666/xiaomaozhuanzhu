@@ -75,6 +75,14 @@
   </view>
 
   <view class="menu-list">
+    <view class="menu-item" bindtap="openGarden">
+      <view class="menu-item__icon">🐱</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">小猫花园</text>
+        <text class="menu-item__hint">每完成一次专注收一只小猫</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
     <view class="menu-item" bindtap="openBadges">
       <view class="menu-item__icon">🏆</view>
       <view class="menu-item__body">

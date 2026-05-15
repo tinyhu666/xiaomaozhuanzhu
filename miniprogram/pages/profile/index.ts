@@ -288,6 +288,10 @@ Page<{}, ProfilePageData>({
     return { hasData: true, peakHourLabel, peakWeekdayLabel, bars };
   },
 
+  openGarden() {
+    wx.navigateTo({ url: "/package-profile/garden/index" });
+  },
+
   openBadges() {
     wx.navigateTo({ url: "/package-profile/badges/index" });
   },

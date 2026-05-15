@@ -736,4 +736,68 @@ describe("CPA study check-in API", () => {
       .send({ mode: "marathon" })
       .expect(400);
   });
+
+  it("/api/me/sessions returns completed sessions for the 小猫花园 page", async () => {
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-wx-openid", "garden-user")
+      .expect(200);
+
+    // Run + complete a free session
+    const free = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "garden-user")
+      .send({ subject: "会计" })
+      .expect(200);
+    clock.advanceMinutes(45);
+    await request(app)
+      .post(`/api/sessions/${free.body.session.id}/complete`)
+      .set("x-wx-openid", "garden-user")
+      .send({
+        summary: "free 完成",
+        subject: "会计",
+        tags: [],
+        photos: [{ fileId: "cloud://demo/g1.jpg", objectKey: "x/g1.jpg" }]
+      })
+      .expect(200);
+
+    // Run + complete a pomodoro session with 4 cycles
+    const pomo = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "garden-user")
+      .send({ subject: "审计", mode: "pomodoro" })
+      .expect(200);
+    clock.advanceMinutes(120);
+    await request(app)
+      .post(`/api/sessions/${pomo.body.session.id}/complete`)
+      .set("x-wx-openid", "garden-user")
+      .send({
+        summary: "pomodoro 完成",
+        subject: "审计",
+        tags: [],
+        pomodoroCycles: 4,
+        photos: [{ fileId: "cloud://demo/g2.jpg", objectKey: "x/g2.jpg" }]
+      })
+      .expect(200);
+
+    const list = await request(app)
+      .get("/api/me/sessions")
+      .set("x-wx-openid", "garden-user")
+      .expect(200);
+
+    expect(list.body.items).toHaveLength(2);
+    // Verify the fields the garden view-model expects are present
+    // and that we DON'T leak photos / summary / pauseSegments.
+    const item = list.body.items[0];
+    expect(typeof item.id).toBe("string");
+    expect(["free", "pomodoro"]).toContain(item.mode);
+    expect(typeof item.durationMinutes).toBe("number");
+    expect(typeof item.pomodoroCycles).toBe("number");
+    expect("summary" in item).toBe(false);
+    expect("photos" in item).toBe(false);
+
+    // Find the pomodoro one to verify the cycle count came through
+    const pomoItem = list.body.items.find((it: { mode: string }) => it.mode === "pomodoro");
+    expect(pomoItem?.pomodoroCycles).toBe(4);
+  });
 });

@@ -1,6 +1,16 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.15.0 — 信息密度大减 + 入场动效升级。「我的」从 7-8 块压到 5 块，「六科进度」科目卡 5 块信息缩为 3 块。
+> 当前版本 v0.16.0 — 学习音景 + 小猫花园。让专注本身变得更有质感、更有情感锚点。
+
+## v0.16.0 已上线
+
+围绕"让专注本身更有意义"做两件事：
+
+- **🎵 学习音景**：5 个环境音（雨声 / 咖啡馆 / 海浪 / 篝火 / 图书馆）+ 关闭。Session 开始自动循环播放、结束自动停止、暂停同步暂停。计时器卡 meta 行显示当前音景小蓝徽 `🌧️ 雨声`。设置在「我的 · 学习设置」第一栏，listbox 风格直接选。底层用 `wx.createInnerAudioContext` + loop:true；音频文件位于 `/miniprogram/assets/audio/{rain,cafe,ocean,fire,library}.mp3`（需要单独放上去，详见 README）。
+
+- **🐱 小猫花园**：「我的」菜单第一项。每完成一次 session 对应一只小猫，subject 决定主题（会计=算盘、审计=望远镜、税法=印章、财管=账簿、经济法=法槌、战略=棋盘），时长/番茄数决定稀有度（common / rare / epic / legendary，分别带不同边框 + 星星/王冠角标）。5 列网格 + 5 个 rarity filter chip + 详情弹窗。**纯客户端 view-model，零 schema 改动**（只新增了 `GET /api/me/sessions` 列出 completed sessions）。
+
+- **测试**：111/111 通过（新增 13 个：garden 单元测试 12 + sessions HTTP 集成 1）。
 
 ## v0.15.0 已上线（打磨版）
 

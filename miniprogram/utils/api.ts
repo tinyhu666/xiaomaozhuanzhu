@@ -388,6 +388,22 @@ export function getTempUrls(items: Array<{ objectKey: string; fileId?: string }>
   });
 }
 
+export type CompletedSession = {
+  id: string;
+  subject: string | null;
+  mode: "free" | "pomodoro";
+  durationMinutes: number;
+  pomodoroCycles: number;
+  startedAt: string;
+  endedAt: string | null;
+};
+
+export function listMySessions() {
+  return callContainer<{ items: CompletedSession[] }>({
+    path: "/me/sessions"
+  });
+}
+
 export function getNewsList(params: { category?: NewsCategory | "all"; limit?: number; before?: string } = {}) {
   const queryParts: string[] = [];
   if (params.category && params.category !== "all") queryParts.push(`category=${encodeURIComponent(params.category)}`);

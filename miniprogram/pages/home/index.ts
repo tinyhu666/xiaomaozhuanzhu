@@ -2,6 +2,14 @@
 import { runtimeConfig } from "../../config/runtime";
 import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, SessionMode } from "../../types/models";
 import { abandonSession, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import {
+  getActiveAudio,
+  getAudioScene,
+  pauseAmbient,
+  resumeAmbient,
+  startAmbient,
+  stopAmbient
+} from "../../utils/audio";
 import { getSettings, type UserSettings } from "../../utils/settings";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
 import { formatDuration, getSessionActions } from "../../utils/view-models";
@@ -54,6 +62,9 @@ type HomePageData = {
   makeupLoading: boolean;
   appVersion: string;
   showEmptyHint: boolean;
+  /** Compact "音景: 雨声" badge that appears on the timer-card meta row when
+   *  an ambient sound is playing during an active session. */
+  audioBadge: { visible: boolean; label: string; emoji: string };
   /** Pre-start chip + mode picker state (hidden while a session is active). */
   selectedSubject: string | null;
   selectedMode: SessionMode;
@@ -122,6 +133,7 @@ Page<{}, HomePageData>({
     goalReached: false,
     weeklyGoal: { visible: false, text: "", progress: 0, reached: false },
     pausedMinutes: 0,
+    audioBadge: { visible: false, label: "", emoji: "" },
     makeup: null,
     makeupLoading: false,
     appVersion: runtimeConfig.appVersion,
@@ -378,6 +390,14 @@ Page<{}, HomePageData>({
           pomodoroPhaseLabel: "",
           pomodoroCyclesCompleted: 0,
           pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })) };
+    // v0.16: ambient audio follows the session state machine. We
+    // call into the audio module unconditionally — the module
+    // itself decides whether to play (it no-ops when scene = "off"
+    // or already in the requested state). This way refresh() / app-
+    // reopen / pause→resume / complete all converge to the right
+    // playback state without per-call branching here.
+    this.syncAmbientAudio(session);
+
     this.setData({
       activeSession: session,
       actions: getSessionActions(session?.status ?? null),
@@ -390,10 +410,51 @@ Page<{}, HomePageData>({
       subjectChips: SUBJECTS.map((s) => ({
         label: s,
         active: s === (session?.subject ?? this.data.selectedSubject)
-      }))
+      })),
+      audioBadge: this.buildAudioBadge(session)
     });
     this.refreshEmptyHint();
     this.syncTimer(session);
+  },
+
+  /**
+   * Translate the session.status into the audio module's actions.
+   * Called from applyActiveSession on every state change.
+   *   - running    → startAmbient (idempotent if already playing the
+   *                 same scene at the same volume)
+   *   - paused     → pauseAmbient
+   *   - any other  → stopAmbient
+   * The audio module persists scene + volume in storage, so it
+   * already knows what to play; we just signal the state.
+   */
+  syncAmbientAudio(session: ActiveSession | null) {
+    if (!session) {
+      stopAmbient();
+      return;
+    }
+    if (session.status === "running") {
+      startAmbient();
+    } else if (session.status === "paused") {
+      pauseAmbient();
+    } else {
+      stopAmbient();
+    }
+  },
+
+  /**
+   * Compact "currently playing" indicator for the timer-card meta
+   * row. Empty when the user has scene = off OR there's no live
+   * session — we don't want to advertise the audio feature when it's
+   * not actually doing anything.
+   */
+  buildAudioBadge(session: ActiveSession | null) {
+    if (!session || session.status !== "running") {
+      return { visible: false, label: "", emoji: "" };
+    }
+    const scene = getAudioScene();
+    if (scene === "off") return { visible: false, label: "", emoji: "" };
+    const info = getActiveAudio();
+    return { visible: true, label: info.label, emoji: info.emoji };
   },
 
   /**

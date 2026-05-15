@@ -73,6 +73,7 @@
       </view>
       <view class="timer-card__meta">
         <text wx:if="{{activeSession && activeSession.subject}}" class="timer-card__subject-pill">{{activeSession.subject}}</text>
+        <text wx:if="{{audioBadge.visible}}" class="timer-card__audio-pill">{{audioBadge.emoji}} {{audioBadge.label}}</text>
         <text>今日 {{todayMinutesText}}</text>
         <text class="timer-card__streak">
           <text wx:if="{{streakDays >= 3}}" class="timer-card__flame">🔥</text>

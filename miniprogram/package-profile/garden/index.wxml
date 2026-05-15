@@ -1,0 +1,91 @@
+<view class="page-shell garden-page">
+  <!--
+    Hero: total count + 5 rarity filter chips. Chips double as a
+    legend (color matches the cat-card border for that rarity) and
+    as a filter (tap to narrow the grid).
+  -->
+  <view class="garden-hero">
+    <view class="garden-hero__title-row">
+      <text class="garden-hero__title">小猫花园</text>
+      <text class="garden-hero__count">已收集 {{total}}</text>
+    </view>
+    <view class="garden-hero__chips">
+      <view
+        wx:for="{{rarityChips}}"
+        wx:key="key"
+        class="rarity-chip rarity-chip--{{item.key}} {{item.active ? 'is-active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onTapRarityChip"
+      >
+        <text class="rarity-chip__label">{{item.label}}</text>
+        <text class="rarity-chip__count">{{item.count}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="garden-skeleton">
+    <view wx:for="{{[1,2,3,4,5,6,7,8,9,10]}}" wx:key="*this" class="garden-skeleton__cell"></view>
+  </view>
+
+  <view wx:elif="{{errorMessage}}" class="garden-empty garden-empty--error">
+    <view class="garden-empty__icon">⚠️</view>
+    <text class="garden-empty__title">加载失败</text>
+    <text class="garden-empty__text">{{errorMessage}}</text>
+  </view>
+
+  <view wx:elif="{{!visibleCats.length}}" class="garden-empty">
+    <view class="garden-empty__icon">🐾</view>
+    <text class="garden-empty__title">{{total === 0 ? "花园还空着" : "这个分类还没有"}}</text>
+    <text class="garden-empty__text">{{total === 0 ? emptyMessage : "试试看其他稀有度"}}</text>
+  </view>
+
+  <view wx:else class="garden-grid">
+    <view
+      wx:for="{{visibleCats}}"
+      wx:key="id"
+      class="cat-card cat-card--{{item.rarity}}"
+      data-id="{{item.id}}"
+      bindtap="onTapCat"
+      hover-class="cat-card--hover"
+      hover-stay-time="120"
+    >
+      <view wx:if="{{item.rarity === 'legendary'}}" class="cat-card__crown">👑</view>
+      <view wx:elif="{{item.rarity === 'epic'}}" class="cat-card__star">🌟</view>
+      <text class="cat-card__emoji">{{item.emoji}}</text>
+      <text class="cat-card__accessory">{{item.accessory}}</text>
+    </view>
+  </view>
+
+  <text wx:if="{{!loading && !errorMessage && visibleCats.length > 0}}" class="garden-foot">
+    完成更多专注，继续收集 · 小猫越努力，花纹越漂亮
+  </text>
+
+  <!-- Detail bottom-sheet — appears on tap. Backdrop click dismisses. -->
+  <view wx:if="{{detail}}" class="garden-detail" bindtap="onTapDetailClose">
+    <view class="garden-detail__card cat-card--{{detail.rarity}}" catchtap="onTapDetailContent">
+      <view wx:if="{{detail.rarity === 'legendary'}}" class="garden-detail__crown">👑</view>
+      <view wx:elif="{{detail.rarity === 'epic'}}" class="garden-detail__star">🌟</view>
+      <text class="garden-detail__emoji">{{detail.emoji}}</text>
+      <text class="garden-detail__subject">{{detail.subject}}{{detail.accessory !== "—" ? " · " + detail.accessory : ""}}</text>
+      <view class="garden-detail__meta">
+        <view class="garden-detail__meta-row">
+          <text class="garden-detail__meta-label">稀有度</text>
+          <text class="garden-detail__meta-value garden-detail__meta-value--{{detail.rarity}}">{{detail.rarity === "legendary" ? "传说" : detail.rarity === "epic" ? "史诗" : detail.rarity === "rare" ? "稀有" : "普通"}}</text>
+        </view>
+        <view class="garden-detail__meta-row">
+          <text class="garden-detail__meta-label">专注</text>
+          <text class="garden-detail__meta-value">{{detail.durationMinutes}} 分钟</text>
+        </view>
+        <view wx:if="{{detail.fromPomodoro}}" class="garden-detail__meta-row">
+          <text class="garden-detail__meta-label">番茄</text>
+          <text class="garden-detail__meta-value">🍅 × {{detail.pomodoroCycles}}</text>
+        </view>
+        <view class="garden-detail__meta-row">
+          <text class="garden-detail__meta-label">收获于</text>
+          <text class="garden-detail__meta-value">{{detail.dateText}}</text>
+        </view>
+      </view>
+      <view class="garden-detail__close" bindtap="onTapDetailClose">收下</view>
+    </view>
+  </view>
+</view>

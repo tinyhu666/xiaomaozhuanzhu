@@ -127,6 +127,22 @@
   margin-right: 8rpx;
 }
 
+/* Sibling pill showing the active ambient scene (e.g. "🌧️ 雨声").
+   Same shape as the subject pill but blue palette so the two
+   coexist visually without competing. */
+.timer-card__audio-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(74, 110, 217, 0.1);
+  color: #4a6ed9;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
+  margin-right: 8rpx;
+}
+
 /* Pomodoro cycle dots — sit just below the clock. */
 .timer-card__cycles {
   display: flex;
