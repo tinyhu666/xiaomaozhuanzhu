@@ -2,11 +2,13 @@
 import { listMySessions } from "../../utils/api";
 import {
   buildGarden,
+  consumeMilestoneEvent,
   rarityLabel,
   type CatCard,
   type CatRarity,
   type CatSubject,
-  type GardenViewModel
+  type GardenViewModel,
+  type MilestoneEvent
 } from "../../utils/garden";
 
 /**
@@ -38,6 +40,8 @@ type GardenPageData = {
   emptyMessage: string;
   /** Detail modal — visible when the user taps a cat. */
   detail: CatCard | null;
+  /** Milestone celebration modal — fires once per crossed threshold. */
+  milestone: MilestoneEvent | null;
 };
 
 Page<{}, GardenPageData>({
@@ -48,7 +52,8 @@ Page<{}, GardenPageData>({
     rarityChips: [],
     visibleCats: [],
     emptyMessage: "完成一次专注，就能收获第一只小猫。",
-    detail: null
+    detail: null,
+    milestone: null
   },
 
   /** Cache of the full unfiltered view-model so filter toggles
@@ -77,6 +82,15 @@ Page<{}, GardenPageData>({
       this._vm = vm;
       this._activeFilter = "all";
       this.applyVm();
+      // After data settles, check if the user just crossed a
+      // milestone. We fire this *after* applyVm so the modal layers
+      // visually over the freshly-rendered grid.
+      const event = consumeMilestoneEvent(vm.stats.total);
+      if (event) {
+        // Small delay so the celebration feels like a reaction to
+        // the grid materializing, not a load blocker.
+        setTimeout(() => this.setData({ milestone: event }), 320);
+      }
     } catch (error) {
       this.setData({
         loading: false,
@@ -133,5 +147,17 @@ Page<{}, GardenPageData>({
     // Stop tap propagation so tapping the card itself doesn't
     // dismiss the modal (only the backdrop closes it).
     event.stopPropagation?.();
+  },
+
+  onTapMilestoneDismiss() {
+    this.setData({ milestone: null });
+  },
+
+  onTapMilestoneContent(event: WechatMiniprogram.BaseEvent) {
+    event.stopPropagation?.();
+  },
+
+  onTapOpenSharePoster() {
+    wx.navigateTo({ url: "/package-profile/garden-poster/index" });
   }
 });

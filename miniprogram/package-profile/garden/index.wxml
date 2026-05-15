@@ -7,7 +7,16 @@
   <view class="garden-hero">
     <view class="garden-hero__title-row">
       <text class="garden-hero__title">小猫花园</text>
-      <text class="garden-hero__count">已收集 {{total}}</text>
+      <view class="garden-hero__actions">
+        <text class="garden-hero__count">已收集 {{total}}</text>
+        <view
+          wx:if="{{total > 0}}"
+          class="garden-hero__share"
+          hover-class="garden-hero__share--hover"
+          hover-stay-time="120"
+          bindtap="onTapOpenSharePoster"
+        >🎴 分享</view>
+      </view>
     </view>
     <view class="garden-hero__chips">
       <view
@@ -59,6 +68,26 @@
   <text wx:if="{{!loading && !errorMessage && visibleCats.length > 0}}" class="garden-foot">
     完成更多专注，继续收集 · 小猫越努力，花纹越漂亮
   </text>
+
+  <!--
+    Milestone celebration — fires once per crossed threshold
+    (10/30/50/100/200 cats). Backdrop click dismisses. Uses a
+    different visual treatment from the cat-detail modal so users
+    can tell at a glance which one popped.
+  -->
+  <view wx:if="{{milestone}}" class="garden-milestone" bindtap="onTapMilestoneDismiss">
+    <view class="garden-milestone__card" catchtap="onTapMilestoneContent">
+      <view class="garden-milestone__confetti">
+        <text class="garden-milestone__confetti-piece">🎉</text>
+        <text class="garden-milestone__confetti-piece">✨</text>
+        <text class="garden-milestone__confetti-piece">🎉</text>
+      </view>
+      <text class="garden-milestone__number">{{milestone.milestone}}</text>
+      <text class="garden-milestone__title">{{milestone.title}}</text>
+      <text class="garden-milestone__subtitle">{{milestone.subtitle}}</text>
+      <view class="garden-milestone__close" bindtap="onTapMilestoneDismiss">继续努力</view>
+    </view>
+  </view>
 
   <!-- Detail bottom-sheet — appears on tap. Backdrop click dismisses. -->
   <view wx:if="{{detail}}" class="garden-detail" bindtap="onTapDetailClose">

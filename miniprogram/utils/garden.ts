@@ -168,3 +168,93 @@ export function buildGarden(sessions: CompletedSession[]): GardenViewModel {
 export function rarityLabel(rarity: CatRarity): string {
   return RARITY_LABEL[rarity];
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Milestones                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Counts at which we want to celebrate. Picked to feel evenly spaced
+ * across realistic study volumes — daily 1-session users hit 10 in
+ * ~10 days, 30 in a month, 100 in ~3 months. 200 acknowledges a
+ * dedicated multi-month run.
+ */
+export const GARDEN_MILESTONES: readonly number[] = [10, 30, 50, 100, 200] as const;
+
+const STORAGE_LAST_MILESTONE_KEY = "cpa.garden.lastMilestoneSeen";
+
+export type MilestoneEvent = {
+  /** The milestone count just crossed (e.g. 30). */
+  milestone: number;
+  /** A celebratory headline localized for that milestone. */
+  title: string;
+  /** Subhead text — encouraging next-step nudge. */
+  subtitle: string;
+};
+
+const MILESTONE_COPY: Record<number, { title: string; subtitle: string }> = {
+  10:  { title: "10 只小猫到手", subtitle: "已经迈出第一阶，节奏稳了再加把劲。" },
+  30:  { title: "30 只啦", subtitle: "一个月的努力浓缩在这里，别停。" },
+  50:  { title: "50 只，半百达成", subtitle: "你已经走在 CPA 大多数考生的前面。" },
+  100: { title: "100 只，破百了", subtitle: "厚积薄发。下一只史诗就在路上。" },
+  200: { title: "200 只，专注达人", subtitle: "你的花园已经能开个小型动物园了。" }
+};
+
+/**
+ * Returns the milestone event for the current total IF the user has
+ * just crossed a milestone they haven't seen before. Otherwise null.
+ *
+ * Side effect: writes the new total to storage so subsequent calls
+ * with the same `total` return null. (We intentionally use the
+ * actual total, not just the milestone number, so re-opening the
+ * page at total=10 doesn't refire — only when total grows past a
+ * previously-uncelebrated milestone.)
+ */
+export function consumeMilestoneEvent(total: number): MilestoneEvent | null {
+  let lastSeen = 0;
+  try {
+    const raw = Number(wx.getStorageSync(STORAGE_LAST_MILESTONE_KEY));
+    if (Number.isFinite(raw) && raw > 0) lastSeen = raw;
+  } catch (_) { /* storage failures are non-fatal */ }
+
+  if (total <= lastSeen) {
+    // No new growth since last check — nothing to celebrate.
+    return null;
+  }
+
+  // Find the largest milestone the user has crossed but hasn't seen.
+  // Scanning in descending order so a user who jumps from 8 → 35
+  // (e.g. backfill / multiple sessions) gets the 30 celebration,
+  // not 10. They've "earned" 30 worth of grind in one go.
+  let crossed: number | null = null;
+  for (let i = GARDEN_MILESTONES.length - 1; i >= 0; i -= 1) {
+    const m = GARDEN_MILESTONES[i];
+    if (total >= m && lastSeen < m) {
+      crossed = m;
+      break;
+    }
+  }
+
+  // Always persist the current total so future opens know what we've
+  // shown — even when no celebration fired (lastSeen has now moved
+  // up so we don't fire the same milestone twice).
+  try {
+    wx.setStorageSync(STORAGE_LAST_MILESTONE_KEY, total);
+  } catch (_) { /* ignore */ }
+
+  if (crossed === null) return null;
+  const copy = MILESTONE_COPY[crossed];
+  return {
+    milestone: crossed,
+    title: copy.title,
+    subtitle: copy.subtitle
+  };
+}
+
+/**
+ * Test seam: reset the cached milestone counter. Vitest tests for
+ * consumeMilestoneEvent use this between cases.
+ */
+export function __resetMilestoneStorageForTests() {
+  try { wx.removeStorageSync(STORAGE_LAST_MILESTONE_KEY); } catch (_) { /* ignore */ }
+}
