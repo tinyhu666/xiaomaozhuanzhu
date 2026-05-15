@@ -1,6 +1,22 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.17.0 — 花园闭环：里程碑庆祝弹窗 + 花园分享卡片。让收集这件事既有跨越式反馈，又有可分享出去的载体。
+> 当前版本 v0.18.0 — 反馈节奏：完成专注的即时小猫弹幕 + 月初的「上月小结」。把成就感的时间分布从「只在主动打开花园时」改成「专注完成的一刻」+「翻月那一刻」。
+
+## v0.18.0 已上线
+
+围绕"让用户在两个关键时刻看到自己积累的进度"做两件小事：
+
+- **🐱 完成专注的即时小猫揭示**：在 `package-session/complete/index` 完成打卡 API 返回后，直接在原页面盖上一层 cat-reveal 浮层，把本次 session 对应的小猫弹出来（emoji + 稀有度色卡 + 主题+配件），不再先跳首页再要求用户翻到花园。
+  - utils/garden.ts 暴露新的 `previewCatForSession({ sessionId, subject, durationMinutes, pomodoroCycles })`，跟 `buildGarden` 用同一套 rarity 推导逻辑（保证完成时看到的就是花园里那只）
+  - 浮层稀有度有四套配色（mint / blue / amber / gold），传说带 👑、史诗带 🌟，halo pulse 动画做"开光"感
+  - 两个 CTA：「去花园看看」直跳 `package-profile/garden/index`、「继续专注」回到首页
+
+- **📊 月度小结弹窗**：每个公历月的第一次打开「我的」时，自动弹一张上个月的小结卡（总时长 + 次数 + 最佳一天 + 主攻科目 + 上月对比 + 一句鼓励语），用完就关掉。基于 storage 记 `cpa.monthlySummary.lastSeen`，每个月只弹一次。
+  - 新增 `utils/monthly.ts` 纯计算层：`computeMonthlySummaryFor(sessions, monthKey)` + `consumeMonthlySummary(sessions, now)`，全部 Shanghai 时区敏感（避免跨日跨月 off-by-one）
+  - 数据来自既有的 `/api/me/sessions`（200 上限对绝大部分用户够覆盖前月 + 前前月对比线），零后端改动
+  - 同步本月节奏自动文案：noPrior / flat / up / down 四种 change.kind 各一句
+
+- **测试**：134/134 通过（新增 16 个 monthly.spec.ts：computeMonthlySummaryFor 11 个 + consumeMonthlySummary 5 个，覆盖跨月 / 跨年 / TZ 边界 / storage 门控）
 
 ## v0.17.0 已上线
 

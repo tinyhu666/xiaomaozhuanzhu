@@ -60,4 +60,29 @@
   </view>
 
   <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
+
+  <!--
+    v0.18 — instant cat reveal. After a successful submit, the
+    overlay covers the page while the new cat pops in. Tap the
+    backdrop or "继续专注" to head home; "去花园看看" navigates to
+    the full garden so the user can see their growing collection
+    in context.
+  -->
+  <view wx:if="{{earnedCat}}" class="cat-reveal" bindtap="onTapCatDismiss">
+    <view class="cat-reveal__card cat-reveal__card--{{earnedCat.rarity}}" catchtap="onTapCatContent">
+      <view class="cat-reveal__halo"></view>
+      <view wx:if="{{earnedCat.rarity === 'legendary'}}" class="cat-reveal__crown">👑</view>
+      <view wx:elif="{{earnedCat.rarity === 'epic'}}" class="cat-reveal__star">🌟</view>
+
+      <text class="cat-reveal__rarity cat-reveal__rarity--{{earnedCat.rarity}}">{{earnedCatRarityLabel}}</text>
+      <text class="cat-reveal__emoji">{{earnedCat.emoji}}</text>
+      <text class="cat-reveal__title">收获一只小猫</text>
+      <text class="cat-reveal__sub">{{earnedCat.subject}}{{earnedCat.accessory !== "—" ? " · " + earnedCat.accessory : ""}}</text>
+
+      <view class="cat-reveal__actions">
+        <view class="cat-reveal__ghost" bindtap="onTapOpenGarden">去花园看看</view>
+        <view class="cat-reveal__primary" bindtap="onTapCatDismiss">继续专注</view>
+      </view>
+    </view>
+  </view>
 </view>

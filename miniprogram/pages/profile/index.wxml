@@ -126,4 +126,42 @@
   </view>
 
   <text class="profile-version">小猫专注 · v{{appVersion}}</text>
+
+  <!--
+    v0.18 — monthly summary modal. Fires once per calendar month on
+    the first time the user opens 我的 after a new month begins.
+    Storage-gated; see utils/monthly.ts. The card is a one-shot
+    "look back" moment — no actions beyond dismiss.
+  -->
+  <view wx:if="{{monthlySummary}}" class="monthly-modal" bindtap="onTapMonthlyDismiss">
+    <view class="monthly-modal__card" catchtap="onTapMonthlyContent">
+      <view class="monthly-modal__head">
+        <text class="monthly-modal__eyebrow">月度小结</text>
+        <text class="monthly-modal__title">{{monthlySummary.monthLabel}}</text>
+      </view>
+
+      <view class="monthly-modal__hero">
+        <text class="monthly-modal__value">{{monthlySummary.totalMinutes}}</text>
+        <text class="monthly-modal__unit">分钟</text>
+      </view>
+      <text class="monthly-modal__sub">完成 {{monthlySummary.sessionCount}} 次专注 · {{monthlyChangeText}}</text>
+
+      <view class="monthly-modal__detail-grid">
+        <view wx:if="{{monthlySummary.bestDay}}" class="monthly-modal__detail">
+          <text class="monthly-modal__detail-label">最佳一天</text>
+          <text class="monthly-modal__detail-value">{{monthlySummary.bestDay.dateLabel}}</text>
+          <text class="monthly-modal__detail-caption">{{monthlySummary.bestDay.minutes}} 分钟</text>
+        </view>
+        <view wx:if="{{monthlySummary.topSubject}}" class="monthly-modal__detail">
+          <text class="monthly-modal__detail-label">主攻科目</text>
+          <text class="monthly-modal__detail-value">{{monthlySummary.topSubject.name}}</text>
+          <text class="monthly-modal__detail-caption">{{monthlySummary.topSubject.minutes}} 分钟</text>
+        </view>
+      </view>
+
+      <text class="monthly-modal__encouragement">{{monthlySummary.encouragement}}</text>
+
+      <view class="monthly-modal__cta" bindtap="onTapMonthlyDismiss">继续努力</view>
+    </view>
+  </view>
 </view>

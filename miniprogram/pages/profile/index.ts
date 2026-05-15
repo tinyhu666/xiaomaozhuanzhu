@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
 import type { Badge, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
-import { getProfileDashboard, saveProfile, uploadAvatar } from "../../utils/api";
+import { getProfileDashboard, listMySessions, saveProfile, uploadAvatar } from "../../utils/api";
+import { consumeMonthlySummary, type MonthlySummary } from "../../utils/monthly";
 import { formatDuration, getDailyQuote } from "../../utils/view-models";
 
 /**
@@ -58,6 +59,14 @@ type ProfilePageData = {
   quoteZh: string;
   statTiles: StatTileView[];
   insights: InsightView;
+  /** v0.18 — the "上月小结" modal payload. Non-null only on the first
+   *  open of a new calendar month (when there was data last month). */
+  monthlySummary: MonthlySummary | null;
+  /** Human-friendly description of last-month-vs-prior, e.g.
+   *  "比 3 月多 120 分钟（+18%）" / "比上月少了 30 分钟". Computed
+   *  in TS rather than the template since the wxml ternary chain
+   *  would otherwise be unreadable. */
+  monthlyChangeText: string;
 };
 
 Page<{}, ProfilePageData>({
@@ -71,7 +80,9 @@ Page<{}, ProfilePageData>({
     quoteEn: "One page at a time.",
     quoteZh: "一页一页，也是在前进。",
     statTiles: [],
-    insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] }
+    insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] },
+    monthlySummary: null,
+    monthlyChangeText: ""
   },
 
   async onShow() {
@@ -89,6 +100,16 @@ Page<{}, ProfilePageData>({
       console.error("[profile] ensureProfile failed", error);
     });
     await this.refresh();
+    // v0.18 — fire the monthly summary modal *after* the main page has
+    // settled in. We deliberately don't block the dashboard render on
+    // this fetch; the modal appears with the standard fade-in animation
+    // ~150ms later, which feels like a follow-up moment rather than a
+    // blocker. If the user hasn't crossed into a new month, or has no
+    // data for last month, consumeMonthlySummary returns null and we
+    // never set the field.
+    this.maybeShowMonthlySummary().catch((error) => {
+      console.error("[profile] monthly summary failed", error);
+    });
   },
 
   async onPullDownRefresh() {
@@ -286,6 +307,64 @@ Page<{}, ProfilePageData>({
       : weekdayNames[patterns.peakWeekday] || "—";
 
     return { hasData: true, peakHourLabel, peakWeekdayLabel, bars };
+  },
+
+  /**
+   * v0.18 — gate the "上月小结" modal. We fetch the recent-sessions
+   * list (already used by the garden page; capped to 200 server-side)
+   * and let consumeMonthlySummary decide whether anything fires. It
+   * tracks "last seen month" in storage, so this is cheap to call on
+   * every onShow — at most one DB-shaped popup per calendar month.
+   */
+  async maybeShowMonthlySummary() {
+    // Storage gate first: if we've already seen the prev-month summary,
+    // skip the network round-trip entirely. consumeMonthlySummary
+    // re-checks the same gate, but pre-checking here saves a request
+    // on every onShow during the bulk of the month.
+    if (this.data.monthlySummary) return;
+    let items;
+    try {
+      const result = await listMySessions();
+      items = result?.items ?? [];
+    } catch (_err) {
+      // Non-fatal: a transient API failure shouldn't block the
+      // rest of 我的. The summary will retry next onShow.
+      return;
+    }
+    const summary = consumeMonthlySummary(items, new Date());
+    if (!summary) return;
+    this.setData({
+      monthlySummary: summary,
+      monthlyChangeText: this.buildMonthlyChangeText(summary)
+    });
+  },
+
+  /**
+   * One short sentence describing this month vs the prior month.
+   * Kept in TS rather than wxml because the four MonthlyChange variants
+   * (noPrior / flat / up / down) would otherwise nest poorly in
+   * mustache ternaries.
+   */
+  buildMonthlyChangeText(summary: MonthlySummary): string {
+    const change = summary.change;
+    if (change.kind === "noPrior") return "上个月没有数据 — 这是你的第一份月小结。";
+    if (change.kind === "flat") return "和上个月节奏一致，稳。";
+    if (change.kind === "up") {
+      return `比上个月多 ${change.deltaMinutes} 分钟（+${change.percent}%）`;
+    }
+    return `比上个月少了 ${change.deltaMinutes} 分钟（-${change.percent}%）`;
+  },
+
+  /** Tap-to-dismiss for both backdrop and CTA. We always clear the
+   *  field — the storage write happens inside consumeMonthlySummary
+   *  so a re-render here doesn't risk re-firing the modal. */
+  onTapMonthlyDismiss() {
+    this.setData({ monthlySummary: null, monthlyChangeText: "" });
+  },
+
+  /** Stop propagation so taps on the card itself don't dismiss. */
+  onTapMonthlyContent(event: WechatMiniprogram.BaseEvent) {
+    event.stopPropagation?.();
   },
 
   openGarden() {

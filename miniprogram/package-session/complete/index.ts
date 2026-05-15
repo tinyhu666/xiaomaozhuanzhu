@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { completeSession, uploadCheckinPhoto } from "../../utils/api";
+import { previewCatForSession, type CatCard } from "../../utils/garden";
 import { validateCompletionDraft } from "../../utils/view-models";
 
 const SUBJECTS = ["会计", "审计", "税法", "财管", "经济法", "战略"];
@@ -27,6 +28,11 @@ type CompletePageData = {
   /** Pomodoro cycles completed in this session — display + submit. */
   pomodoroCycles: number;
   pomodoroBadgeText: string;
+  /** When non-null, the page renders a celebratory overlay showing the
+   *  cat the user just earned. Set after a successful submit; cleared
+   *  when we navigate away. */
+  earnedCat: CatCard | null;
+  earnedCatRarityLabel: string;
 };
 
 function makeChips(values: string[]): ChipView[] {
@@ -43,7 +49,9 @@ Page<{}, CompletePageData>({
     photos: [],
     submitting: false,
     pomodoroCycles: 0,
-    pomodoroBadgeText: ""
+    pomodoroBadgeText: "",
+    earnedCat: null,
+    earnedCatRarityLabel: ""
   },
 
   onLoad(query) {
@@ -164,11 +172,12 @@ Page<{}, CompletePageData>({
       return;
     }
 
+    const subject = selectedSubjectChip?.value ?? null;
     this.setData({ submitting: true });
     try {
       await completeSession(this.data.sessionId, {
         summary: this.data.summary,
-        subject: selectedSubjectChip?.value ?? null,
+        subject,
         tags: selectedTags,
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,
@@ -176,22 +185,52 @@ Page<{}, CompletePageData>({
         })),
         pomodoroCycles: this.data.pomodoroCycles || 0
       });
-      wx.showToast({
-        title: "打卡完成",
-        icon: "success"
+      // Derive the cat the user just earned and reveal it inline.
+      // This is the v0.18 "instant feedback" moment — the dopamine
+      // hit lands at session-complete time instead of being deferred
+      // until the user navigates to the garden tab.
+      const minutesFromText = Number((this.data.durationText.match(/\d+/) || [0])[0]);
+      const earnedCat = previewCatForSession({
+        sessionId: this.data.sessionId,
+        subject,
+        durationMinutes: Number.isFinite(minutesFromText) ? minutesFromText : 0,
+        pomodoroCycles: this.data.pomodoroCycles || 0
       });
-      setTimeout(() => {
-        wx.switchTab({
-          url: "/pages/home/index"
-        });
-      }, 400);
+      const rarityLabelMap: Record<string, string> = {
+        common: "普通", rare: "稀有", epic: "史诗", legendary: "传说"
+      };
+      this.setData({
+        submitting: false,
+        earnedCat,
+        earnedCatRarityLabel: rarityLabelMap[earnedCat.rarity] ?? "普通"
+      });
     } catch (error) {
       wx.showToast({
         title: error instanceof Error ? error.message : "提交失败",
         icon: "none"
       });
-    } finally {
       this.setData({ submitting: false });
     }
+  },
+
+  /**
+   * Dismissal — both the "继续专注" CTA and tap-backdrop call this.
+   * We always navigate home; the alternative ("stay on the complete
+   * page") would leave the user staring at a useless form.
+   */
+  onTapCatDismiss() {
+    wx.switchTab({ url: "/pages/home/index" });
+  },
+
+  onTapCatContent(event: WechatMiniprogram.BaseEvent) {
+    // Stop tap propagation so the user can read the card details
+    // without the backdrop tap dismissing them.
+    event.stopPropagation?.();
+  },
+
+  onTapOpenGarden() {
+    // The garden subpackage lives in package-profile; we navigate
+    // there directly rather than going through 我的 tab.
+    wx.navigateTo({ url: "/package-profile/garden/index" });
   }
 });

@@ -127,6 +127,51 @@ function formatDateText(iso: string | null): string {
   }
 }
 
+/**
+ * Build a single CatCard from session-completion data, without
+ * needing a full sessions list. Used by the complete-page cat
+ * reveal: the moment a user finishes打卡 we already know everything
+ * needed to derive what cat they just earned, so we can show it
+ * immediately instead of waiting for them to navigate to the garden.
+ *
+ * The input shape mirrors what the complete page has on hand:
+ *   - sessionId from the route query
+ *   - subject from the selected chip (or null)
+ *   - durationMinutes from the route query ("minutes")
+ *   - pomodoroCycles from the route query ("cycles")
+ * Derivation rules match buildGarden so a cat shown here will be
+ * the same cat shown in the garden grid.
+ */
+export function previewCatForSession(input: {
+  sessionId: string;
+  subject: string | null;
+  durationMinutes: number;
+  pomodoroCycles: number;
+}): CatCard {
+  const synthetic: CompletedSession = {
+    id: input.sessionId,
+    subject: input.subject,
+    mode: input.pomodoroCycles > 0 ? "pomodoro" : "free",
+    durationMinutes: input.durationMinutes,
+    pomodoroCycles: input.pomodoroCycles,
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString()
+  };
+  const subject = toCatSubject(synthetic.subject);
+  const theme = SUBJECT_THEME[subject];
+  return {
+    id: synthetic.id,
+    subject,
+    rarity: deriveRarity(synthetic),
+    emoji: theme.emoji,
+    accessory: theme.accessory,
+    durationMinutes: synthetic.durationMinutes,
+    pomodoroCycles: synthetic.pomodoroCycles,
+    dateText: formatDateText(synthetic.endedAt),
+    fromPomodoro: synthetic.mode === "pomodoro"
+  };
+}
+
 export function buildGarden(sessions: CompletedSession[]): GardenViewModel {
   const cats: CatCard[] = sessions
     // Garden ordered newest-first so the latest-earned cat is what

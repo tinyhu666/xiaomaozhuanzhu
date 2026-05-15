@@ -395,3 +395,187 @@
   color: rgba(94, 125, 117, 0.5);
   letter-spacing: 1rpx;
 }
+
+/* ============================================================
+   v0.18 — Monthly summary modal. Fires once per calendar month
+   on the first visit to 我的 after the month rolls over. The card
+   sits above a translucent backdrop; tap anywhere outside the
+   card to dismiss. Visual language matches the cat-reveal modal
+   on the session-complete page (same curve, same border radius)
+   so the two "moment" surfaces feel related.
+   ============================================================ */
+@keyframes monthly-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes monthly-modal-pop {
+  0%   { opacity: 0; transform: scale(0.85) translateY(40rpx); }
+  60%  { transform: scale(1.02) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes monthly-value-rise {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.monthly-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  background: rgba(20, 60, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 48rpx;
+  animation: monthly-modal-fade 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.monthly-modal__card {
+  position: relative;
+  width: 100%;
+  max-width: 620rpx;
+  padding: 44rpx 36rpx 32rpx;
+  border-radius: 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.42), transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #f3faf6 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.2);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(46, 169, 133, 0.32);
+  animation: monthly-modal-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.monthly-modal__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.monthly-modal__eyebrow {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--mint-600);
+  padding: 4rpx 16rpx;
+  background: rgba(46, 169, 133, 0.12);
+  border-radius: 999rpx;
+}
+
+.monthly-modal__title {
+  font-size: 44rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.6rpx;
+  margin-top: 8rpx;
+}
+
+.monthly-modal__hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-top: 18rpx;
+  animation: monthly-value-rise 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) 0.18s backwards;
+}
+
+.monthly-modal__value {
+  font-size: 96rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.5rpx;
+  background: linear-gradient(135deg, #2ea985 0%, #63cba8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.monthly-modal__unit {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  letter-spacing: 0.5rpx;
+}
+
+.monthly-modal__sub {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+  text-align: center;
+}
+
+.monthly-modal__detail-grid {
+  display: flex;
+  width: 100%;
+  gap: 14rpx;
+  margin-top: 28rpx;
+}
+
+.monthly-modal__detail {
+  flex: 1;
+  padding: 18rpx 18rpx 16rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  align-items: flex-start;
+}
+
+.monthly-modal__detail-label {
+  font-size: 20rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.monthly-modal__detail-value {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.monthly-modal__detail-caption {
+  font-size: 20rpx;
+  color: var(--mint-600);
+  letter-spacing: 0.2rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.monthly-modal__encouragement {
+  margin-top: 26rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--text-sub);
+  text-align: center;
+  letter-spacing: 0.3rpx;
+}
+
+.monthly-modal__cta {
+  margin-top: 26rpx;
+  width: 100%;
+  padding: 20rpx 0;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 0.5rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 6rpx 16rpx rgba(46, 169, 133, 0.28);
+  transition: transform 0.16s ease;
+}
+
+.monthly-modal__cta:active {
+  transform: scale(0.97);
+}

@@ -15,3 +15,202 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+/* ============================================================
+   v0.18 — Cat reveal overlay. Shown after successful submit;
+   covers the form so the user's attention lands on the new cat.
+   Animations build a small "you earned this" moment.
+   ============================================================ */
+@keyframes cat-reveal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cat-reveal-pop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(40rpx); }
+  60%  { transform: scale(1.04) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes cat-emoji-bounce {
+  from { transform: scale(0.3) rotate(-12deg); opacity: 0; }
+  60%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  to   { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes cat-halo-pulse {
+  0%   { transform: scale(0.6); opacity: 0; }
+  40%  { opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.cat-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 230;
+  background: rgba(20, 60, 50, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 48rpx;
+  animation: cat-reveal-fade 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.cat-reveal__card {
+  position: relative;
+  width: 100%;
+  max-width: 600rpx;
+  padding: 52rpx 36rpx 36rpx;
+  border-radius: 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  animation: cat-reveal-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+  /* Default tint — overridden by rarity modifier classes below */
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.4), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f3faf6 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(46, 169, 133, 0.32);
+}
+
+.cat-reveal__card--rare {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(138, 166, 240, 0.36), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #eef3ff 100%);
+  border-color: rgba(74, 110, 217, 0.3);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(74, 110, 217, 0.32);
+}
+
+.cat-reveal__card--epic {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 184, 107, 0.4), transparent 60%),
+    linear-gradient(180deg, #fffaf0 0%, #ffe6c0 100%);
+  border-color: rgba(229, 123, 43, 0.34);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(229, 123, 43, 0.34);
+}
+
+.cat-reveal__card--legendary {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 216, 107, 0.55), transparent 60%),
+    linear-gradient(180deg, #fffaeb 0%, #ffe79b 100%);
+  border-color: rgba(240, 169, 59, 0.5);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.9),
+    0 24rpx 60rpx -8rpx rgba(240, 169, 59, 0.45);
+}
+
+/* Radiating halo behind the cat — only visible for higher rarities. */
+.cat-reveal__halo {
+  position: absolute;
+  top: 130rpx;
+  left: 50%;
+  margin-left: -120rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: rgba(46, 169, 133, 0.18);
+  filter: blur(10rpx);
+  animation: cat-halo-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.cat-reveal__card--rare .cat-reveal__halo      { background: rgba(74, 110, 217, 0.2); }
+.cat-reveal__card--epic .cat-reveal__halo      { background: rgba(229, 123, 43, 0.28); }
+.cat-reveal__card--legendary .cat-reveal__halo { background: rgba(240, 169, 59, 0.36); }
+
+.cat-reveal__rarity {
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 0.6rpx;
+  margin-bottom: 8rpx;
+  z-index: 1;
+}
+
+.cat-reveal__rarity--common    { background: rgba(94, 125, 117, 0.16); color: var(--text-main); }
+.cat-reveal__rarity--rare      { background: rgba(74, 110, 217, 0.18); color: #3a4a92; }
+.cat-reveal__rarity--epic      { background: rgba(229, 123, 43, 0.2); color: #7a3f0a; }
+.cat-reveal__rarity--legendary { background: rgba(240, 169, 59, 0.3); color: #6b4108; }
+
+.cat-reveal__emoji {
+  font-size: 180rpx;
+  line-height: 1;
+  animation: cat-emoji-bounce 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s backwards;
+  z-index: 1;
+}
+
+.cat-reveal__crown,
+.cat-reveal__star {
+  position: absolute;
+  top: 110rpx;
+  right: 36%;
+  font-size: 56rpx;
+  line-height: 1;
+  filter: drop-shadow(0 2rpx 6rpx rgba(0, 0, 0, 0.18));
+  animation: cat-emoji-bounce 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) 0.5s backwards;
+  z-index: 2;
+}
+
+.cat-reveal__star {
+  font-size: 44rpx;
+}
+
+.cat-reveal__title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+  margin-top: 6rpx;
+}
+
+.cat-reveal__sub {
+  font-size: 24rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+  margin-top: 2rpx;
+}
+
+.cat-reveal__actions {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 26rpx;
+  width: 100%;
+}
+
+.cat-reveal__ghost,
+.cat-reveal__primary {
+  flex: 1;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 0.5rpx;
+  transition: transform 0.16s ease;
+}
+
+.cat-reveal__ghost {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1rpx solid rgba(46, 169, 133, 0.22);
+  color: var(--mint-600);
+}
+
+.cat-reveal__primary {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  color: #fff;
+  box-shadow: 0 6rpx 16rpx rgba(46, 169, 133, 0.28);
+}
+
+.cat-reveal__ghost:active,
+.cat-reveal__primary:active {
+  transform: scale(0.96);
+}
