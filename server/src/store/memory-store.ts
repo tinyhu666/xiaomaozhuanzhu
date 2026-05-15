@@ -3,13 +3,14 @@ import { randomUUID } from "node:crypto";
 import type {
   DailyStat,
   NewsItem,
+  PracticeQuestion,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
   User,
   UserResolutionInput
 } from "../types";
-import type { NewsListOptions, NewsUpsertResult } from "./types";
+import type { NewsListOptions, NewsUpsertResult, PracticeListOptions } from "./types";
 
 export class MemoryStore {
   private users = new Map<string, User>();
@@ -23,6 +24,7 @@ export class MemoryStore {
   private newsById = new Map<string, NewsItem>();
   /** (source, url) -> id index, mirrors the MySQL UNIQUE constraint. */
   private newsBySourceUrl = new Map<string, string>();
+  private practiceById = new Map<string, PracticeQuestion>();
 
   /**
    * Resolve (or create) a user from an identity bundle. The miniprogram
@@ -301,6 +303,42 @@ export class MemoryStore {
     this.newsById.delete(id);
     this.newsBySourceUrl.delete(`${item.source} ${item.url}`);
     return true;
+  }
+
+  // ---------------------------------------------------------------
+  // AI practice questions
+  // ---------------------------------------------------------------
+
+  savePracticeQuestion(item: PracticeQuestion): PracticeQuestion {
+    this.practiceById.set(item.id, item);
+    return item;
+  }
+
+  getPracticeQuestion(id: string, userId: string): PracticeQuestion | null {
+    const row = this.practiceById.get(id);
+    if (!row || row.userId !== userId) return null;
+    return row;
+  }
+
+  listPracticeMistakes(userId: string, options: PracticeListOptions = {}): PracticeQuestion[] {
+    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
+    const includeMastered = options.includeMastered ?? false;
+    const wrongOnly = options.wrongOnly ?? true;
+    return [...this.practiceById.values()]
+      .filter((row) => row.userId === userId)
+      .filter((row) => row.userAnswer !== null)
+      .filter((row) => (wrongOnly ? row.isCorrect === false : true))
+      .filter((row) => (includeMastered ? true : !row.isMastered))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
+  }
+
+  setPracticeMastered(id: string, userId: string, mastered: boolean): PracticeQuestion | null {
+    const row = this.practiceById.get(id);
+    if (!row || row.userId !== userId) return null;
+    const next: PracticeQuestion = { ...row, isMastered: mastered };
+    this.practiceById.set(id, next);
+    return next;
   }
 
   listRecentCompletedSessions(limit: number) {

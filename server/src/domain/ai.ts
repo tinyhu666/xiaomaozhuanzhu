@@ -74,8 +74,12 @@ export function getDailyAiCount(userId: string, now: Date): number {
   return dailyCounts.get(counterKey(userId, now)) ?? 0;
 }
 
-/** Increment after a successful call. */
-function bumpDailyCount(userId: string, now: Date) {
+/**
+ * Increment after a successful call. Exported so /api/ai/practice/*
+ * endpoints can share the same daily counter — a user shouldn't be
+ * able to bypass the cap by alternating between "ask" and "practice".
+ */
+export function bumpDailyAiCount(userId: string, now: Date) {
   const key = counterKey(userId, now);
   dailyCounts.set(key, (dailyCounts.get(key) ?? 0) + 1);
 }
@@ -202,7 +206,7 @@ export async function askAi(
     throw new AppError(502, "AI_EMPTY", "AI 未返回内容，请换个问法试试");
   }
 
-  bumpDailyCount(input.userId, input.now);
+  bumpDailyAiCount(input.userId, input.now);
   return {
     answer: content.trim(),
     usedToday: getDailyAiCount(input.userId, input.now),

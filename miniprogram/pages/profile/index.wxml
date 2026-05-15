@@ -137,6 +137,14 @@
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
+    <view class="menu-item" bindtap="openMistakes">
+      <view class="menu-item__icon">📚</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">错题本</text>
+        <text class="menu-item__hint">AI 练习答错的题，可标记掌握</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
     <view class="menu-item" bindtap="openPoster">
       <view class="menu-item__icon">🎴</view>
       <view class="menu-item__body">

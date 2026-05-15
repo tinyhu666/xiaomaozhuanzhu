@@ -87,6 +87,367 @@
   background: rgba(74, 110, 217, 0.18);
 }
 
+.ai-page__reset-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 4rpx;
+}
+
+/* Mode toggle — segmented pill, two pills side by side */
+.ai-page__mode-switch {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4rpx;
+  padding: 4rpx;
+  border-radius: 999rpx;
+  background: rgba(74, 110, 217, 0.08);
+  border: 1rpx solid rgba(74, 110, 217, 0.16);
+}
+
+.ai-page__mode-pill {
+  padding: 8rpx 18rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #4a6ed9;
+  border-radius: 999rpx;
+  letter-spacing: 0.4rpx;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ai-page__mode-pill.is-active {
+  background: linear-gradient(135deg, #8aa6f0 0%, #4a6ed9 100%);
+  color: #fff;
+  box-shadow: 0 4rpx 10rpx rgba(74, 110, 217, 0.32);
+}
+
+/* ============================================================
+   Practice mode — picker
+   ============================================================ */
+.practice-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 22rpx;
+  padding: 32rpx 28rpx 24rpx;
+  margin-top: 12rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.18), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+}
+
+.practice-picker__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.practice-picker__label {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.practice-picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.practice-picker__chip {
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: rgba(46, 169, 133, 0.06);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  letter-spacing: 0.3rpx;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.practice-picker__chip.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  border-color: transparent;
+  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.28);
+}
+
+.practice-picker__chip:active {
+  transform: scale(0.96);
+}
+
+.practice-picker__difficulty-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.practice-picker__difficulty {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding: 18rpx 16rpx;
+  border-radius: 22rpx;
+  background: rgba(46, 169, 133, 0.05);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.practice-picker__difficulty.is-active {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  border-color: transparent;
+  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.28);
+}
+
+.practice-picker__difficulty.is-active .practice-picker__difficulty-label,
+.practice-picker__difficulty.is-active .practice-picker__difficulty-desc {
+  color: #fff;
+}
+
+.practice-picker__difficulty-label {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.practice-picker__difficulty-desc {
+  font-size: 18rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  line-height: 1.5;
+}
+
+.practice-picker__cta {
+  width: 100%;
+  margin-top: 8rpx;
+}
+
+.practice-picker__cta.is-disabled {
+  background: rgba(46, 169, 133, 0.32);
+  box-shadow: none;
+}
+
+.practice-picker__error {
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: rgba(229, 123, 123, 0.1);
+  border: 1rpx dashed rgba(229, 123, 123, 0.32);
+  color: #b3322b;
+  font-size: 22rpx;
+  letter-spacing: 0.2rpx;
+}
+
+.practice-picker__mistakes-link {
+  margin-top: 8rpx;
+  padding: 18rpx;
+  text-align: center;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #4a6ed9;
+  background: rgba(74, 110, 217, 0.08);
+  border-radius: 18rpx;
+  letter-spacing: 0.3rpx;
+}
+
+.practice-picker__mistakes-link:active {
+  background: rgba(74, 110, 217, 0.16);
+}
+
+/* ============================================================
+   Practice mode — question cards
+   ============================================================ */
+.practice-batch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 8rpx 4rpx;
+}
+
+.practice-batch-head__title {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.practice-batch-head__reset {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  border: 1rpx solid rgba(46, 169, 133, 0.2);
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--mint-600);
+}
+
+.practice-card {
+  padding: 24rpx 26rpx;
+  border-radius: 24rpx;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.practice-card.is-graded {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f5fdf8 100%);
+}
+
+.practice-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.practice-card__index {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  letter-spacing: 0.4rpx;
+}
+
+.practice-card__verdict {
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 800;
+  letter-spacing: 0.4rpx;
+}
+
+.practice-card__verdict--correct {
+  background: rgba(46, 169, 133, 0.18);
+  color: #1d6f59;
+}
+
+.practice-card__verdict--wrong {
+  background: rgba(217, 80, 80, 0.18);
+  color: #7a1a1a;
+}
+
+.practice-card__question {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.65;
+  color: var(--text-main);
+  letter-spacing: 0.2rpx;
+}
+
+.practice-card__options {
+  margin-top: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.practice-card__option {
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: rgba(46, 169, 133, 0.04);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  font-size: 26rpx;
+  line-height: 1.55;
+  color: var(--text-main);
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.practice-card__option.is-selected {
+  background: rgba(46, 169, 133, 0.14);
+  border-color: rgba(46, 169, 133, 0.32);
+}
+
+.practice-card__option:active {
+  transform: scale(0.99);
+}
+
+.practice-card__option.is-correct {
+  background: rgba(46, 169, 133, 0.18);
+  border-color: var(--mint-500);
+  color: #155946;
+  font-weight: 600;
+}
+
+.practice-card__option.is-wrong {
+  background: rgba(217, 80, 80, 0.12);
+  border-color: rgba(217, 80, 80, 0.4);
+  color: #7a1a1a;
+  font-weight: 600;
+}
+
+.practice-card__option-text {
+  display: block;
+}
+
+.practice-card__submit {
+  width: 100%;
+  margin-top: 18rpx;
+}
+
+.practice-card__submit.is-disabled {
+  background: rgba(46, 169, 133, 0.3);
+  box-shadow: none;
+}
+
+.practice-card__explanation {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border-radius: 18rpx;
+  background: rgba(74, 110, 217, 0.06);
+  border: 1rpx solid rgba(74, 110, 217, 0.18);
+}
+
+.practice-card__explanation-label {
+  display: inline-block;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  background: rgba(74, 110, 217, 0.18);
+  color: #3a4a92;
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 0.3rpx;
+  margin-bottom: 10rpx;
+}
+
+.practice-card__explanation-text {
+  display: block;
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  letter-spacing: 0.2rpx;
+}
+
+.practice-batch-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 4rpx;
+}
+
+.practice-batch-foot__usage {
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.7;
+}
+
+.practice-batch-foot__action {
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(74, 110, 217, 0.1);
+  color: #4a6ed9;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 0.3rpx;
+}
+
 /* ============================================================
    Scroll area — the conversation. Flex-grow fills available
    vertical space; .ai-page__bottom-spacer reserves space under

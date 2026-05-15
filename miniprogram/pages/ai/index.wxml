@@ -1,7 +1,7 @@
 <view class="ai-page">
   <!--
-    Header card — sticky context "what this AI does". Compact so it
-    doesn't compete with the conversation area for vertical space.
+    Mode toggle + brand strip. Toggle is the only persistent piece;
+    everything below switches with the mode.
   -->
   <view class="ai-page__hero">
     <view class="ai-page__hero-left">
@@ -9,17 +9,25 @@
         <text class="ai-page__brand-icon">🤖</text>
         <text class="ai-page__brand-title">小猫 AI · CPA 助教</text>
       </view>
-      <text class="ai-page__brand-sub">专注解答 CPA 备考问题 · 由 DeepSeek 提供算力</text>
+      <text class="ai-page__brand-sub">{{mode === "ask" ? "随便问 · DeepSeek 算力支持" : "AI 出题练习 · 错题自动入本"}}</text>
     </view>
-    <view wx:if="{{messages.length}}" class="ai-page__reset" bindtap="onResetTap">清空</view>
+    <view class="ai-page__mode-switch">
+      <view
+        class="ai-page__mode-pill {{mode === 'ask' ? 'is-active' : ''}}"
+        data-mode="ask"
+        bindtap="onTapMode"
+      >问答</view>
+      <view
+        class="ai-page__mode-pill {{mode === 'practice' ? 'is-active' : ''}}"
+        data-mode="practice"
+        bindtap="onTapMode"
+      >练习</view>
+    </view>
   </view>
 
-  <!--
-    Conversation scroll area. Fills remaining vertical space between
-    the hero and the bottom input bar. scroll-into-view keeps the
-    latest bubble visible after a tick.
-  -->
+  <!-- ============ ASK MODE ============ -->
   <scroll-view
+    wx:if="{{mode === 'ask'}}"
     class="ai-page__scroll"
     scroll-y
     scroll-into-view="{{scrollIntoView}}"
@@ -28,7 +36,6 @@
     show-scrollbar="{{false}}"
   >
     <view class="ai-page__scroll-inner">
-      <!-- Empty state: example questions to lower friction -->
       <view wx:if="{{!messages.length}}" class="ai-empty">
         <view class="ai-empty__title">想问点什么？</view>
         <view class="ai-empty__sub">选一个开始，或在下方直接输入。AI 只回答 CPA 备考相关问题。</view>
@@ -49,12 +56,12 @@
         </view>
       </view>
 
-      <!-- Conversation turns -->
+      <view wx:if="{{messages.length}}" class="ai-page__reset-row">
+        <view class="ai-page__reset" bindtap="onResetTap">清空</view>
+      </view>
+
       <block wx:for="{{messages}}" wx:key="id">
-        <view
-          id="{{item.id}}"
-          class="ai-bubble ai-bubble--{{item.role}}"
-        >
+        <view id="{{item.id}}" class="ai-bubble ai-bubble--{{item.role}}">
           <view class="ai-bubble__avatar ai-bubble__avatar--{{item.role}}">
             <text>{{item.role === "user" ? "我" : "AI"}}</text>
           </view>
@@ -78,11 +85,121 @@
     </view>
   </scroll-view>
 
-  <!--
-    Composer — fixed to the bottom above the custom tab bar. We use
-    safe-area inset so notched phones don't clip the input.
-  -->
-  <view class="ai-composer">
+  <!-- ============ PRACTICE MODE ============ -->
+  <scroll-view
+    wx:elif="{{mode === 'practice'}}"
+    class="ai-page__scroll"
+    scroll-y
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view class="ai-page__scroll-inner">
+      <!-- Picker: shown until first question is generated -->
+      <view wx:if="{{!practiceRows.length}}" class="practice-picker">
+        <view class="practice-picker__section">
+          <view class="practice-picker__label">选择科目</view>
+          <view class="practice-picker__chips">
+            <view
+              wx:for="{{practiceSubjects}}"
+              wx:key="label"
+              class="practice-picker__chip {{item.active ? 'is-active' : ''}}"
+              data-label="{{item.label}}"
+              bindtap="onTapPracticeSubject"
+            >{{item.label}}</view>
+          </view>
+        </view>
+
+        <view class="practice-picker__section">
+          <view class="practice-picker__label">难度</view>
+          <view class="practice-picker__difficulty-row">
+            <view
+              wx:for="{{practiceDifficulties}}"
+              wx:key="key"
+              class="practice-picker__difficulty {{item.active ? 'is-active' : ''}}"
+              data-key="{{item.key}}"
+              bindtap="onTapPracticeDifficulty"
+            >
+              <text class="practice-picker__difficulty-label">{{item.label}}</text>
+              <text class="practice-picker__difficulty-desc">{{item.desc}}</text>
+            </view>
+          </view>
+        </view>
+
+        <button
+          class="cta-button practice-picker__cta {{!practiceSubject || practiceGenerating ? 'is-disabled' : ''}}"
+          disabled="{{!practiceSubject || practiceGenerating}}"
+          loading="{{practiceGenerating}}"
+          bindtap="onTapGenerate"
+        >{{practiceGenerating ? "AI 出题中…" : "开始练习（出 3 道）"}}</button>
+
+        <view wx:if="{{practiceError}}" class="practice-picker__error">{{practiceError}}</view>
+
+        <view class="practice-picker__mistakes-link" bindtap="onTapOpenMistakes">
+          📚 看看「错题本」
+        </view>
+      </view>
+
+      <!-- Question batch -->
+      <block wx:if="{{practiceRows.length}}">
+        <view class="practice-batch-head">
+          <text class="practice-batch-head__title">{{practiceSubject}} · {{practiceDifficulty === "basic" ? "基础" : practiceDifficulty === "intermediate" ? "进阶" : "真题级"}}</text>
+          <view class="practice-batch-head__reset" bindtap="onTapResetPractice">换一批</view>
+        </view>
+
+        <view
+          wx:for="{{practiceRows}}"
+          wx:key="id"
+          class="practice-card {{item.graded ? 'is-graded' : ''}}"
+        >
+          <view class="practice-card__head">
+            <text class="practice-card__index">第 {{item.index}} 题</text>
+            <text wx:if="{{item.graded && item.userAnswer === item.correctAnswer}}" class="practice-card__verdict practice-card__verdict--correct">✓ 答对</text>
+            <text wx:elif="{{item.graded}}" class="practice-card__verdict practice-card__verdict--wrong">✗ 答错</text>
+          </view>
+
+          <text class="practice-card__question">{{item.question}}</text>
+
+          <view class="practice-card__options">
+            <view
+              wx:for="{{item.options}}"
+              wx:for-item="opt"
+              wx:key="*this"
+              class="practice-card__option {{item.userAnswer === opt.charAt(0) ? 'is-selected' : ''}} {{item.graded && opt.charAt(0) === item.correctAnswer ? 'is-correct' : ''}} {{item.graded && item.userAnswer === opt.charAt(0) && opt.charAt(0) !== item.correctAnswer ? 'is-wrong' : ''}}"
+              data-letter="{{opt.charAt(0)}}"
+              data-id="{{item.id}}"
+              bindtap="onTapOption"
+            >
+              <text class="practice-card__option-text">{{opt}}</text>
+            </view>
+          </view>
+
+          <button
+            wx:if="{{!item.graded}}"
+            class="cta-button practice-card__submit {{!item.userAnswer || practiceGrading ? 'is-disabled' : ''}}"
+            disabled="{{!item.userAnswer || practiceGrading}}"
+            loading="{{practiceGrading}}"
+            data-id="{{item.id}}"
+            bindtap="onTapSubmitRow"
+          >提交答案</button>
+
+          <view wx:if="{{item.graded && item.explanation}}" class="practice-card__explanation">
+            <text class="practice-card__explanation-label">AI 解析</text>
+            <text class="practice-card__explanation-text">{{item.explanation}}</text>
+          </view>
+        </view>
+
+        <view class="practice-batch-foot">
+          <text wx:if="{{usageLabel}}" class="practice-batch-foot__usage">{{usageLabel}}</text>
+          <view class="practice-batch-foot__action" bindtap="onTapOpenMistakes">查看错题本 ›</view>
+        </view>
+      </block>
+
+      <view class="ai-page__bottom-spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!-- ============ Composer (ASK only) ============ -->
+  <view wx:if="{{mode === 'ask'}}" class="ai-composer">
     <view class="ai-composer__wrap">
       <input
         class="ai-composer__input"

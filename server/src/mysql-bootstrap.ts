@@ -62,6 +62,34 @@ const TABLE_STATEMENTS = [
     KEY idx_daily_stats_user_date (user_id, stat_date DESC),
     CONSTRAINT fk_daily_stat_user FOREIGN KEY (user_id) REFERENCES users(id)
   )`,
+  // AI-generated practice questions + the user's attempts. One row
+  // per question per attempt — a re-attempted question creates a new
+  // row so we can see the user's progress curve over time. The
+  // `is_mastered` column lets the user (or future spaced-repetition
+  // logic) hide questions they've truly internalised.
+  //
+  // We store the full question, the user's chosen answer, the
+  // correct answer, and the AI's explanation. That makes the
+  // 错题本 list view a simple SELECT — no need to round-trip back
+  // to DeepSeek when the user reopens an old mistake.
+  `CREATE TABLE IF NOT EXISTS practice_questions (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    subject VARCHAR(16) NOT NULL,
+    difficulty VARCHAR(16) NOT NULL,
+    question TEXT NOT NULL,
+    options_json JSON NOT NULL,
+    correct_answer VARCHAR(8) NOT NULL,
+    user_answer VARCHAR(8) NULL,
+    ai_explanation MEDIUMTEXT NULL,
+    is_correct TINYINT(1) NULL,
+    is_mastered TINYINT(1) NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL,
+    answered_at DATETIME(3) NULL,
+    KEY idx_practice_user_created (user_id, created_at DESC),
+    KEY idx_practice_user_mistakes (user_id, is_correct, is_mastered, created_at DESC),
+    CONSTRAINT fk_practice_user FOREIGN KEY (user_id) REFERENCES users(id)
+  )`,
   // Exam-related news / announcements / syllabi. Populated by an
   // asynchronous fetcher (server/src/domain/news.ts) and surfaced in
   // the miniprogram's 「动态」 tab. `manual = 1` rows are admin-curated

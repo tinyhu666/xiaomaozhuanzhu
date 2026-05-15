@@ -6,7 +6,8 @@ import { z } from "zod";
 import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
-import { askAi } from "./domain/ai";
+import { askAi, bumpDailyAiCount, getDailyAiCount } from "./domain/ai";
+import { generateGradeExplanation, generatePracticeQuestions } from "./domain/ai-practice";
 import { getExamSchedule } from "./domain/exam-dates";
 import { maybeKickoffNewsRefresh } from "./domain/news";
 import { ensureNewsSeed } from "./domain/news-seed";
@@ -24,7 +25,17 @@ import { createStorageClient, type StorageClient } from "./storage/default-stora
 import { MemoryStore } from "./store/memory-store";
 import { MySQLStore } from "./store/mysql-store";
 import type { DataStore } from "./store/types";
-import { NEWS_CATEGORIES, type NewsCategory, type DailyStat, type SessionPhoto, type StudySession, type User } from "./types";
+import {
+  NEWS_CATEGORIES,
+  PRACTICE_DIFFICULTIES,
+  type NewsCategory,
+  type PracticeDifficulty,
+  type PracticeQuestion,
+  type DailyStat,
+  type SessionPhoto,
+  type StudySession,
+  type User
+} from "./types";
 
 type Clock = {
   now(): Date;
@@ -90,6 +101,19 @@ const startSessionSchema = z
   })
   .optional()
   .default({});
+
+const aiGenerateQuizSchema = z.object({
+  subject: z.enum(SUBJECTS),
+  difficulty: z.enum(PRACTICE_DIFFICULTIES),
+  // 1–5 questions per call. More than 5 burns tokens without giving
+  // the user more value (they'll abandon the long quiz).
+  count: z.number().int().min(1).max(5).default(3)
+});
+
+const aiGradeAnswerSchema = z.object({
+  questionId: z.string().min(1).max(64),
+  userAnswer: z.string().min(1).max(8)
+});
 
 const aiAskSchema = z.object({
   // Bound the input so a stray paste of an entire textbook page
@@ -692,6 +716,151 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json(result);
   }));
 
+  // -------- AI 练习 (CPA Q-bank) --------
+  // The generator is one DeepSeek call; the grader is a second one
+  // per question that the user attempts. We bump the shared AI
+  // counter on each successful call so practice doesn't bypass the
+  // 30/day cap. Questions live in the practice_questions table so
+  // the 错题本 list view is a simple SELECT.
+  app.post(
+    "/api/ai/practice/generate",
+    withUser(store, clock, async (request, response, context) => {
+      const payload = parse(aiGenerateQuizSchema, request.body);
+      const generated = await generatePracticeQuestions({
+        userId: context.user.id,
+        subject: payload.subject,
+        difficulty: payload.difficulty,
+        count: payload.count,
+        now: clock.now()
+      });
+      // Charge the daily counter once per generation call (one
+      // upstream request regardless of how many questions in the
+      // batch). The grader will charge again per grade call.
+      bumpDailyAiCount(context.user.id, clock.now());
+      const nowIso = clock.now().toISOString();
+      const stored: PracticeQuestion[] = [];
+      for (const q of generated) {
+        const item: PracticeQuestion = {
+          id: randomUUID(),
+          userId: context.user.id,
+          subject: payload.subject,
+          difficulty: payload.difficulty,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correct_answer,
+          userAnswer: null,
+          aiExplanation: null,
+          isCorrect: null,
+          isMastered: false,
+          createdAt: nowIso,
+          answeredAt: null
+        };
+        await store.savePracticeQuestion(item);
+        stored.push(item);
+      }
+      // Mirror /api/ai/ask shape so the client can show the same
+      // "今日已用 X / 30" hint after every AI interaction.
+      response.json({
+        questions: stored.map((it) => ({
+          // Never leak the correct answer until the user submits.
+          id: it.id,
+          subject: it.subject,
+          difficulty: it.difficulty,
+          question: it.question,
+          options: it.options
+        })),
+        usedToday: getCurrentAiCount(context.user.id, clock.now()),
+        dailyLimit: 30
+      });
+    })
+  );
+
+  app.post(
+    "/api/ai/practice/grade",
+    withUser(store, clock, async (request, response, context) => {
+      const payload = parse(aiGradeAnswerSchema, request.body);
+      const question = await store.getPracticeQuestion(payload.questionId, context.user.id);
+      if (!question) {
+        throw new AppError(404, "NOT_FOUND", "题目不存在或不属于当前用户");
+      }
+      if (question.userAnswer) {
+        // Idempotent re-grade: re-return the cached result. Saves a
+        // DeepSeek call if the user double-taps submit / re-opens
+        // the same question from 错题本.
+        response.json({
+          questionId: question.id,
+          correct: question.isCorrect,
+          correctAnswer: question.correctAnswer,
+          explanation: question.aiExplanation ?? "",
+          usedToday: getCurrentAiCount(context.user.id, clock.now()),
+          dailyLimit: 30
+        });
+        return;
+      }
+      const isCorrect =
+        payload.userAnswer.toUpperCase().trim() === question.correctAnswer.toUpperCase().trim();
+      const explanation = await generateGradeExplanation({
+        userId: context.user.id,
+        subject: question.subject,
+        question: question.question,
+        options: question.options,
+        correctAnswer: question.correctAnswer,
+        userAnswer: payload.userAnswer,
+        now: clock.now()
+      });
+      bumpDailyAiCount(context.user.id, clock.now());
+      const nowIso = clock.now().toISOString();
+      const next: PracticeQuestion = {
+        ...question,
+        userAnswer: payload.userAnswer.toUpperCase().trim(),
+        aiExplanation: explanation,
+        isCorrect,
+        answeredAt: nowIso
+      };
+      await store.savePracticeQuestion(next);
+      response.json({
+        questionId: next.id,
+        correct: isCorrect,
+        correctAnswer: next.correctAnswer,
+        explanation,
+        usedToday: getCurrentAiCount(context.user.id, clock.now()),
+        dailyLimit: 30
+      });
+    })
+  );
+
+  app.get(
+    "/api/me/mistakes",
+    withUser(store, clock, async (request, response, context) => {
+      const includeMastered = String(request.query.includeMastered ?? "") === "1";
+      const limit = parseLimit(request.query.limit, 50, 200);
+      const items = await store.listPracticeMistakes(context.user.id, {
+        limit,
+        includeMastered,
+        wrongOnly: true
+      });
+      response.json({
+        items: items.map(serializePracticeQuestion)
+      });
+    })
+  );
+
+  app.post(
+    "/api/me/mistakes/:id/mastered",
+    withUser(store, clock, async (request, response, context) => {
+      const id = String(request.params.id);
+      const raw = request.body?.mastered;
+      if (typeof raw !== "boolean") {
+        throw new AppError(400, "INVALID_INPUT", "mastered must be boolean");
+      }
+      const item = await store.setPracticeMastered(id, context.user.id, raw);
+      if (!item) {
+        throw new AppError(404, "NOT_FOUND", "Mistake not found");
+      }
+      response.json({ item: serializePracticeQuestion(item) });
+    })
+  );
+
   app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);
     const queries = [
@@ -1091,6 +1260,34 @@ function parseLimit(raw: unknown, fallback: number, max: number) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) return fallback;
   return Math.min(Math.floor(value), max);
+}
+
+/** Tiny wrapper so the route handlers don't depend on the ai.ts module directly. */
+function getCurrentAiCount(userId: string, now: Date): number {
+  return getDailyAiCount(userId, now);
+}
+
+/**
+ * Trim a practice question for the 错题本 list view. We expose the
+ * correct answer + user's answer + AI explanation here because the
+ * user has already answered — there's no security reason to hide
+ * the answer they've already seen.
+ */
+function serializePracticeQuestion(item: PracticeQuestion) {
+  return {
+    id: item.id,
+    subject: item.subject,
+    difficulty: item.difficulty,
+    question: item.question,
+    options: item.options,
+    correctAnswer: item.correctAnswer,
+    userAnswer: item.userAnswer,
+    aiExplanation: item.aiExplanation,
+    isCorrect: item.isCorrect,
+    isMastered: item.isMastered,
+    createdAt: item.createdAt,
+    answeredAt: item.answeredAt
+  };
 }
 
 function serializeNewsListItem(item: import("./types").NewsItem) {

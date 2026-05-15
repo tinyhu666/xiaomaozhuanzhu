@@ -1,6 +1,21 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.13.0 — AI 助教 tab 替代动态 tab + 首页视觉层级重做 + 头像蓝色 tap-flash 修复。
+> 当前版本 v0.14.0 — AI 练习模式（出题 + 判分 + 详解）+ 错题本。三轴 (CPA × AI × 专注) 首次互相赋能。
+
+## v0.14.0 已上线（AI 练习 + 错题本）
+
+定位升级：CPA 备考 × AI 工具 × 专注工具三轴首次互相赋能。AI tab 从「问答」升级为「问答 + 练习」，AI 不只是答疑，还能出题 + 判分。
+
+- **AI 练习模式**（AI tab 顶部加 segmented toggle `问答 / 练习`）：选科目 + 难度 → AI 出 3 道选择题 → 用户答题 → AI 判分 + 给详解。三档难度：基础 / 进阶 / 真题级。
+- **错题本**（「我的」菜单新入口）：所有答错的题自动入本，含题干 + 你的答案 + 正确答案 + AI 详解。可标记「已掌握」隐藏。pull-to-refresh，optimistic-update。
+- **服务端**：
+  - 新表 `practice_questions(id, user_id, subject, difficulty, question, options_json, correct_answer, user_answer, ai_explanation, is_correct, is_mastered, created_at, answered_at)`，UNIQUE on id，两个查询索引。
+  - 3 个新接口：`POST /api/ai/practice/generate`（DeepSeek + JSON mode）、`POST /api/ai/practice/grade`（含幂等检查，重复提交不再调 AI）、`GET /api/me/mistakes` + `POST /api/me/mistakes/:id/mastered`。
+  - 与 `/api/ai/ask` 共享每用户 30 次/日的软限流，防止用户通过混用绕过。
+  - 生成调用走 DeepSeek 的 `response_format: { type: "json_object" }`，比正则解析稳。
+- **测试**：116/116 通过（新增 8 个：领域逻辑 + HTTP 集成路径 + 幂等校验）。
+
+需要的运维动作：和 v0.13 相同的 `DEEPSEEK_API_KEY` 即可，无需新增 env。
 
 ## v0.13.0 已上线
 
