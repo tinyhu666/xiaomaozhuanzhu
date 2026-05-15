@@ -2,7 +2,6 @@ import type {
   DailyStat,
   NewsCategory,
   NewsItem,
-  PracticeQuestion,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
@@ -45,24 +44,6 @@ export type DataStore = {
   listRecentCompletedSessions(limit: number): AdminSessionWithOwner[] | Promise<AdminSessionWithOwner[]>;
   setAdminRemark(userId: string, remark: string): User | null | Promise<User | null>;
 
-  // AI practice questions + 错题本.
-  // savePracticeQuestion is called twice per question: once on
-  // generation (no user answer yet), and again on grading (with the
-  // answer + explanation). We use upsert semantics by id so both
-  // calls land on the same row.
-  savePracticeQuestion(item: PracticeQuestion): PracticeQuestion | Promise<PracticeQuestion>;
-  getPracticeQuestion(id: string, userId: string):
-    | PracticeQuestion
-    | null
-    | Promise<PracticeQuestion | null>;
-  listPracticeMistakes(userId: string, options?: PracticeListOptions):
-    | PracticeQuestion[]
-    | Promise<PracticeQuestion[]>;
-  setPracticeMastered(id: string, userId: string, mastered: boolean):
-    | PracticeQuestion
-    | null
-    | Promise<PracticeQuestion | null>;
-
   // News module. The miniprogram「动态」tab reads via listNews +
   // getNewsById; the fetcher writes via upsertNews; admin overrides
   // via setNewsHidden / putNewsManual.
@@ -73,15 +54,6 @@ export type DataStore = {
   putNewsManual(item: NewsItem): NewsItem | Promise<NewsItem>;
   setNewsHidden(id: string, hidden: boolean): NewsItem | null | Promise<NewsItem | null>;
   deleteNewsById(id: string): boolean | Promise<boolean>;
-};
-
-export type PracticeListOptions = {
-  /** Max rows to return (default 50, hard-capped at 200). */
-  limit?: number;
-  /** Include mastered rows? Default false — 错题本 hides them. */
-  includeMastered?: boolean;
-  /** Only show rows the user got wrong (default true for 错题本). */
-  wrongOnly?: boolean;
 };
 
 export type NewsListOptions = {

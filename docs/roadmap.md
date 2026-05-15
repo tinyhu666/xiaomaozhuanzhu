@@ -1,21 +1,26 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.14.0 — AI 练习模式（出题 + 判分 + 详解）+ 错题本。三轴 (CPA × AI × 专注) 首次互相赋能。
+> 当前版本 v0.14.1 — 因审核合规要求（个人主体未开放 AI 服务类目），撤回所有 AI 功能；恢复并重做「动态」tab。定位回到「CPA 备考 + 专注工具」双轴。
 
-## v0.14.0 已上线（AI 练习 + 错题本）
+## v0.14.1 已上线（AI 撤回 + 动态重做）
 
-定位升级：CPA 备考 × AI 工具 × 专注工具三轴首次互相赋能。AI tab 从「问答」升级为「问答 + 练习」，AI 不只是答疑，还能出题 + 判分。
+背景：v0.13 / v0.14 加入的 AI 助教 + AI 练习模式触及微信小程序「深度合成技术」服务类目，个人主体未开放该类目，审核驳回。本版完全移除 AI 相关代码（client + server + schema + tests），底部 tab `AI` 恢复为 `动态`。
 
-- **AI 练习模式**（AI tab 顶部加 segmented toggle `问答 / 练习`）：选科目 + 难度 → AI 出 3 道选择题 → 用户答题 → AI 判分 + 给详解。三档难度：基础 / 进阶 / 真题级。
-- **错题本**（「我的」菜单新入口）：所有答错的题自动入本，含题干 + 你的答案 + 正确答案 + AI 详解。可标记「已掌握」隐藏。pull-to-refresh，optimistic-update。
-- **服务端**：
-  - 新表 `practice_questions(id, user_id, subject, difficulty, question, options_json, correct_answer, user_answer, ai_explanation, is_correct, is_mastered, created_at, answered_at)`，UNIQUE on id，两个查询索引。
-  - 3 个新接口：`POST /api/ai/practice/generate`（DeepSeek + JSON mode）、`POST /api/ai/practice/grade`（含幂等检查，重复提交不再调 AI）、`GET /api/me/mistakes` + `POST /api/me/mistakes/:id/mastered`。
-  - 与 `/api/ai/ask` 共享每用户 30 次/日的软限流，防止用户通过混用绕过。
-  - 生成调用走 DeepSeek 的 `response_format: { type: "json_object" }`，比正则解析稳。
-- **测试**：116/116 通过（新增 8 个：领域逻辑 + HTTP 集成路径 + 幂等校验）。
-
-需要的运维动作：和 v0.13 相同的 `DEEPSEEK_API_KEY` 即可，无需新增 env。
+- **AI 全量移除**：
+  - 删除 `pages/ai/*`、`package-profile/mistakes/*`
+  - 删除服务端 `server/src/domain/ai.ts`、`ai-practice.ts`、对应测试
+  - 删除 `practice_questions` schema + 全部 store 方法
+  - 删除客户端 `api.ts` 里的 askAi / generatePracticeQuiz 等 helper
+  - 移除 `.env.example` 里的 `DEEPSEEK_API_KEY`
+  - 个人主体下次提审可以通过
+- **动态 tab 重做**：
+  - 列表卡：双行 title clamp + 双行 summary preview，hover 态有按压反馈
+  - Empty / error 状态分离：网络错误显示真实文案 + 「下拉重试」引导
+  - 详情页：分类徽章 + 日期 + 大标题 + 摘要分隔 + 正文 / 占位 + 「复制原文链接」CTA
+  - 分类文案：动态 → 备考（避免和顶 tab 重名）
+  - 排版：标题字号、行高、字距全部按移动端阅读调优；空态用三点 pulse 动画
+- **保留**：番茄钟、自由计时、科目预选、六科进度、徽章、考试倒计时、学习日报分享卡、学习设置、公开学习页。
+- **测试**：98/98 通过。
 
 ## v0.13.0 已上线
 

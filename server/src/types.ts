@@ -89,44 +89,6 @@ export interface TemporaryUrl {
 }
 
 /**
- * AI practice question difficulty bands. "basic" is conceptual /
- * definition recall; "intermediate" is典型 case application;
- * "exam" is past-paper / 真题 level — multi-step reasoning, often
- * with distractor options.
- */
-export type PracticeDifficulty = "basic" | "intermediate" | "exam";
-
-export const PRACTICE_DIFFICULTIES: readonly PracticeDifficulty[] = [
-  "basic",
-  "intermediate",
-  "exam"
-] as const;
-
-/**
- * A single AI-generated multiple-choice question. `options` is a
- * 2–6 element array where each entry is a string like "A. 答案文本".
- * `correctAnswer` is the letter ("A"/"B"/…) the AI marked correct.
- */
-export interface PracticeQuestion {
-  id: string;
-  userId: string;
-  subject: Subject;
-  difficulty: PracticeDifficulty;
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  /** Null until the user answers — used by 错题本 to distinguish
-   *  "haven't answered yet" from "answered wrong". */
-  userAnswer: string | null;
-  /** AI's explanation of the right answer, generated at grade time. */
-  aiExplanation: string | null;
-  isCorrect: boolean | null;
-  isMastered: boolean;
-  createdAt: string;
-  answeredAt: string | null;
-}
-
-/**
  * Top-level news category surfaced in the miniprogram's 「动态」 tab.
  * Maps roughly to CICPA's own section breakdown:
  *   - announce: 公告 (official announcements: registration, fees, etc.)

@@ -6,16 +6,13 @@ import type {
   DailyStat,
   NewsCategory,
   NewsItem,
-  PracticeDifficulty,
-  PracticeQuestion,
   PublicProfileSettings,
   SessionPhoto,
   StudySession,
   User,
   UserResolutionInput
 } from "../types";
-import type { NewsListOptions, NewsUpsertResult, PracticeListOptions } from "./types";
-import type { Subject } from "../constants";
+import type { NewsListOptions, NewsUpsertResult } from "./types";
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 
@@ -622,84 +619,6 @@ export class MySQLStore {
     return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   }
 
-  // ----------------------------------------------------------------
-  // AI practice questions
-  // ----------------------------------------------------------------
-
-  async savePracticeQuestion(item: PracticeQuestion) {
-    await this.pool.execute(
-      `INSERT INTO practice_questions
-        (id, user_id, subject, difficulty, question, options_json,
-         correct_answer, user_answer, ai_explanation, is_correct,
-         is_mastered, created_at, answered_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         user_answer = VALUES(user_answer),
-         ai_explanation = VALUES(ai_explanation),
-         is_correct = VALUES(is_correct),
-         is_mastered = VALUES(is_mastered),
-         answered_at = VALUES(answered_at)`,
-      [
-        item.id,
-        item.userId,
-        item.subject,
-        item.difficulty,
-        item.question,
-        JSON.stringify(item.options),
-        item.correctAnswer,
-        item.userAnswer,
-        item.aiExplanation,
-        item.isCorrect === null ? null : item.isCorrect ? 1 : 0,
-        item.isMastered ? 1 : 0,
-        toMySQLDateTimeRequired(item.createdAt),
-        item.answeredAt ? toMySQLDateTimeRequired(item.answeredAt) : null
-      ]
-    );
-    return item;
-  }
-
-  async getPracticeQuestion(id: string, userId: string) {
-    const [rows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT id, user_id, subject, difficulty, question, options_json,
-              correct_answer, user_answer, ai_explanation, is_correct,
-              is_mastered, created_at, answered_at
-         FROM practice_questions WHERE id = ? AND user_id = ? LIMIT 1`,
-      [id, userId]
-    );
-    return rows[0] ? mapPracticeRow(rows[0]) : null;
-  }
-
-  async listPracticeMistakes(userId: string, options: PracticeListOptions = {}) {
-    const limit = Math.min(Math.max(options.limit ?? 50, 1), 200);
-    const wrongOnly = options.wrongOnly ?? true;
-    const includeMastered = options.includeMastered ?? false;
-    const where: string[] = ["user_id = ?", "user_answer IS NOT NULL"];
-    const params: (string | number)[] = [userId];
-    if (wrongOnly) where.push("is_correct = 0");
-    if (!includeMastered) where.push("is_mastered = 0");
-    where.push("1=1"); // anchor for trailing comma free
-    const sql =
-      `SELECT id, user_id, subject, difficulty, question, options_json,
-              correct_answer, user_answer, ai_explanation, is_correct,
-              is_mastered, created_at, answered_at
-         FROM practice_questions
-        WHERE ${where.join(" AND ")}
-        ORDER BY created_at DESC, id DESC
-        LIMIT ?`;
-    params.push(limit);
-    const [rows] = await this.pool.query<RowDataPacket[]>(sql, params);
-    return rows.map(mapPracticeRow);
-  }
-
-  async setPracticeMastered(id: string, userId: string, mastered: boolean) {
-    const [result] = await this.pool.execute(
-      "UPDATE practice_questions SET is_mastered = ? WHERE id = ? AND user_id = ?",
-      [mastered ? 1 : 0, id, userId]
-    );
-    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
-    return this.getPracticeQuestion(id, userId);
-  }
-
   async listRecentCompletedSessions(limit: number) {
     const safeLimit = Math.max(0, Math.min(limit | 0, 200));
     if (safeLimit === 0) return [];
@@ -788,30 +707,6 @@ function mapPhotoRow(row: RowDataPacket): SessionPhoto {
     objectKey: String(row.object_key),
     sortOrder: Number(row.sort_order),
     createdAt: toIsoString(row.created_at)
-  };
-}
-
-function mapPracticeRow(row: RowDataPacket): PracticeQuestion {
-  const optionsRaw = row.options_json;
-  const options: string[] = optionsRaw
-    ? typeof optionsRaw === "string"
-      ? JSON.parse(optionsRaw)
-      : (optionsRaw as unknown as string[])
-    : [];
-  return {
-    id: String(row.id),
-    userId: String(row.user_id),
-    subject: row.subject as Subject,
-    difficulty: row.difficulty as PracticeDifficulty,
-    question: String(row.question ?? ""),
-    options,
-    correctAnswer: String(row.correct_answer ?? ""),
-    userAnswer: row.user_answer === null || row.user_answer === undefined ? null : String(row.user_answer),
-    aiExplanation: row.ai_explanation === null || row.ai_explanation === undefined ? null : String(row.ai_explanation),
-    isCorrect: row.is_correct === null || row.is_correct === undefined ? null : Boolean(row.is_correct),
-    isMastered: Boolean(row.is_mastered),
-    createdAt: toIsoString(row.created_at),
-    answeredAt: row.answered_at === null || row.answered_at === undefined ? null : toIsoString(row.answered_at)
   };
 }
 

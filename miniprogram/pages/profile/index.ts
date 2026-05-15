@@ -303,10 +303,6 @@ Page<{}, ProfilePageData>({
     wx.navigateTo({ url: "/package-profile/poster/index" });
   },
 
-  openMistakes() {
-    wx.navigateTo({ url: "/package-profile/mistakes/index" });
-  },
-
   openSettings() {
     wx.navigateTo({ url: "/package-profile/settings/index" });
   }
