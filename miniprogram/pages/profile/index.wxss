@@ -63,16 +63,35 @@
   padding: 0;
   margin: 0;
   border: none;
-  background: transparent;
+  background: transparent !important;
+  background-color: transparent !important;
   border-radius: 50%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   line-height: 1;
+  /*
+   * Three layers of "no overlay please":
+   *   - tap-highlight: removes the iOS blue flash on tap
+   *   - touch-callout: prevents the long-press select-image menu
+   *     from rendering over the button (also blue)
+   *   - active: forces our own transparent override over whatever
+   *     WeChat's button base style wants to do
+   */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  outline: none;
 }
 
 .profile-hero__avatar-btn::after {
   border: none;
+  outline: none;
+}
+
+.profile-hero__avatar-btn:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  opacity: 0.92;
 }
 
 .profile-hero__avatar-edit {

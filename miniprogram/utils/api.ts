@@ -388,6 +388,21 @@ export function getTempUrls(items: Array<{ objectKey: string; fileId?: string }>
   });
 }
 
+export function askAi(payload: {
+  question: string;
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
+}) {
+  return callContainer<{
+    answer: string;
+    usedToday: number;
+    dailyLimit: number;
+  }>({
+    path: "/ai/ask",
+    method: "POST",
+    data: payload
+  });
+}
+
 export function getNewsList(params: { category?: NewsCategory | "all"; limit?: number; before?: string } = {}) {
   const queryParts: string[] = [];
   if (params.category && params.category !== "all") queryParts.push(`category=${encodeURIComponent(params.category)}`);

@@ -1,0 +1,105 @@
+<view class="ai-page">
+  <!--
+    Header card — sticky context "what this AI does". Compact so it
+    doesn't compete with the conversation area for vertical space.
+  -->
+  <view class="ai-page__hero">
+    <view class="ai-page__hero-left">
+      <view class="ai-page__brand">
+        <text class="ai-page__brand-icon">🤖</text>
+        <text class="ai-page__brand-title">小猫 AI · CPA 助教</text>
+      </view>
+      <text class="ai-page__brand-sub">专注解答 CPA 备考问题 · 由 DeepSeek 提供算力</text>
+    </view>
+    <view wx:if="{{messages.length}}" class="ai-page__reset" bindtap="onResetTap">清空</view>
+  </view>
+
+  <!--
+    Conversation scroll area. Fills remaining vertical space between
+    the hero and the bottom input bar. scroll-into-view keeps the
+    latest bubble visible after a tick.
+  -->
+  <scroll-view
+    class="ai-page__scroll"
+    scroll-y
+    scroll-into-view="{{scrollIntoView}}"
+    scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <view class="ai-page__scroll-inner">
+      <!-- Empty state: example questions to lower friction -->
+      <view wx:if="{{!messages.length}}" class="ai-empty">
+        <view class="ai-empty__title">想问点什么？</view>
+        <view class="ai-empty__sub">选一个开始，或在下方直接输入。AI 只回答 CPA 备考相关问题。</view>
+        <view class="ai-empty__samples">
+          <view
+            wx:for="{{samples}}"
+            wx:key="*this"
+            class="ai-empty__sample"
+            data-q="{{item}}"
+            bindtap="onTapSample"
+          >
+            <text class="ai-empty__sample-mark">{{index + 1}}</text>
+            <text class="ai-empty__sample-text">{{item}}</text>
+          </view>
+        </view>
+        <view class="ai-empty__disclaimer">
+          ⚠️ AI 回答仅供参考。具体准则、税法、考试政策以官方原文为准。
+        </view>
+      </view>
+
+      <!-- Conversation turns -->
+      <block wx:for="{{messages}}" wx:key="id">
+        <view
+          id="{{item.id}}"
+          class="ai-bubble ai-bubble--{{item.role}}"
+        >
+          <view class="ai-bubble__avatar ai-bubble__avatar--{{item.role}}">
+            <text>{{item.role === "user" ? "我" : "AI"}}</text>
+          </view>
+          <view
+            class="ai-bubble__body ai-bubble__body--{{item.role}}"
+            data-content="{{item.content}}"
+            bindlongpress="onLongPressAnswer"
+          >
+            <view wx:if="{{item.pending}}" class="ai-typing">
+              <view class="ai-typing__dot"></view>
+              <view class="ai-typing__dot"></view>
+              <view class="ai-typing__dot"></view>
+            </view>
+            <text wx:else class="ai-bubble__text">{{item.content}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view wx:if="{{messages.length && usageLabel}}" class="ai-usage-foot">{{usageLabel}} · 长按 AI 气泡可复制</view>
+      <view class="ai-page__bottom-spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!--
+    Composer — fixed to the bottom above the custom tab bar. We use
+    safe-area inset so notched phones don't clip the input.
+  -->
+  <view class="ai-composer">
+    <view class="ai-composer__wrap">
+      <input
+        class="ai-composer__input"
+        placeholder="问点 CPA 相关的问题…"
+        value="{{inputValue}}"
+        bindinput="onInput"
+        bindconfirm="onConfirm"
+        confirm-type="send"
+        confirm-hold="{{true}}"
+        cursor-spacing="20"
+        maxlength="1000"
+        adjust-position="{{true}}"
+      />
+      <view
+        class="ai-composer__send {{(!inputValue || sending) ? 'is-disabled' : ''}}"
+        bindtap="onSendTap"
+      >{{sending ? "···" : "发送"}}</view>
+    </view>
+  </view>
+</view>

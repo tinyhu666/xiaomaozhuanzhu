@@ -7,18 +7,23 @@
     <button class="cta-button makeup-banner__btn" loading="{{makeupLoading}}" disabled="{{makeupLoading}}" bindtap="handleMakeup">补签</button>
   </view>
 
-  <view wx:if="{{nextExam}}" class="exam-countdown exam-countdown--{{nextExam.urgency}}">
-    <view class="exam-countdown__glow"></view>
-    <view class="exam-countdown__header">
-      <view class="exam-countdown__pill">距下一科 CPA 考试</view>
-      <text class="exam-countdown__date">{{nextExam.subject}} · {{nextExam.dateLabel}}</text>
+  <!--
+    Compact exam-countdown banner — redesigned in v0.13 so it doesn't
+    visually compete with the focus timer below it. Now it's a slim
+    horizontal pill: subject + date on the left, day-count on the
+    right. Urgency tier still drives the palette + a subtle pulse on
+    the day badge for ≤30 days, but the size is now "contextual
+    reminder" not "hero block".
+  -->
+  <view wx:if="{{nextExam}}" class="exam-strip exam-strip--{{nextExam.urgency}}">
+    <view class="exam-strip__left">
+      <text class="exam-strip__label">距下一科 · {{nextExam.subject}}</text>
+      <text class="exam-strip__date">{{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
     </view>
-    <view class="exam-countdown__number-wrap">
-      <text class="exam-countdown__number">{{nextExam.daysRemaining}}</text>
-      <text class="exam-countdown__unit">天</text>
+    <view class="exam-strip__badge">
+      <text class="exam-strip__badge-num">{{nextExam.daysRemaining}}</text>
+      <text class="exam-strip__badge-unit">天</text>
     </view>
-    <text class="exam-countdown__motivation">{{nextExam.motivation}}</text>
-    <text wx:if="{{nextExam.fallback}}" class="exam-countdown__fallback">* 暂以 {{nextExam.sourceYear}} 年公告为参考</text>
   </view>
 
   <!--
@@ -153,5 +158,4 @@
     </view>
   </view>
 
-  <text class="home-version">v{{appVersion}}</text>
 </view>

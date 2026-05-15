@@ -6,6 +6,7 @@ import { z } from "zod";
 import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
+import { askAi } from "./domain/ai";
 import { getExamSchedule } from "./domain/exam-dates";
 import { maybeKickoffNewsRefresh } from "./domain/news";
 import { ensureNewsSeed } from "./domain/news-seed";
@@ -89,6 +90,24 @@ const startSessionSchema = z
   })
   .optional()
   .default({});
+
+const aiAskSchema = z.object({
+  // Bound the input so a stray paste of an entire textbook page
+  // doesn't burn tokens. 5 chars is a meaningful minimum (≥ "解 X 题"
+  // length); 1000 chars is enough for a detailed scenario question.
+  question: z.string().trim().min(5).max(1000),
+  // Optional last few turns for context. Bounded length protects us
+  // from a client that tries to stuff free-form text via this slot.
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(2000)
+      })
+    )
+    .max(6)
+    .optional()
+});
 
 const shareSchema = z.object({
   isPublic: z.boolean(),
@@ -656,6 +675,22 @@ export function createApp(options: CreateAppOptions = {}) {
       next(error);
     }
   });
+
+  // -------- AI Q&A (CPA 助教) --------
+  // Authenticated proxy in front of DeepSeek. Holds the API key on
+  // the server so it never reaches the client; enforces a per-user
+  // daily cap; refuses to start if DEEPSEEK_API_KEY env var is unset
+  // (returns 503 from inside askAi).
+  app.post("/api/ai/ask", withUser(store, clock, async (request, response, context) => {
+    const payload = parse(aiAskSchema, request.body);
+    const result = await askAi({
+      userId: context.user.id,
+      question: payload.question,
+      history: payload.history,
+      now: clock.now()
+    });
+    response.json(result);
+  }));
 
   app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);

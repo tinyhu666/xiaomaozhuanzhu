@@ -17,11 +17,19 @@
         mode="aspectFill"
       />
       <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
+      <!--
+        hover-class="none" turns off WeChat's default button hover
+        overlay (a translucent darken that some iOS renderings show
+        with a blueish tint). The CSS additionally sets
+        `-webkit-tap-highlight-color: transparent` and forces the
+        :active background back to transparent, killing the residual
+        blue tap-flash some users reported in v0.12.
+      -->
       <button
         class="profile-hero__avatar-btn"
+        hover-class="none"
         open-type="chooseAvatar"
         bindchooseavatar="onChooseAvatar"
-        aria-label="选择头像"
       >
         <text class="profile-hero__avatar-edit">{{profile.avatarUrl ? '换头像' : '设头像'}}</text>
       </button>

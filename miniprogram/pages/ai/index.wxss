@@ -1,0 +1,360 @@
+/*
+ * AI tab — full-bleed chat layout. Unlike other tabs this one fills
+ * the viewport (no page-shell padding) so the composer can sit
+ * cleanly against the bottom edge above the custom tab bar.
+ */
+.ai-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  /* Same ambient background as the rest of the app */
+  background:
+    radial-gradient(circle at 88% 4%, rgba(143, 217, 190, 0.22), transparent 38%),
+    radial-gradient(circle at 8% 96%, rgba(94, 195, 157, 0.12), transparent 42%),
+    linear-gradient(180deg, #fbfffd 0%, #f3faf6 100%);
+}
+
+/* ============================================================
+   Hero card — slim, persistent context strip at the top.
+   ============================================================ */
+.ai-page__hero {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin: 18rpx 28rpx 8rpx;
+  padding: 20rpx 26rpx;
+  border-radius: 24rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(94, 116, 200, 0.18), transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbfe 100%);
+  border: 1rpx solid rgba(74, 110, 217, 0.14);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(74, 110, 217, 0.1);
+}
+
+.ai-page__hero-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.ai-page__brand {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.ai-page__brand-icon {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.ai-page__brand-title {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.ai-page__brand-sub {
+  font-size: 20rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  line-height: 1.45;
+}
+
+.ai-page__reset {
+  flex-shrink: 0;
+  padding: 8rpx 18rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #4a6ed9;
+  background: rgba(74, 110, 217, 0.08);
+  border: 1rpx solid rgba(74, 110, 217, 0.18);
+  border-radius: 999rpx;
+}
+
+.ai-page__reset:active {
+  background: rgba(74, 110, 217, 0.18);
+}
+
+/* ============================================================
+   Scroll area — the conversation. Flex-grow fills available
+   vertical space; .ai-page__bottom-spacer reserves space under
+   the last bubble so the composer can't cover it.
+   ============================================================ */
+.ai-page__scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-page__scroll-inner {
+  padding: 20rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.ai-page__bottom-spacer {
+  /* Leaves room for composer (≈ 100rpx) + custom tab bar (~120rpx)
+     + safe-area. Keeps the last bubble visible above the composer. */
+  height: 240rpx;
+}
+
+/* ============================================================
+   Empty state — 4 sample chips inviting the user to start.
+   ============================================================ */
+.ai-empty {
+  margin-top: 32rpx;
+  padding: 32rpx 28rpx 28rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.18), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+}
+
+.ai-empty__title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.ai-empty__sub {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  line-height: 1.55;
+}
+
+.ai-empty__samples {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.ai-empty__sample {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding: 20rpx 22rpx;
+  border-radius: 22rpx;
+  background: rgba(46, 169, 133, 0.06);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ai-empty__sample:active {
+  transform: scale(0.985);
+  background: rgba(46, 169, 133, 0.12);
+}
+
+.ai-empty__sample-mark {
+  flex-shrink: 0;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.ai-empty__sample-text {
+  flex: 1;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: 0.2rpx;
+  line-height: 1.5;
+}
+
+.ai-empty__disclaimer {
+  margin-top: 24rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 16rpx;
+  background: rgba(229, 158, 87, 0.1);
+  border: 1rpx solid rgba(229, 158, 87, 0.2);
+  font-size: 20rpx;
+  color: #8a5320;
+  line-height: 1.6;
+  letter-spacing: 0.2rpx;
+}
+
+/* ============================================================
+   Chat bubbles — user (right, mint), AI (left, white).
+   ============================================================ */
+.ai-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.ai-bubble--user {
+  flex-direction: row-reverse;
+}
+
+.ai-bubble__avatar {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.4rpx;
+  box-shadow: 0 4rpx 10rpx rgba(46, 169, 133, 0.18);
+}
+
+.ai-bubble__avatar--user {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+}
+
+.ai-bubble__avatar--assistant {
+  background: linear-gradient(135deg, #8aa6f0 0%, #4a6ed9 100%);
+  box-shadow: 0 4rpx 10rpx rgba(74, 110, 217, 0.22);
+}
+
+.ai-bubble__body {
+  max-width: 520rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  line-height: 1.65;
+  letter-spacing: 0.2rpx;
+  word-break: break-word;
+}
+
+.ai-bubble__body--user {
+  background: linear-gradient(135deg, #5fc491 0%, #2ea985 100%);
+  color: #fff;
+  border-bottom-right-radius: 6rpx; /* tail */
+  box-shadow: 0 6rpx 16rpx -4rpx rgba(46, 169, 133, 0.28);
+}
+
+.ai-bubble__body--assistant {
+  background: #ffffff;
+  color: var(--text-main);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  border-bottom-left-radius: 6rpx; /* tail */
+  box-shadow: 0 4rpx 14rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.ai-bubble__text {
+  display: block;
+  white-space: pre-wrap;
+}
+
+/* Typing indicator: three pulsing dots */
+.ai-typing {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 4rpx 4rpx;
+}
+
+.ai-typing__dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--mint-400);
+  opacity: 0.4;
+  animation: ai-typing-pulse 1.2s ease-in-out infinite;
+}
+
+.ai-typing__dot:nth-child(2) { animation-delay: 0.18s; }
+.ai-typing__dot:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes ai-typing-pulse {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.ai-usage-foot {
+  margin-top: 6rpx;
+  text-align: center;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.7;
+  letter-spacing: 0.2rpx;
+}
+
+/* ============================================================
+   Composer — fixed bottom input bar above the custom tab bar.
+   Custom tab bar floats at bottom: 24rpx; height ~120rpx including
+   safe area, so we sit at bottom: 168rpx + safe-area.
+   ============================================================ */
+.ai-composer {
+  flex-shrink: 0;
+  position: relative;
+  padding: 14rpx 24rpx 18rpx;
+  padding-bottom: calc(18rpx + 168rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 30%, #fbfffd 100%);
+}
+
+.ai-composer__wrap {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 6rpx 8rpx 6rpx 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(46, 169, 133, 0.16);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.8),
+    0 8rpx 20rpx -4rpx rgba(46, 169, 133, 0.12);
+}
+
+.ai-composer__input {
+  flex: 1;
+  min-width: 0;
+  height: 80rpx;
+  font-size: 28rpx;
+  color: var(--text-main);
+}
+
+.ai-composer__send {
+  flex-shrink: 0;
+  height: 68rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 0.5rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.28);
+}
+
+.ai-composer__send:active {
+  transform: scale(0.96);
+}
+
+.ai-composer__send.is-disabled {
+  background: rgba(46, 169, 133, 0.32);
+  box-shadow: none;
+  opacity: 0.6;
+  pointer-events: none;
+}

@@ -1,6 +1,17 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.12.0 — 学习设置自定义 + 学习日报分享卡 + 每周目标进度。
+> 当前版本 v0.13.0 — AI 助教 tab 替代动态 tab + 首页视觉层级重做 + 头像蓝色 tap-flash 修复。
+
+## v0.13.0 已上线
+
+- **AI 助教 tab**：`/api/ai/ask` 服务端代理 DeepSeek-v4-flash。API key 仅在服务器 (env `DEEPSEEK_API_KEY`) 持有，绝不下发到客户端。每用户每日 30 次软限制（in-memory，云托管实例重启重置 — 因 DeepSeek 价格便宜，这个软限只是防爬虫和死循环）。客户端聊天 UI：用户气泡右对齐薄荷渐变、AI 气泡左对齐白卡 + 蓝色头像；空状态显示 4 个示例问题可一键发送；长按 AI 气泡复制；3 点点点的 typing 指示器；composer 固定在底部并预留 tab bar 空间；scroll-into-view 自动跟踪最新消息。
+- **首页视觉层级重做**：原大号倒计时卡（132rpx 数字 + 文案 + 装饰光圈）压缩为 slim `exam-strip` 横条：左侧科目+日期、右侧 36rpx 圆角徽章；4 档紧迫度配色不变，≤30 天 / ≤7 天分别启用 2.4s / 1.6s 节奏的脉冲。timer-card 现在是页面无争议的视觉重点。
+- **首页去掉版本号**：`v{{appVersion}}` 标签和对应 CSS 移除。版本号在「我的」页底部仍保留（便于反馈时定位版本）。
+- **头像蓝色 tap-flash 修复**：profile-hero 的 chooseAvatar 按钮叠加 `hover-class="none"` + CSS `-webkit-tap-highlight-color: transparent` + `:active background: transparent !important`。这三层共同压住了 v0.12 在 iOS WeChat 上出现的蓝色覆盖层。
+- **代码清理**：删除已不可达的 `pages/news` 主包页面和 `package-news` 分包（动态 tab 被 AI 替换，原 22 条新闻种子内容仍在服务端 `news_items` 表中保留以备未来 RAG / 管理后台使用）。
+- **测试**：108/108 通过（新增 10 个：AI 域逻辑 6 + AI HTTP 路由 3 + 日历集成 1）。
+
+需要的运维动作：在云托管「服务设置 → 环境变量」加 `DEEPSEEK_API_KEY=sk-xxx`，否则 AI tab 调用会返回 503。
 
 ## v0.12.0 已上线（基于市场调研）
 
