@@ -704,6 +704,61 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
+  /* ----------------------------------------------------------------
+   * v0.20 — daily 20:30 reminder. Three endpoints:
+   *   GET  /api/me/reminder/status    → current state
+   *   POST /api/me/reminder/subscribe → user accepted N more 一次性
+   *                                     订阅消息 grants (bumps credits)
+   *   POST /api/me/reminder/disable   → user toggled off (keeps any
+   *                                     credits since the user can
+   *                                     toggle back on later)
+   * The actual send happens in domain/reminder-scheduler.ts at
+   * 20:30 Asia/Shanghai daily.
+   * --------------------------------------------------------------- */
+  app.get(
+    "/api/me/reminder/status",
+    withUser(store, clock, async (_request, response, context) => {
+      response.json({
+        enabled: context.user.reminderEnabled,
+        credits: context.user.reminderCredits,
+        lastSentAt: context.user.reminderLastSentAt,
+        hasOpenid: !!context.user.openid
+      });
+    })
+  );
+
+  const reminderSubscribeSchema = z.object({
+    /** Number of one-time subscription-message grants just accepted.
+     *  Clamped server-side; usually 1 per requestSubscribeMessage call. */
+    accepted: z.number().int().min(1).max(10).default(1)
+  });
+
+  app.post(
+    "/api/me/reminder/subscribe",
+    withUser(store, clock, async (request, response, context) => {
+      const payload = parse(reminderSubscribeSchema, request.body);
+      // Two-step: ensure the toggle is on, then bump credits. Both
+      // are idempotent at the row level.
+      await store.setReminderEnabled(context.user.id, true);
+      const user = await store.incrementReminderCredits(context.user.id, payload.accepted);
+      response.json({
+        enabled: !!user?.reminderEnabled,
+        credits: user?.reminderCredits ?? 0
+      });
+    })
+  );
+
+  app.post(
+    "/api/me/reminder/disable",
+    withUser(store, clock, async (_request, response, context) => {
+      const user = await store.setReminderEnabled(context.user.id, false);
+      response.json({
+        enabled: !!user?.reminderEnabled,
+        credits: user?.reminderCredits ?? 0
+      });
+    })
+  );
+
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof AppError) {
       response.status(error.statusCode).json({

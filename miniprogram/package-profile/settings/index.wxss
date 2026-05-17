@@ -193,6 +193,95 @@
   letter-spacing: 0.4rpx;
 }
 
+/* v0.20 — daily reminder row. Mirrors the settings-row layout but
+   uses a custom toggle switch (chosen over wx <switch> for visual
+   consistency with the rest of the mint-themed UI). */
+.reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 14rpx 6rpx 18rpx;
+}
+
+.reminder-row__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.reminder-row__label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.reminder-row__desc {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  opacity: 0.78;
+  line-height: 1.5;
+}
+
+.reminder-row__switch {
+  position: relative;
+  width: 76rpx;
+  height: 44rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.18);
+  transition: background 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.reminder-row__switch.is-on {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+}
+
+.reminder-row__switch.is-busy {
+  opacity: 0.55;
+}
+
+.reminder-row__switch:active {
+  opacity: 0.85;
+}
+
+.reminder-row__switch-knob {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.18);
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.reminder-row__switch.is-on .reminder-row__switch-knob {
+  transform: translateX(32rpx);
+}
+
+/* Refill hint button — only shows when credits are low. */
+.reminder-refill {
+  margin: 4rpx 0 14rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 16rpx;
+  background: rgba(229, 167, 75, 0.12);
+  border: 1rpx solid rgba(229, 167, 75, 0.3);
+  color: #a05a00;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 0.3rpx;
+  text-align: center;
+}
+
+.reminder-refill:active {
+  background: rgba(229, 167, 75, 0.2);
+}
+
 .settings-reset {
   text-align: center;
   padding: 22rpx;

@@ -82,6 +82,10 @@ export class MemoryStore {
       avatarUrl: "",
       profileCompleted: false,
       adminRemark: "",
+      reminderEnabled: false,
+      reminderCredits: 0,
+      reminderLastSentAt: null,
+      reminderLastError: "",
       createdAt: now,
       lastLoginAt: now
     };
@@ -218,6 +222,43 @@ export class MemoryStore {
     if (!user) return null;
     user.adminRemark = remark;
     return user;
+  }
+
+  // ---------------------------------------------------------------
+  // v0.20 reminder module
+  // ---------------------------------------------------------------
+
+  incrementReminderCredits(userId: string, by: number) {
+    const user = this.users.get(userId);
+    if (!user) return null;
+    user.reminderCredits = Math.max(0, Math.min(999, user.reminderCredits + by));
+    return user;
+  }
+
+  setReminderEnabled(userId: string, enabled: boolean) {
+    const user = this.users.get(userId);
+    if (!user) return null;
+    user.reminderEnabled = enabled;
+    return user;
+  }
+
+  recordReminderDispatch(userId: string, sentAtIso: string, error?: string) {
+    const user = this.users.get(userId);
+    if (!user) return null;
+    if (error) {
+      user.reminderLastError = String(error).slice(0, 240);
+    } else {
+      user.reminderCredits = Math.max(0, user.reminderCredits - 1);
+      user.reminderLastSentAt = sentAtIso;
+      user.reminderLastError = "";
+    }
+    return user;
+  }
+
+  listReminderRecipients() {
+    return [...this.users.values()].filter(
+      (u) => u.reminderEnabled && u.reminderCredits > 0 && u.openid
+    );
   }
 
   // ---------------------------------------------------------------

@@ -176,6 +176,10 @@ export class MySQLStore {
         avatarUrl: "",
         profileCompleted: false,
         adminRemark: "",
+        reminderEnabled: false,
+        reminderCredits: 0,
+        reminderLastSentAt: null,
+        reminderLastError: "",
         createdAt: now,
         lastLoginAt: now
       },
@@ -251,6 +255,10 @@ export class MySQLStore {
         avatarUrl: String(row.avatar_url),
         profileCompleted: Boolean(row.profile_completed),
         adminRemark: String(row.admin_remark ?? ""),
+        reminderEnabled: false,
+        reminderCredits: 0,
+        reminderLastSentAt: null,
+        reminderLastError: "",
         createdAt: String(row.created_at),
         lastLoginAt: String(row.last_login_at)
       },
@@ -450,6 +458,69 @@ export class MySQLStore {
     );
     if ((result as { affectedRows?: number }).affectedRows === 0) return null;
     return this.getUserById(userId);
+  }
+
+  // ----------------------------------------------------------------
+  // v0.20 reminder module
+  // ----------------------------------------------------------------
+
+  async incrementReminderCredits(userId: string, by: number) {
+    // Atomic increment. Capped at 999 to bound the column and to
+    // prevent a malicious / buggy client from accumulating unbounded
+    // credit (which the cron would then try to consume on subsequent
+    // dispatches).
+    const [result] = await this.pool.execute(
+      "UPDATE users SET reminder_credits = LEAST(999, GREATEST(0, reminder_credits + ?)) WHERE id = ?",
+      [by, userId]
+    );
+    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+    return this.getUserById(userId);
+  }
+
+  async setReminderEnabled(userId: string, enabled: boolean) {
+    const [result] = await this.pool.execute(
+      "UPDATE users SET reminder_enabled = ? WHERE id = ?",
+      [enabled ? 1 : 0, userId]
+    );
+    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+    return this.getUserById(userId);
+  }
+
+  async recordReminderDispatch(userId: string, sentAtIso: string, error?: string) {
+    // On success we mark sent + decrement; on error we record the
+    // error message but DO NOT decrement (the credit is "still
+    // pending" with WeChat for a retry later). The cron re-evaluates
+    // eligibility each tick.
+    const isError = !!error;
+    if (isError) {
+      const [result] = await this.pool.execute(
+        "UPDATE users SET reminder_last_error = ? WHERE id = ?",
+        [String(error).slice(0, 240), userId]
+      );
+      if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+      return this.getUserById(userId);
+    }
+    const [result] = await this.pool.execute(
+      `UPDATE users
+         SET reminder_credits = GREATEST(0, reminder_credits - 1),
+             reminder_last_sent_at = ?,
+             reminder_last_error = ''
+       WHERE id = ?`,
+      [toMySQLDateTimeRequired(sentAtIso), userId]
+    );
+    if ((result as { affectedRows?: number }).affectedRows === 0) return null;
+    return this.getUserById(userId);
+  }
+
+  async listReminderRecipients() {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      `SELECT * FROM users
+        WHERE reminder_enabled = 1
+          AND reminder_credits > 0
+          AND openid IS NOT NULL
+          AND openid <> ''`
+    );
+    return rows.map(mapUserRow);
   }
 
   // ----------------------------------------------------------------
@@ -664,6 +735,13 @@ function mapUserRow(row: RowDataPacket): User {
     avatarUrl: String(row.avatar_url ?? ""),
     profileCompleted: Boolean(row.profile_completed),
     adminRemark: String(row.admin_remark ?? ""),
+    // v0.20 — reminder columns may be absent on legacy rows that haven't
+    // been migrated yet; default to safe "disabled" state so the home
+    // page never crashes mid-rollout.
+    reminderEnabled: Boolean(row.reminder_enabled),
+    reminderCredits: Number(row.reminder_credits ?? 0),
+    reminderLastSentAt: toNullableIsoString(row.reminder_last_sent_at),
+    reminderLastError: String(row.reminder_last_error ?? ""),
     createdAt: toIsoString(row.created_at),
     lastLoginAt: toIsoString(row.last_login_at)
   };

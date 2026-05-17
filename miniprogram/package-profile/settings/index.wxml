@@ -51,6 +51,35 @@
     </view>
   </view>
 
+  <!--
+    v0.20 — daily 20:30 reminder. WeChat 一次性订阅消息: each accept
+    grants one server-side send credit; we top up silently on home
+    cold-start when credits run low.
+  -->
+  <view class="settings-section">
+    <view class="settings-section__title">每日提醒</view>
+    <view class="settings-section__hint">每天 20:30 微信提醒一次，需要授权一次性订阅。</view>
+    <view class="settings-section__body">
+      <view class="reminder-row">
+        <view class="reminder-row__text">
+          <text class="reminder-row__label">20:30 学习提醒</text>
+          <text class="reminder-row__desc">{{reminder.statusLabel}}</text>
+        </view>
+        <view
+          class="reminder-row__switch {{reminder.enabled ? 'is-on' : ''}} {{reminder.busy ? 'is-busy' : ''}}"
+          bindtap="onTapReminderToggle"
+        >
+          <view class="reminder-row__switch-knob"></view>
+        </view>
+      </view>
+      <view
+        wx:if="{{reminder.enabled && reminder.credits < 2 && reminder.hasOpenid}}"
+        class="reminder-refill"
+        bindtap="onTapReminderRefill"
+      >📨 立刻续订一次提醒额度</view>
+    </view>
+  </view>
+
   <view class="settings-section">
     <view class="settings-section__title">番茄钟参数</view>
     <view class="settings-section__hint">业界默认是 25-5-15-4，但每个人节奏不同，按自己的来。</view>

@@ -23,6 +23,18 @@ export interface User {
    * primary label when the admin wants to categorize a user.
    */
   adminRemark: string;
+  /**
+   * v0.20 — opt-in WeChat 一次性订阅消息 daily 20:30 reminder.
+   *   reminderEnabled  : user toggled it on
+   *   reminderCredits  : # of unused subscribe-message authorizations
+   *   reminderLastSentAt : last successful dispatch ISO; used to make
+   *                       the cron idempotent within a Shanghai-day
+   *   reminderLastError: last WeChat API error message (admin-only)
+   */
+  reminderEnabled: boolean;
+  reminderCredits: number;
+  reminderLastSentAt: string | null;
+  reminderLastError: string;
   createdAt: string;
   lastLoginAt: string;
 }

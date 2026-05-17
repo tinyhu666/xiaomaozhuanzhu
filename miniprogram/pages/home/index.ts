@@ -8,6 +8,7 @@ import {
   reasonLabel,
   type DailyChallenge
 } from "../../utils/daily-challenge";
+import { maybeRefillReminderCredits } from "../../utils/reminder";
 import {
   getActiveAudio,
   getAudioScene,
@@ -191,6 +192,12 @@ Page<{}, HomePageData>({
       console.error("[home] ensureProfile failed", error);
     });
     this.refreshAll();
+    // v0.20 — silent refill of the daily-reminder subscription credit
+    // pool. Only fires if the user already opted in AND credits ran
+    // low AND we haven't refilled today. Don't block onShow on it.
+    maybeRefillReminderCredits(new Date()).catch((error) => {
+      console.warn("[home] reminder refill failed", error);
+    });
   },
 
   /**

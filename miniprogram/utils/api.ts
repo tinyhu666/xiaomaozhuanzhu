@@ -404,6 +404,36 @@ export function listMySessions() {
   });
 }
 
+/* -------------------------------------------------------------------------- */
+/*  v0.20 — daily 20:30 reminder (WeChat 一次性订阅消息)                       */
+/* -------------------------------------------------------------------------- */
+
+export type ReminderStatus = {
+  enabled: boolean;
+  credits: number;
+  lastSentAt: string | null;
+  hasOpenid: boolean;
+};
+
+export function getReminderStatus() {
+  return callContainer<ReminderStatus>({ path: "/me/reminder/status" });
+}
+
+export function reminderSubscribe(accepted: number = 1) {
+  return callContainer<{ enabled: boolean; credits: number }>({
+    path: "/me/reminder/subscribe",
+    method: "POST",
+    data: { accepted }
+  });
+}
+
+export function reminderDisable() {
+  return callContainer<{ enabled: boolean; credits: number }>({
+    path: "/me/reminder/disable",
+    method: "POST"
+  });
+}
+
 export function getNewsList(params: { category?: NewsCategory | "all"; limit?: number; before?: string } = {}) {
   const queryParts: string[] = [];
   if (params.category && params.category !== "all") queryParts.push(`category=${encodeURIComponent(params.category)}`);

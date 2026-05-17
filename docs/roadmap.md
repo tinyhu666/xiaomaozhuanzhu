@@ -1,6 +1,27 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.19.0 — 起动系统：自适应每日挑战 + 周日晚上自动弹「本周报」。把成就感的节奏从"打卡那一刻"扩展到"每天早上打开 → 每周末翻篇"两个新的反馈环。
+> 当前版本 v0.20.0 — 主动召回：微信 20:30 订阅消息提醒。从「打开 app 才能看到」升级到「时间到了 app 主动找你」，弥补留存漏斗最大的缺口。
+
+## v0.20.0 已上线（主动提醒）
+
+完成微信小程序 **一次性订阅消息** 的完整链路。每天晚上 20:30 由服务端主动推送一条 `日程提醒` 模板消息到已开启提醒的用户，唤回用户进入学习状态。
+
+**服务端**
+- `mysql-bootstrap.ts` 加 4 列：`reminder_enabled`, `reminder_credits`, `reminder_last_sent_at`, `reminder_last_error`，idempotent migration
+- 新建 `domain/wechat-openapi.ts`：零依赖 WeChat client，含 `getAccessToken`（缓存到过期前 5min，并发去重）+ `sendSubscribeMessage`（自动 retry 40001 + 识别 43101 revoked）
+- 新建 `domain/reminder-scheduler.ts`：60 秒 setInterval，命中 Shanghai 20:30 时分发；DB 列 `reminder_last_sent_at` + 进程内 `lastTickDay` 双重幂等，跨重启不会重发
+- 3 个 REST endpoint：`GET /api/me/reminder/status` · `POST /api/me/reminder/subscribe` · `POST /api/me/reminder/disable`
+- 模板字段：`date2`（日期）/ `thing3`（提醒事项）/ `time15`（时间）/ `thing9`（备注），全部按 WeChat thing 20 字符上限自动截断
+- 新环境变量：`WECHAT_APPID` · `WECHAT_APP_SECRET` · 可选 `REMINDER_TEMPLATE_ID` · `REMINDER_TARGET_PAGE_PATH` · `REMINDER_MINIPROGRAM_STATE`
+
+**客户端**
+- 新建 `utils/reminder.ts`：包装 `wx.requestSubscribeMessage` + POST `/me/reminder/subscribe`，识别 reject / 20004 blocked / 其他失败 三档结果
+- 学习设置页加「每日提醒 20:30」区块：自定义 mint 渐变 toggle、状态副标题（已开启 · 还能推送 N 次）、credits < 2 时显示「立刻续订」 amber 按钮
+- 首页 onShow 自动 silent refill：用户已开启 + credits < 2 + 当天未触发过 → 静默 `wx.requestSubscribeMessage`，每个 Shanghai-day 最多一次（key `cpa.reminder.lastRefillDay`）
+
+**测试**：184/184 全过（新增 16 个针对 OpenAPI client / scheduler / endpoints 的服务端 spec）。typecheck server + miniprogram 双绿。
+
+**部署需要**：在云托管「服务设置 → 环境变量」加 `WECHAT_APPID` 和 `WECHAT_APP_SECRET`，并在 IP 白名单里放行 `api.weixin.qq.com`。
 
 ## v0.19.0 已上线（起动系统）
 

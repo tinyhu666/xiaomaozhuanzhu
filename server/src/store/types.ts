@@ -37,6 +37,20 @@ export type DataStore = {
   replaceDailyStats(userId: string, dailyStats: Map<string, DailyStat>): void | Promise<void>;
   getDailyStats(userId: string): Map<string, DailyStat> | Promise<Map<string, DailyStat>>;
 
+  /**
+   * v0.20 — reminder state mutations. All four are tiny single-row
+   * updates; we keep them separate from updateProfile so the route
+   * handlers stay focused and one feature's row-locking can't bleed
+   * into another's.
+   */
+  incrementReminderCredits(userId: string, by: number): User | null | Promise<User | null>;
+  setReminderEnabled(userId: string, enabled: boolean): User | null | Promise<User | null>;
+  recordReminderDispatch(userId: string, sentAtIso: string, error?: string): User | null | Promise<User | null>;
+  /** Bulk read for the cron — all users currently eligible to receive a reminder
+   *  (enabled = true AND credits > 0 AND not yet sent today). Caller filters
+   *  the "not yet today" predicate by reminderLastSentAt + Shanghai day key. */
+  listReminderRecipients(): User[] | Promise<User[]>;
+
   // Admin-facing reads. These are aggregate queries used by the
   // /admin dashboard and are not on the user-facing hot path.
   listAllUsers(): AdminUserSummary[] | Promise<AdminUserSummary[]>;

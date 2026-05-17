@@ -1,10 +1,15 @@
 // @ts-nocheck
+import { getReminderStatus, type ReminderStatus } from "../../utils/api";
 import {
   AUDIO_SCENES,
   getAudioScene,
   setAudioScene,
   type AudioScene
 } from "../../utils/audio";
+import {
+  disableReminder,
+  requestReminderSubscribe
+} from "../../utils/reminder";
 import {
   DEFAULT_SETTINGS,
   SETTINGS_BOUNDS,
@@ -44,10 +49,24 @@ type AudioSceneVM = {
   active: boolean;
 };
 
+type ReminderVM = {
+  /** Toggle state — fed from the server `enabled` flag. */
+  enabled: boolean;
+  /** Remaining WeChat 一次性订阅 grants available to consume. */
+  credits: number;
+  /** True iff openid is available (anonymous users can't be sent to). */
+  hasOpenid: boolean;
+  /** Friendly status line, e.g. "已开启 · 还能推送 3 次" / "未开启". */
+  statusLabel: string;
+  /** True while we're calling wx.requestSubscribeMessage. */
+  busy: boolean;
+};
+
 type SettingsPageData = {
   goalRows: SettingRowVM[];
   pomodoroRows: SettingRowVM[];
   audioScenes: AudioSceneVM[];
+  reminder: ReminderVM;
 };
 
 const ROW_TEMPLATES: Array<{
@@ -138,15 +157,127 @@ function buildPageRows(settings: UserSettings) {
   };
 }
 
+function buildReminderVM(status: ReminderStatus | null, busy = false): ReminderVM {
+  if (!status) {
+    return {
+      enabled: false,
+      credits: 0,
+      hasOpenid: false,
+      statusLabel: "正在加载…",
+      busy
+    };
+  }
+  const statusLabel = !status.hasOpenid
+    ? "需要微信账号授权后才能开启"
+    : status.enabled
+      ? status.credits > 0
+        ? `已开启 · 还能推送 ${status.credits} 次`
+        : "已开启 · 需要再次授权才能继续推送"
+      : "未开启";
+  return {
+    enabled: status.enabled,
+    credits: status.credits,
+    hasOpenid: status.hasOpenid,
+    statusLabel,
+    busy
+  };
+}
+
 Page<{}, SettingsPageData>({
   data: {
     goalRows: [],
     pomodoroRows: [],
-    audioScenes: []
+    audioScenes: [],
+    reminder: buildReminderVM(null)
   },
 
   onLoad() {
     this.rebuild(getSettings());
+    this.refreshReminder();
+  },
+
+  async refreshReminder() {
+    try {
+      const status = await getReminderStatus();
+      this.setData({ reminder: buildReminderVM(status) });
+    } catch (err) {
+      console.warn("[settings] reminder status failed", err);
+    }
+  },
+
+  /**
+   * Toggle the 每日提醒 (20:30 daily reminder).
+   *   - off → on: trigger wx.requestSubscribeMessage; on accept, the
+   *     server bumps credits and flips enabled=true
+   *   - on → off: server flips enabled=false; credits stay (so user
+   *     can toggle back without re-authorizing immediately)
+   *
+   * The "refill" pattern (asking again when credits are low) lives
+   * on the home page cold-start, not here. This handler just owns
+   * the explicit user-driven toggle.
+   */
+  async onTapReminderToggle() {
+    if (this.data.reminder.busy) return;
+    this.setData({ reminder: { ...this.data.reminder, busy: true } });
+    try {
+      if (this.data.reminder.enabled) {
+        // User turning it OFF — simple POST, no wx prompt needed.
+        await disableReminder();
+        await this.refreshReminder();
+        wx.showToast({ title: "已关闭每日提醒", icon: "none" });
+        return;
+      }
+      // User turning it ON — trigger the WeChat subscribe prompt.
+      const outcome = await requestReminderSubscribe();
+      if (outcome.ok) {
+        await this.refreshReminder();
+        wx.showToast({
+          title: `已开启 · 还能推送 ${outcome.credits} 次`,
+          icon: "none",
+          duration: 2400
+        });
+        return;
+      }
+      // User declined or wx threw. Don't leave the toggle in a fake-on state.
+      const text = outcome.reason === "rejected"
+        ? "未授权 · 暂不开启"
+        : outcome.reason === "blocked"
+          ? outcome.message ?? "微信已禁用此模板的订阅"
+          : outcome.message ?? "授权失败";
+      wx.showToast({ title: text, icon: "none", duration: 2400 });
+      await this.refreshReminder();
+    } catch (err) {
+      console.error("[settings] reminder toggle failed", err);
+      wx.showToast({
+        title: err instanceof Error ? err.message : "切换失败",
+        icon: "none"
+      });
+      this.setData({ reminder: { ...this.data.reminder, busy: false } });
+    }
+  },
+
+  /** Explicit "续订" button — visible only when credits run low and
+   *  reminder is already enabled. Same wx.requestSubscribeMessage
+   *  flow as toggle-on, but UX framing is "top up" not "turn on". */
+  async onTapReminderRefill() {
+    if (this.data.reminder.busy) return;
+    this.setData({ reminder: { ...this.data.reminder, busy: true } });
+    try {
+      const outcome = await requestReminderSubscribe();
+      if (outcome.ok) {
+        wx.showToast({ title: `已续订 · 共 ${outcome.credits} 次`, icon: "none" });
+      } else if (outcome.reason !== "rejected") {
+        wx.showToast({
+          title: outcome.message ?? "续订失败",
+          icon: "none",
+          duration: 2400
+        });
+      }
+      await this.refreshReminder();
+    } catch (err) {
+      console.error("[settings] reminder refill failed", err);
+      this.setData({ reminder: { ...this.data.reminder, busy: false } });
+    }
   },
 
   rebuild(settings: UserSettings) {

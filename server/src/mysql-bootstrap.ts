@@ -145,6 +145,7 @@ export async function ensureMySqlSchema(env: EnvMap = process.env) {
     await migrateUsersIdentitySchema(connection, plan.databaseName);
     await migrateNewsItemsSchema(connection, plan.databaseName);
     await migrateSessionsModeSchema(connection, plan.databaseName);
+    await migrateUsersReminderSchema(connection, plan.databaseName);
   } finally {
     await connection.end();
   }
@@ -261,6 +262,51 @@ async function migrateSessionsModeSchema(connection: Connection, dbName: string)
   if (!columns.has("pomodoro_cycles")) {
     await connection.query(
       "ALTER TABLE study_sessions ADD COLUMN pomodoro_cycles INT NOT NULL DEFAULT 0 AFTER duration_minutes"
+    );
+  }
+}
+
+/**
+ * v0.20 migration: opt-in WeChat subscription-message reminders.
+ * Four new columns on `users`:
+ *   - reminder_enabled: user has turned on the daily 20:30 reminder
+ *   - reminder_credits: # of unused subscription-message authorizations
+ *     (one-time 订阅消息 grants one send per accept; we accumulate them)
+ *   - reminder_last_sent_at: last successful dispatch timestamp; used
+ *     to keep the cron idempotent within a single day
+ *   - reminder_last_error: last WeChat API error code/message string,
+ *     for debugging "why isn't this delivering?" in admin
+ * All four are nullable / safe-defaulted; old rows look "disabled".
+ * Safe to re-run.
+ */
+async function migrateUsersReminderSchema(connection: Connection, dbName: string) {
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+    [dbName]
+  );
+  const columns = new Set(rows.map((row) => String(row.COLUMN_NAME)));
+  if (columns.size === 0) return;
+
+  if (!columns.has("reminder_enabled")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN reminder_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER admin_remark"
+    );
+  }
+  if (!columns.has("reminder_credits")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN reminder_credits INT NOT NULL DEFAULT 0 AFTER reminder_enabled"
+    );
+  }
+  if (!columns.has("reminder_last_sent_at")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN reminder_last_sent_at DATETIME(3) NULL AFTER reminder_credits"
+    );
+  }
+  if (!columns.has("reminder_last_error")) {
+    await connection.query(
+      "ALTER TABLE users ADD COLUMN reminder_last_error VARCHAR(255) NOT NULL DEFAULT '' AFTER reminder_last_sent_at"
     );
   }
 }

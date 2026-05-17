@@ -5,6 +5,10 @@ import { config as loadEnv } from "dotenv";
 
 import { createApp } from "./app";
 import { ensureMySqlSchema } from "./mysql-bootstrap";
+import { ReminderScheduler } from "./domain/reminder-scheduler";
+import { WeChatAPIClient } from "./domain/wechat-openapi";
+import { MySQLStore } from "./store/mysql-store";
+import { resolveDatabaseUrl } from "./env";
 
 const envCandidates = [
   path.resolve(process.cwd(), "server/.env"),
@@ -37,6 +41,35 @@ ensureMySqlSchema(process.env)
   .catch((error) => {
     console.error("MySQL bootstrap failed (continuing in degraded state)", error);
   });
+
+// v0.20 — daily 20:30 Asia/Shanghai reminder scheduler. We only
+// start it when both prerequisites are present:
+//   - a real MySQL store (so user state persists across restarts)
+//   - the WeChat appid + app secret in env (so we can actually send)
+// Missing either → log a warning and skip; the rest of the server
+// still works. The cron is a setInterval; restart cost is one
+// possibly-missed minute, which is acceptable for a daily moment.
+const reminderDbUrl = resolveDatabaseUrl(process.env);
+const wechatAppId = process.env.WECHAT_APPID ?? "";
+const wechatAppSecret = process.env.WECHAT_APP_SECRET ?? "";
+if (reminderDbUrl && wechatAppId && wechatAppSecret) {
+  try {
+    const store = MySQLStore.fromConnectionString(reminderDbUrl);
+    const apiClient = new WeChatAPIClient({
+      appId: wechatAppId,
+      appSecret: wechatAppSecret
+    });
+    const scheduler = new ReminderScheduler({ store: store as never, apiClient });
+    scheduler.start();
+    console.log("Reminder scheduler started (Asia/Shanghai 20:30 daily)");
+  } catch (error) {
+    console.error("Failed to start reminder scheduler", error);
+  }
+} else {
+  console.warn(
+    "Reminder scheduler not started — set WECHAT_APPID + WECHAT_APP_SECRET + MYSQL_* envs"
+  );
+}
 
 process.on("unhandledRejection", (reason) => {
   console.error("Unhandled promise rejection", reason);
