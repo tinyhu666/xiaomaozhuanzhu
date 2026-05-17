@@ -140,6 +140,22 @@
   </view>
 
   <view class="goal-card">
+    <!--
+      v0.19 — daily challenge chip. Sits above the user's stretch goal.
+      Auto-generated each morning based on the user's 7-day median.
+      Tap the "?" mini-hint for a toast explaining why this number.
+    -->
+    <view wx:if="{{dailyChallenge}}" class="goal-card__challenge {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
+      <view class="goal-card__challenge-head">
+        <text class="goal-card__challenge-emoji">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
+        <text class="goal-card__challenge-label">{{dailyChallenge.completed ? '今日挑战已完成' : '今日挑战'}}</text>
+        <text class="goal-card__challenge-target">{{dailyChallenge.targetMinutes}} 分钟</text>
+      </view>
+      <view wx:if="{{!dailyChallenge.completed}}" class="goal-card__challenge-track">
+        <view class="goal-card__challenge-fill" style="width: {{dailyChallenge.progressPercent}}%"></view>
+      </view>
+    </view>
+
     <view class="goal-card__head">
       <view class="goal-card__title-wrap">
         <text class="goal-card__title">今日目标</text>

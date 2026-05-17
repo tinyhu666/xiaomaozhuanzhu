@@ -596,3 +596,227 @@
 .monthly-modal__cta:active {
   transform: scale(0.97);
 }
+
+/* ============================================================
+   v0.19 — Weekly recap modal. Same visual language as monthly,
+   but the centerpiece is a 7-bar Mon..Sun chart instead of the
+   single big number. Compacter overall — the recap horizon is
+   shorter so the moment is smaller too.
+   ============================================================ */
+@keyframes weekly-modal-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes weekly-modal-pop {
+  0%   { opacity: 0; transform: scale(0.86) translateY(36rpx); }
+  60%  { transform: scale(1.02) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes weekly-bar-rise {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+.weekly-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 235;
+  background: rgba(20, 60, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 48rpx;
+  animation: weekly-modal-fade 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.weekly-modal__card {
+  position: relative;
+  width: 100%;
+  max-width: 620rpx;
+  padding: 40rpx 32rpx 30rpx;
+  border-radius: 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.36), transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #f3faf6 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.2);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(46, 169, 133, 0.28);
+  animation: weekly-modal-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.weekly-modal__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.weekly-modal__eyebrow {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--mint-600);
+  padding: 4rpx 16rpx;
+  background: rgba(46, 169, 133, 0.12);
+  border-radius: 999rpx;
+}
+
+.weekly-modal__title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+  margin-top: 8rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.weekly-modal__hero {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-top: 14rpx;
+}
+
+.weekly-modal__value {
+  font-size: 82rpx;
+  font-weight: 800;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.5rpx;
+  background: linear-gradient(135deg, #2ea985 0%, #63cba8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.weekly-modal__unit {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  letter-spacing: 0.5rpx;
+}
+
+.weekly-modal__sub {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  text-align: center;
+  letter-spacing: 0.3rpx;
+}
+
+.weekly-modal__chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10rpx;
+  width: 100%;
+  height: 160rpx;
+  margin-top: 26rpx;
+  padding: 0 4rpx;
+}
+
+.weekly-modal__bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  height: 100%;
+}
+
+.weekly-modal__bar {
+  width: 100%;
+  border-radius: 6rpx 6rpx 0 0;
+  background: rgba(46, 169, 133, 0.2);
+  transform-origin: bottom;
+  animation: weekly-bar-rise 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  margin-top: auto;
+}
+
+.weekly-modal__bar.is-peak {
+  background: linear-gradient(180deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.3);
+}
+
+.weekly-modal__bar-col:nth-child(1) .weekly-modal__bar { animation-delay: 0.05s; }
+.weekly-modal__bar-col:nth-child(2) .weekly-modal__bar { animation-delay: 0.12s; }
+.weekly-modal__bar-col:nth-child(3) .weekly-modal__bar { animation-delay: 0.19s; }
+.weekly-modal__bar-col:nth-child(4) .weekly-modal__bar { animation-delay: 0.26s; }
+.weekly-modal__bar-col:nth-child(5) .weekly-modal__bar { animation-delay: 0.33s; }
+.weekly-modal__bar-col:nth-child(6) .weekly-modal__bar { animation-delay: 0.40s; }
+.weekly-modal__bar-col:nth-child(7) .weekly-modal__bar { animation-delay: 0.47s; }
+
+.weekly-modal__bar-label {
+  font-size: 18rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  opacity: 0.7;
+}
+
+.weekly-modal__subjects {
+  display: flex;
+  width: 100%;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.weekly-modal__subject {
+  flex: 1;
+  padding: 14rpx 16rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.weekly-modal__subject-name {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.weekly-modal__subject-minutes {
+  font-size: 20rpx;
+  color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.2rpx;
+}
+
+.weekly-modal__suggestion {
+  margin-top: 22rpx;
+  font-size: 24rpx;
+  line-height: 1.55;
+  color: var(--text-sub);
+  text-align: center;
+  letter-spacing: 0.3rpx;
+}
+
+.weekly-modal__cta {
+  margin-top: 22rpx;
+  width: 100%;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 0.5rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 6rpx 16rpx rgba(46, 169, 133, 0.28);
+  transition: transform 0.16s ease;
+}
+
+.weekly-modal__cta:active {
+  transform: scale(0.97);
+}

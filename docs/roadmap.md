@@ -1,6 +1,29 @@
 # 小猫专注 · 产品路线图
 
-> 当前版本 v0.18.1 — UX 打磨：去掉多余的计时模式切换、合并双重选科目逻辑、修复头像绿色色块、首页倒计时升级回 hero 卡片，并把「六科进度」搬到首页一眼可见。
+> 当前版本 v0.19.0 — 起动系统：自适应每日挑战 + 周日晚上自动弹「本周报」。把成就感的节奏从"打卡那一刻"扩展到"每天早上打开 → 每周末翻篇"两个新的反馈环。
+
+## v0.19.0 已上线（起动系统）
+
+围绕"提高日活 + 给一周一个收尾仪式"做两件事：
+
+- **🎯 每日挑战（自适应难度）**：首页「今日目标」上面新增一行 chip，自动生成今天的挑战时长。规则是用户**近 7 天每日中位数 × 70%，四舍五入到 15 分钟的整数倍**，最低 20 / 最高 90，4 档原因 reason 决定 tap 提示文案（newUser / minimumFloor / fromMedian / cappedHigh）。完成后 chip 变绿带 ✓；点击全 chip 弹出"为什么是这个数"的小 toast。
+  - 不卡用户超额，超出就是超出
+  - 排除当天本身（避免"今天还没学，明天目标更低"的循环）
+  - 算法是纯计算 + storage gating，`cpa.dailyChallenge.v1` 记录当天 day / targetMinutes / completedAt / reason
+  - 15 个针对 deriveChallenge + getOrCreateTodayChallenge + markChallengeIfComplete 的单测
+
+- **📰 周报弹窗**：周日 18:00 后 / 周一 06:00 前自动弹一次「本周小结」，错过窗口的周二-周六首次开「我的」时 catch-up 一次（最多一次/周）。卡片含：
+  - 区间标题「5 月 11 日 – 17 日」
+  - 大号总分钟数 + session 数 + 上周对比
+  - 7 柱状图（周一→周日），最高日高亮 mint 渐变
+  - top 2 主攻科目卡
+  - 「下周建议」一句话，按 5 档规则生成：empty → 起步、< 120m → 加量、单科 > 60% → 分散、有薄弱科目 → 点名、否则 → 保持
+  - storage key `cpa.weeklyRecap.lastSeen` 用 ISO 周号（"2026-W20"）做幂等
+  - 19 个单测覆盖 isoWeekKey / computeWeeklyRecap / checkWeeklyRecapEligibility / consumeWeeklyRecap 各种边界（catch-up / 空周 / 跨年 / 同月范围）
+
+- **共用 sessions fetch**：profile 页 onShow 时 weekly 和 monthly 两个 modal 共用同一份 `/me/sessions` 调用；同时可触发时 **weekly 优先**（更时效性的提醒）
+
+测试：168/168 全部通过（新增 34 个）；typecheck server + miniprogram 双绿。
 
 ## v0.18.1 已上线（打磨版）
 

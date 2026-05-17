@@ -602,6 +602,78 @@
     0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
+/* v0.19 — daily challenge chip sitting at the top of the goal card.
+   Done state is a flat green pill with a check; in-progress state
+   has a thin progress track underneath. */
+.goal-card__challenge {
+  position: relative;
+  padding: 14rpx 18rpx;
+  border-radius: 20rpx;
+  background:
+    linear-gradient(180deg, rgba(99, 203, 168, 0.14) 0%, rgba(46, 169, 133, 0.1) 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.2);
+  margin-bottom: 22rpx;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.goal-card__challenge.is-done {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  border-color: transparent;
+  box-shadow: 0 6rpx 16rpx rgba(46, 169, 133, 0.28);
+}
+
+.goal-card__challenge:active {
+  transform: scale(0.99);
+}
+
+.goal-card__challenge-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.goal-card__challenge-emoji {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.goal-card__challenge-label {
+  flex: 1;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.goal-card__challenge-target {
+  font-size: 24rpx;
+  font-weight: 800;
+  color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
+}
+
+.goal-card__challenge.is-done .goal-card__challenge-label,
+.goal-card__challenge.is-done .goal-card__challenge-target {
+  color: #fff;
+}
+
+.goal-card__challenge-track {
+  margin-top: 8rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.14);
+  overflow: hidden;
+}
+
+.goal-card__challenge-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
 .goal-card__head {
   display: flex;
   align-items: flex-start;

@@ -1,7 +1,13 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
 import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, ProfileDashboardResponse, SessionMode, SubjectProgress } from "../../types/models";
-import { abandonSession, getHome, getProfileDashboard, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import { abandonSession, getHome, getProfileDashboard, listMySessions, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import {
+  getOrCreateTodayChallenge,
+  markChallengeIfComplete,
+  reasonLabel,
+  type DailyChallenge
+} from "../../utils/daily-challenge";
 import {
   getActiveAudio,
   getAudioScene,
@@ -97,6 +103,16 @@ type HomePageData = {
       valueText: string;
     }>;
   };
+  /** v0.19 — adaptive daily challenge: a soft, system-generated floor
+   *  target shown above the user-set 今日目标. Always non-null after
+   *  the first /home load completes. */
+  dailyChallenge: {
+    targetMinutes: number;
+    completed: boolean;
+    reasonHint: string;
+    progressMinutes: number;
+    progressPercent: number;
+  } | null;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -161,7 +177,8 @@ Page<{}, HomePageData>({
     pomodoroCyclesCompleted: 0,
     pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })),
     nextExam: null,
-    subjectsCard: { visible: false, hint: "", items: [] }
+    subjectsCard: { visible: false, hint: "", items: [] },
+    dailyChallenge: null
   },
 
   async onShow() {
@@ -246,15 +263,20 @@ Page<{}, HomePageData>({
 
   async loadHomeStats() {
     try {
-      // v0.18.1 — also fetch the dashboard to surface subject progress
-      // on home. Run in parallel with /home so total latency is the
-      // max of the two, not the sum. We *don't* block on dashboard
-      // failure: subject card is a "nice to have" and a stale grid
-      // is far better than no home page.
-      const [home, dashboardSettled] = await Promise.all([
+      // v0.18.1: parallel fetch of dashboard for subject card.
+      // v0.19: also parallel fetch of recent sessions for the daily
+      // challenge derivation (needs the user's recent daily totals).
+      // Both side fetches degrade gracefully: dashboard failure hides
+      // the subject card; sessions failure makes the challenge fall
+      // back to "newUser" mode.
+      const [home, dashboardSettled, sessionsSettled] = await Promise.all([
         getHome(),
         getProfileDashboard().catch((err) => {
           console.warn("[home] dashboard fetch failed", err);
+          return null;
+        }),
+        listMySessions().catch((err) => {
+          console.warn("[home] sessions fetch failed", err);
           return null;
         })
       ]);
@@ -277,6 +299,14 @@ Page<{}, HomePageData>({
           }
         : { visible: false, text: "", progress: 0, reached: false };
 
+      // v0.19 — derive the daily challenge view-model. Auto-marks
+      // complete if today's running total has already crossed the
+      // target by the time the home page loads.
+      const now = new Date();
+      const recentSessions = sessionsSettled?.items ?? [];
+      let challenge = getOrCreateTodayChallenge(recentSessions, now);
+      challenge = markChallengeIfComplete(challenge, todayMinutes, now);
+
       this.setData({
         profile: home.profile,
         todayMinutesText: formatDuration(todayMinutes),
@@ -288,7 +318,8 @@ Page<{}, HomePageData>({
         weeklyGoal,
         makeup: home.makeupAvailable ?? null,
         nextExam: this.pickNextExam(home.examSchedule),
-        subjectsCard: this.buildSubjectsCard(dashboardSettled?.subjects ?? [])
+        subjectsCard: this.buildSubjectsCard(dashboardSettled?.subjects ?? []),
+        dailyChallenge: this.buildDailyChallengeView(challenge, todayMinutes)
       });
       this.applyActiveSession(home.activeSession ?? null);
       this.refreshEmptyHint();
@@ -390,6 +421,34 @@ Page<{}, HomePageData>({
 
   openSubjectsPage() {
     wx.navigateTo({ url: "/package-profile/subjects/index" });
+  },
+
+  /**
+   * v0.19 — daily challenge view-model. Always returns something
+   * (challenge always exists after first load); progress is clamped
+   * 0..100 so the bar can't overflow even when the user blows past
+   * the target.
+   */
+  buildDailyChallengeView(
+    challenge: DailyChallenge,
+    todayMinutes: number
+  ): NonNullable<HomePageData["dailyChallenge"]> {
+    const target = challenge.targetMinutes;
+    const percent = target > 0 ? Math.min(100, Math.round((todayMinutes / target) * 100)) : 0;
+    return {
+      targetMinutes: target,
+      completed: !!challenge.completedAt,
+      reasonHint: reasonLabel(challenge.reason),
+      progressMinutes: Math.min(todayMinutes, target),
+      progressPercent: percent
+    };
+  },
+
+  /** Tap the challenge chip → friendly "why this number" toast. */
+  onTapChallengeHint() {
+    const c = this.data.dailyChallenge;
+    if (!c) return;
+    wx.showToast({ title: c.reasonHint, icon: "none", duration: 2400 });
   },
 
   async handleMakeup() {

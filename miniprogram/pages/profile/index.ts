@@ -3,6 +3,7 @@ import { runtimeConfig } from "../../config/runtime";
 import type { Badge, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
 import { getProfileDashboard, listMySessions, saveProfile, uploadAvatar } from "../../utils/api";
 import { consumeMonthlySummary, type MonthlySummary } from "../../utils/monthly";
+import { consumeWeeklyRecap, type WeeklyRecap } from "../../utils/weekly-recap";
 import { formatDuration, getDailyQuote } from "../../utils/view-models";
 
 /**
@@ -67,6 +68,11 @@ type ProfilePageData = {
    *  in TS rather than the template since the wxml ternary chain
    *  would otherwise be unreadable. */
   monthlyChangeText: string;
+  /** v0.19 — Sunday-evening / Monday-morning weekly recap modal. */
+  weeklyRecap: WeeklyRecap | null;
+  weeklyRecapChangeText: string;
+  /** 7-bar view-model derived from weeklyRecap.dailyMinutes. */
+  weeklyRecapBars: Array<{ heightPercent: number; label: string; isPeak: boolean; minutes: number }>;
 };
 
 Page<{}, ProfilePageData>({
@@ -82,7 +88,10 @@ Page<{}, ProfilePageData>({
     statTiles: [],
     insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] },
     monthlySummary: null,
-    monthlyChangeText: ""
+    monthlyChangeText: "",
+    weeklyRecap: null,
+    weeklyRecapChangeText: "",
+    weeklyRecapBars: []
   },
 
   async onShow() {
@@ -100,15 +109,15 @@ Page<{}, ProfilePageData>({
       console.error("[profile] ensureProfile failed", error);
     });
     await this.refresh();
-    // v0.18 — fire the monthly summary modal *after* the main page has
-    // settled in. We deliberately don't block the dashboard render on
-    // this fetch; the modal appears with the standard fade-in animation
-    // ~150ms later, which feels like a follow-up moment rather than a
-    // blocker. If the user hasn't crossed into a new month, or has no
-    // data for last month, consumeMonthlySummary returns null and we
-    // never set the field.
-    this.maybeShowMonthlySummary().catch((error) => {
-      console.error("[profile] monthly summary failed", error);
+    // v0.18 — monthly summary modal; v0.19 — weekly recap modal.
+    // Both gated on storage so they fire at most once per period.
+    // We share a single sessions fetch (both compute fns derive from
+    // the same /me/sessions response). The weekly recap takes
+    // priority if both are eligible — weekly is the more immediate
+    // "you just finished a week" moment, the monthly catches up
+    // next time the user opens 我的.
+    this.maybeShowPeriodicRecaps().catch((error) => {
+      console.error("[profile] periodic recap failed", error);
     });
   },
 
@@ -310,33 +319,78 @@ Page<{}, ProfilePageData>({
   },
 
   /**
-   * v0.18 — gate the "上月小结" modal. We fetch the recent-sessions
-   * list (already used by the garden page; capped to 200 server-side)
-   * and let consumeMonthlySummary decide whether anything fires. It
-   * tracks "last seen month" in storage, so this is cheap to call on
-   * every onShow — at most one DB-shaped popup per calendar month.
+   * v0.19 — single periodic-recap gate. Fetches sessions once and
+   * runs both consumeWeeklyRecap (Sun 18:00 / Mon ≤ 06:00 / catch-up)
+   * and consumeMonthlySummary (first open of a new calendar month).
+   * Weekly takes priority if both are eligible at the same moment,
+   * because the weekly is the more time-bound moment — the monthly
+   * will catch up on the next 我的 open if needed.
    */
-  async maybeShowMonthlySummary() {
-    // Storage gate first: if we've already seen the prev-month summary,
-    // skip the network round-trip entirely. consumeMonthlySummary
-    // re-checks the same gate, but pre-checking here saves a request
-    // on every onShow during the bulk of the month.
-    if (this.data.monthlySummary) return;
+  async maybeShowPeriodicRecaps() {
+    if (this.data.weeklyRecap || this.data.monthlySummary) return;
     let items;
     try {
       const result = await listMySessions();
       items = result?.items ?? [];
     } catch (_err) {
-      // Non-fatal: a transient API failure shouldn't block the
-      // rest of 我的. The summary will retry next onShow.
+      // Non-fatal: transient failure → retry next onShow.
       return;
     }
-    const summary = consumeMonthlySummary(items, new Date());
+    const now = new Date();
+    const weeklyRecap = consumeWeeklyRecap(items, now);
+    if (weeklyRecap) {
+      this.setData({
+        weeklyRecap,
+        weeklyRecapChangeText: this.buildWeeklyChangeText(weeklyRecap),
+        weeklyRecapBars: this.buildWeeklyRecapBars(weeklyRecap)
+      });
+      return;
+    }
+    const summary = consumeMonthlySummary(items, now);
     if (!summary) return;
     this.setData({
       monthlySummary: summary,
       monthlyChangeText: this.buildMonthlyChangeText(summary)
     });
+  },
+
+  /**
+   * One-liner change text for the weekly recap modal. Mirrors
+   * buildMonthlyChangeText so the two modals read consistently.
+   */
+  buildWeeklyChangeText(recap: WeeklyRecap): string {
+    const c = recap.change;
+    if (c.kind === "noPrior") return "上周没有数据 — 这是你的第一份周报。";
+    if (c.kind === "flat") return "和上周节奏一致，稳。";
+    if (c.kind === "up") return `比上周多 ${c.deltaMinutes} 分钟（+${c.percent}%）`;
+    return `比上周少了 ${c.deltaMinutes} 分钟（-${c.percent}%）`;
+  },
+
+  /**
+   * 7-bar chart view-model. Heights are normalized against the week's
+   * peak day so a quiet week still produces a readable shape; bars are
+   * always given a 4% minimum height for visual continuity.
+   */
+  buildWeeklyRecapBars(recap: WeeklyRecap): ProfilePageData["weeklyRecapBars"] {
+    const max = Math.max(1, ...recap.dailyMinutes);
+    const peakIdx = recap.dailyMinutes.indexOf(max);
+    const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    return recap.dailyMinutes.map((minutes, i) => ({
+      heightPercent: minutes > 0 ? Math.max(8, Math.round((minutes / max) * 100)) : 4,
+      label: labels[i],
+      isPeak: i === peakIdx && minutes > 0,
+      minutes
+    }));
+  },
+
+  /** Tap to dismiss — both backdrop and CTA call this. */
+  onTapWeeklyDismiss() {
+    this.setData({ weeklyRecap: null, weeklyRecapChangeText: "", weeklyRecapBars: [] });
+  },
+
+  /** Stop tap propagation on the card itself. */
+  onTapWeeklyContent(event: WechatMiniprogram.BaseEvent) {
+    event.stopPropagation?.();
   },
 
   /**

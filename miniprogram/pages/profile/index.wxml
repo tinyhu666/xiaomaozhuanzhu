@@ -133,6 +133,49 @@
   <text class="profile-version">小猫专注 · v{{appVersion}}</text>
 
   <!--
+    v0.19 — weekly recap modal. Fires Sun 18:00 / Mon ≤ 06:00 / with
+    catch-up Tue-Sat if the prior week wasn't shown yet. Storage-gated
+    (cpa.weeklyRecap.lastSeen). Visual language matches the monthly
+    modal but compacter — 7-bar weekly chart is the centerpiece.
+  -->
+  <view wx:if="{{weeklyRecap}}" class="weekly-modal" bindtap="onTapWeeklyDismiss">
+    <view class="weekly-modal__card" catchtap="onTapWeeklyContent">
+      <view class="weekly-modal__head">
+        <text class="weekly-modal__eyebrow">本周小结</text>
+        <text class="weekly-modal__title">{{weeklyRecap.rangeLabel}}</text>
+      </view>
+
+      <view class="weekly-modal__hero">
+        <text class="weekly-modal__value">{{weeklyRecap.totalMinutes}}</text>
+        <text class="weekly-modal__unit">分钟</text>
+      </view>
+      <text class="weekly-modal__sub">{{weeklyRecap.sessionCount}} 次专注 · {{weeklyRecapChangeText}}</text>
+
+      <view class="weekly-modal__chart">
+        <view
+          wx:for="{{weeklyRecapBars}}"
+          wx:key="label"
+          class="weekly-modal__bar-col"
+        >
+          <view class="weekly-modal__bar {{item.isPeak ? 'is-peak' : ''}}" style="height: {{item.heightPercent}}%"></view>
+          <text class="weekly-modal__bar-label">{{item.label}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{weeklyRecap.topSubjects.length}}" class="weekly-modal__subjects">
+        <view wx:for="{{weeklyRecap.topSubjects}}" wx:key="name" class="weekly-modal__subject">
+          <text class="weekly-modal__subject-name">{{item.name}}</text>
+          <text class="weekly-modal__subject-minutes">{{item.minutes}} 分钟</text>
+        </view>
+      </view>
+
+      <text class="weekly-modal__suggestion">{{weeklyRecap.suggestion}}</text>
+
+      <view class="weekly-modal__cta" bindtap="onTapWeeklyDismiss">下周继续</view>
+    </view>
+  </view>
+
+  <!--
     v0.18 — monthly summary modal. Fires once per calendar month on
     the first time the user opens 我的 after a new month begins.
     Storage-gated; see utils/monthly.ts. The card is a one-shot
