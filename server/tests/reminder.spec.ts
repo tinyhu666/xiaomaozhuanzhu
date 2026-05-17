@@ -7,7 +7,10 @@ import {
   formatReminderDate,
   WeChatAPIClient
 } from "../src/domain/wechat-openapi";
-import { ReminderScheduler } from "../src/domain/reminder-scheduler";
+import {
+  buildExamCountdownNote,
+  ReminderScheduler
+} from "../src/domain/reminder-scheduler";
 import { MemoryStore } from "../src/store/memory-store";
 
 class TestClock {
@@ -249,6 +252,29 @@ describe("Reminder API endpoints", () => {
 /*  ReminderScheduler                                                          */
 /* -------------------------------------------------------------------------- */
 
+describe("buildExamCountdownNote", () => {
+  it("returns days until the nearest CPA exam (closest of 6 subjects)", () => {
+    // Far enough in advance that the closest exam date is decisively
+    // in the future for all 6 subjects.
+    const note = buildExamCountdownNote(new Date("2026-01-01T00:00:00.000Z"));
+    expect(note).toMatch(/^距考试还有 \d+ 天，加油！$/);
+  });
+
+  it("note text length stays within WeChat 20-char thing limit", () => {
+    const note = buildExamCountdownNote(new Date("2026-01-01T00:00:00.000Z"));
+    expect(note.length).toBeLessThanOrEqual(20);
+  });
+
+  it("returns generic fallback when nothing is upcoming", () => {
+    // Force a date past all exams in the table; the exam-dates helper
+    // rolls dates forward by a year, so this path is hard to reach
+    // — but the helper must not crash and must produce a string.
+    const note = buildExamCountdownNote(new Date("2099-12-31T00:00:00.000Z"));
+    expect(typeof note).toBe("string");
+    expect(note.length).toBeGreaterThan(0);
+  });
+});
+
 describe("ReminderScheduler", () => {
   it("only fires at 20:30 Shanghai time", async () => {
     const store = new MemoryStore();
@@ -384,6 +410,36 @@ describe("ReminderScheduler", () => {
     // Non-revoked failure → credit retained, error recorded.
     expect(user.reminderCredits).toBe(4);
     expect(user.reminderLastError).toContain("45009");
+  });
+
+  it("dispatched payload carries countdown text in thing9 + 20:30 in time15", async () => {
+    const store = new MemoryStore();
+    store.ensureUser({ openid: "openid-payload" }, "2026-05-17T10:00:00.000Z");
+    const user = [...(store as any).users.values()][0];
+    store.setReminderEnabled(user.id, true);
+    store.incrementReminderCredits(user.id, 1);
+
+    const sent: any[] = [];
+    const apiClient = {
+      sendSubscribeMessage: async (payload: any) => {
+        sent.push(payload);
+        return { ok: true as const };
+      }
+    };
+    const sch = new ReminderScheduler({
+      store: store as never,
+      apiClient: apiClient as never,
+      now: () => new Date("2026-05-17T12:30:00.000Z"),
+      logger: () => {}
+    });
+    await sch.tick();
+    expect(sent.length).toBe(1);
+    const payload = sent[0];
+    expect(payload.data.time15.value).toBe("20:30");
+    // thing9 contains either the countdown phrasing or the fallback;
+    // either way it shouldn't exceed the WeChat 20-char limit.
+    expect(payload.data.thing9.value.length).toBeLessThanOrEqual(20);
+    expect(payload.data.thing9.value).toMatch(/(距考试还有|今晚|考试日)/);
   });
 
   it("does not dispatch when user has no openid (anonymous client_uid only)", async () => {

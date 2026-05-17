@@ -19,6 +19,7 @@
  */
 
 import { formatShanghaiDate } from "./date-utils";
+import { getExamSchedule } from "./exam-dates";
 import {
   buildReminderData,
   type WeChatAPIClient
@@ -135,9 +136,9 @@ export class ReminderScheduler {
     if (!user.openid) return;
     const data = buildReminderData({
       reminderDate: now,
-      reminderTitle: "今晚 20:30 学习时间到",
+      reminderTitle: "今晚的专注时间到啦",
       reminderTime: `${String(DISPATCH_HOUR).padStart(2, "0")}:${String(DISPATCH_MINUTE).padStart(2, "0")}`,
-      reminderNote: "打开小程序开始今晚的专注"
+      reminderNote: buildExamCountdownNote(now)
     });
     try {
       const result = await this.apiClient.sendSubscribeMessage({
@@ -176,6 +177,31 @@ export class ReminderScheduler {
 
 function defaultShanghaiToday(now: Date): string {
   return formatShanghaiDate(now);
+}
+
+/**
+ * Build the "备注" line for the reminder, baking in the days-to-next-
+ * CPA-exam countdown. Six subjects each have their own exam day; the
+ * "next exam" is the nearest one in the future. Returns a string
+ * within the WeChat thing (≤ 20 中文字符) limit.
+ *
+ * Edge cases:
+ *  - schedule empty / all invalid → keep the original generic line
+ *  - days === 0 (exam day) → urgency message instead of countdown
+ *  - days < 0 (shouldn't happen — exam-dates rolls forward) → generic
+ */
+export function buildExamCountdownNote(now: Date): string {
+  const schedule = getExamSchedule(now);
+  if (!schedule.length) return "打开小程序开始今晚的专注";
+  const upcoming = schedule
+    .map((s) => s.daysRemaining)
+    .filter((d) => Number.isFinite(d) && d > 0);
+  if (upcoming.length === 0) {
+    const anyToday = schedule.some((s) => s.daysRemaining === 0);
+    return anyToday ? "今天就是考试日，加油！" : "打开小程序开始今晚的专注";
+  }
+  const days = Math.min(...upcoming);
+  return `距考试还有 ${days} 天，加油！`;
 }
 
 function defaultLogger(level: "info" | "warn" | "error", msg: string, meta?: unknown) {
