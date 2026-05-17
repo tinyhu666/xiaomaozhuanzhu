@@ -8,49 +8,35 @@
   </view>
 
   <!--
-    Compact exam-countdown banner — redesigned in v0.13 so it doesn't
-    visually compete with the focus timer below it. Now it's a slim
-    horizontal pill: subject + date on the left, day-count on the
-    right. Urgency tier still drives the palette + a subtle pulse on
-    the day badge for ≤30 days, but the size is now "contextual
-    reminder" not "hero block".
+    Exam countdown — v0.18.1 upgraded from a slim "contextual" pill
+    back into a proper hero card. User feedback in v0.18 was that
+    the pill was too easy to skim past; the countdown is the single
+    most motivating piece of data on the page. The big number on the
+    right + urgency-tinted background reads at a glance from the
+    home screen lock.
   -->
-  <view wx:if="{{nextExam}}" class="exam-strip exam-strip--{{nextExam.urgency}}">
-    <view class="exam-strip__left">
-      <text class="exam-strip__label">距下一科 · {{nextExam.subject}}</text>
-      <text class="exam-strip__date">{{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
+  <view wx:if="{{nextExam}}" class="exam-hero exam-hero--{{nextExam.urgency}}">
+    <view class="exam-hero__body">
+      <text class="exam-hero__eyebrow">距下一科考试</text>
+      <text class="exam-hero__subject">{{nextExam.subject}} · {{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
+      <text class="exam-hero__motivation">{{nextExam.motivation}}</text>
     </view>
-    <view class="exam-strip__badge">
-      <text class="exam-strip__badge-num">{{nextExam.daysRemaining}}</text>
-      <text class="exam-strip__badge-unit">天</text>
+    <view class="exam-hero__count">
+      <text class="exam-hero__count-num">{{nextExam.daysRemaining}}</text>
+      <text class="exam-hero__count-unit">天</text>
     </view>
   </view>
 
   <!--
-    Pre-start picker: mode toggle (自由/番茄) + subject chip row.
-    Hidden once a session is live — switching mode mid-session would
-    be confusing. The picker silently locks during the active session
-    and reappears after completion / abandon.
+    Pre-start picker: subject chip row only (v0.18.1 removed the
+    mode toggle — free timer is the single canonical mode now; the
+    pomodoro state-machine code is kept so legacy running sessions
+    still render their cycle dots / phase label correctly).
+    The chip row is also the *one* place we ask "what subject?" —
+    the complete page renders the chosen subject read-only.
   -->
   <view wx:if="{{!activeSession}}" class="picker-card">
-    <view class="picker-card__modes">
-      <view
-        class="picker-card__mode {{selectedMode === 'free' ? 'is-active' : ''}}"
-        data-mode="free"
-        bindtap="onTapModeOption"
-      >
-        <text class="picker-card__mode-icon">⏱</text>
-        <text class="picker-card__mode-label">自由计时</text>
-      </view>
-      <view
-        class="picker-card__mode {{selectedMode === 'pomodoro' ? 'is-active' : ''}}"
-        data-mode="pomodoro"
-        bindtap="onTapModeOption"
-      >
-        <text class="picker-card__mode-icon">🍅</text>
-        <text class="picker-card__mode-label">番茄钟</text>
-      </view>
-    </view>
+    <text class="picker-card__title">今天学什么？</text>
     <view class="picker-card__chip-row">
       <view
         wx:for="{{subjectChips}}"
@@ -60,6 +46,7 @@
         bindtap="onTapSubjectChip"
       >{{item.label}}</view>
     </view>
+    <text wx:if="{{!selectedSubject}}" class="picker-card__hint">可不选 · 后续记录会按"未分类"归档</text>
   </view>
 
   <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}}">
@@ -102,7 +89,7 @@
       bindtap="handleStart"
       loading="{{actionLoading}}"
       disabled="{{actionLoading}}"
-    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : (selectedMode === 'pomodoro' ? '开始番茄' : '开始')}}</button>
+    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : '开始专注'}}</button>
 
     <view wx:else class="timer-card__actions">
       <button
@@ -125,6 +112,30 @@
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
       >{{actionLoading ? (actionLoadingLabel || '正在结束…') : '结束'}}</button>
+    </view>
+  </view>
+
+  <!--
+    v0.18.1 — compact 六科进度 card surfaced to home. The user gets
+    a glance at "where am I across all 6 subjects" without leaving
+    the focus screen. Mini bar per subject (label · minutes/target ·
+    progress), tap to open the full subjects page for detailed edits.
+    Hidden when no subject has any minutes yet (the empty grid is
+    just noise on a brand-new account).
+  -->
+  <view wx:if="{{subjectsCard.visible}}" class="subjects-card" bindtap="openSubjectsPage">
+    <view class="subjects-card__head">
+      <text class="subjects-card__title">六科进度</text>
+      <text class="subjects-card__hint">{{subjectsCard.hint}} ›</text>
+    </view>
+    <view class="subjects-card__grid">
+      <view wx:for="{{subjectsCard.items}}" wx:key="subject" class="subjects-card__row">
+        <text class="subjects-card__row-label">{{item.subject}}</text>
+        <view class="subjects-card__row-track">
+          <view class="subjects-card__row-fill {{item.reached ? 'is-reached' : ''}}" style="width: {{item.percent}}%;"></view>
+        </view>
+        <text class="subjects-card__row-value">{{item.valueText}}</text>
+      </view>
     </view>
   </view>
 

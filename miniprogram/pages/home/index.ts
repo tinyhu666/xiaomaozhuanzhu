@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
-import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, SessionMode } from "../../types/models";
-import { abandonSession, getHome, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, ProfileDashboardResponse, SessionMode, SubjectProgress } from "../../types/models";
+import { abandonSession, getHome, getProfileDashboard, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import {
   getActiveAudio,
   getAudioScene,
@@ -30,7 +30,9 @@ const POMODORO_DEFAULTS = {
   cyclesPerSet: 4
 } as const;
 const STORAGE_LAST_SUBJECT = "cpa.lastSubject";
-const STORAGE_LAST_MODE = "cpa.lastMode";
+// STORAGE_LAST_MODE removed in v0.18.1 — free timer is the only mode
+// the user can start now. The pomodoro state-machine code stays in
+// case a legacy "in-progress" pomodoro session is still on the server.
 
 type PomodoroPhase = "focus" | "shortBreak" | "longBreak";
 
@@ -81,6 +83,19 @@ type HomePageData = {
     sourceYear: number;
     urgency: "calm" | "soon" | "urgent" | "imminent";
     motivation: string;
+  };
+  /** v0.18.1 — six-subject progress card on home. Visible only when
+   *  at least one subject has positive total minutes (an all-zero
+   *  grid is just noise on a brand-new account). */
+  subjectsCard: {
+    visible: boolean;
+    hint: string;
+    items: Array<{
+      subject: string;
+      percent: number;
+      reached: boolean;
+      valueText: string;
+    }>;
   };
 };
 
@@ -145,7 +160,8 @@ Page<{}, HomePageData>({
     pomodoroPhaseLabel: "",
     pomodoroCyclesCompleted: 0,
     pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })),
-    nextExam: null
+    nextExam: null,
+    subjectsCard: { visible: false, hint: "", items: [] }
   },
 
   async onShow() {
@@ -169,12 +185,11 @@ Page<{}, HomePageData>({
   restorePickerFromStorage() {
     try {
       const savedSubject = wx.getStorageSync(STORAGE_LAST_SUBJECT);
-      const savedMode = wx.getStorageSync(STORAGE_LAST_MODE);
       const subject = SUBJECTS.includes(savedSubject) ? savedSubject : null;
-      const mode: SessionMode = savedMode === "pomodoro" ? "pomodoro" : "free";
       this.setData({
         selectedSubject: subject,
-        selectedMode: mode,
+        // Mode pinned to "free" — see top-of-file note.
+        selectedMode: "free",
         subjectChips: SUBJECTS.map((label) => ({ label, active: label === subject }))
       });
     } catch (error) {
@@ -200,17 +215,8 @@ Page<{}, HomePageData>({
     }
   },
 
-  onTapModeOption(event: WechatMiniprogram.BaseEvent) {
-    if (this.data.activeSession) return;
-    const mode = (event.currentTarget.dataset.mode as SessionMode) || "free";
-    if (mode === this.data.selectedMode) return;
-    this.setData({ selectedMode: mode });
-    try {
-      wx.setStorageSync(STORAGE_LAST_MODE, mode);
-    } catch (error) {
-      console.warn("[home] persist mode failed", error);
-    }
-  },
+  // onTapModeOption removed in v0.18.1 — see top-of-file note.
+  // (The handler reference is no longer bound in the wxml.)
 
   onHide() {
     this.stopTimer();
@@ -240,7 +246,18 @@ Page<{}, HomePageData>({
 
   async loadHomeStats() {
     try {
-      const home = await getHome();
+      // v0.18.1 — also fetch the dashboard to surface subject progress
+      // on home. Run in parallel with /home so total latency is the
+      // max of the two, not the sum. We *don't* block on dashboard
+      // failure: subject card is a "nice to have" and a stale grid
+      // is far better than no home page.
+      const [home, dashboardSettled] = await Promise.all([
+        getHome(),
+        getProfileDashboard().catch((err) => {
+          console.warn("[home] dashboard fetch failed", err);
+          return null;
+        })
+      ]);
       const settings = getSettings();
       const dailyTarget = settings.dailyGoalMinutes;
       const todayMinutes = home.today.totalMinutes ?? 0;
@@ -270,7 +287,8 @@ Page<{}, HomePageData>({
         goalReached: todayMinutes >= dailyTarget,
         weeklyGoal,
         makeup: home.makeupAvailable ?? null,
-        nextExam: this.pickNextExam(home.examSchedule)
+        nextExam: this.pickNextExam(home.examSchedule),
+        subjectsCard: this.buildSubjectsCard(dashboardSettled?.subjects ?? [])
       });
       this.applyActiveSession(home.activeSession ?? null);
       this.refreshEmptyHint();
@@ -332,6 +350,46 @@ Page<{}, HomePageData>({
       urgency,
       motivation
     };
+  },
+
+  /**
+   * v0.18.1 — six-row subject progress card for home. Shape matches
+   * what the wxml renders directly (label / percent / valueText).
+   * Sorted by descending progress so the user's most-engaged subject
+   * sits at the top — gives a feeling of forward motion even when
+   * other subjects are still at 0.
+   */
+  buildSubjectsCard(rows: SubjectProgress[]): HomePageData["subjectsCard"] {
+    if (!rows.length) return { visible: false, hint: "", items: [] };
+    const anyMinutes = rows.some((r) => (r.totalMinutes ?? 0) > 0);
+    if (!anyMinutes) return { visible: false, hint: "", items: [] };
+
+    const items = rows
+      .slice()
+      .sort((a, b) => (b.totalMinutes ?? 0) - (a.totalMinutes ?? 0))
+      .map((row) => {
+        const total = row.totalMinutes ?? 0;
+        const target = row.targetMinutes ?? 0;
+        // Percent against the target if set, else cap at a soft 100h
+        // ceiling so a single huge-grind subject doesn't dwarf the
+        // bars of the others. (Honest: any > 0 ≥ 100h gets shown
+        // visually as "full" in this preview; the full subjects
+        // page shows real numbers.)
+        const denominator = target > 0 ? target : 6000;
+        const percent = denominator > 0 ? Math.min(100, Math.round((total / denominator) * 100)) : 0;
+        const reached = target > 0 && total >= target;
+        const valueText = target > 0
+          ? `${formatDuration(total)} / ${formatDuration(target)}`
+          : formatDuration(total);
+        return { subject: row.subject, percent, reached, valueText };
+      });
+    const reachedCount = items.filter((r) => r.reached).length;
+    const hint = reachedCount > 0 ? `${reachedCount}/6 已达目标` : "去查看";
+    return { visible: true, hint, items };
+  },
+
+  openSubjectsPage() {
+    wx.navigateTo({ url: "/package-profile/subjects/index" });
   },
 
   async handleMakeup() {

@@ -13,14 +13,19 @@
         mode="aspectFill"
       />
       <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
+      <!-- Full-area tap target stays for "tap anywhere on the avatar
+           to change". The visible affordance shrinks to a small 📷
+           chip in the bottom-right corner so it stops covering the
+           user's face on small avatars (v0.18.1 fix). -->
       <button
         class="profile-hero__avatar-btn"
         hover-class="none"
         open-type="chooseAvatar"
         bindchooseavatar="onChooseAvatar"
-      >
-        <text class="profile-hero__avatar-edit">{{profile.avatarUrl ? '换头像' : '设头像'}}</text>
-      </button>
+      ></button>
+      <view class="profile-hero__avatar-badge">
+        <text class="profile-hero__avatar-badge-icon">📷</text>
+      </view>
     </view>
     <view class="profile-hero__body">
       <input

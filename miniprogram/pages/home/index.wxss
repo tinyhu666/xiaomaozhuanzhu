@@ -21,6 +21,7 @@
 .home-page > view:nth-child(3) { animation-delay: 0.16s; }
 .home-page > view:nth-child(4) { animation-delay: 0.22s; }
 .home-page > view:nth-child(5) { animation-delay: 0.28s; }
+.home-page > view:nth-child(6) { animation-delay: 0.34s; }
 
 /* ============================================================
    Pre-start picker — mode toggle + subject chips. Lives only
@@ -39,51 +40,28 @@
     0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
-/* Mode toggle: pill-style segmented control with active fill. */
-.picker-card__modes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8rpx;
-  padding: 4rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.06);
-}
-
-.picker-card__mode {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  padding: 14rpx 0;
-  border-radius: 999rpx;
+/* v0.18.1: removed mode toggle, kept the chip row as the single
+   pre-start input. The optional title nudges the user that this is
+   "today's subject", not the universe. */
+.picker-card__title {
+  display: block;
   font-size: 24rpx;
   font-weight: 700;
-  color: var(--text-sub);
+  color: var(--text-main);
   letter-spacing: 0.4rpx;
-  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+  margin-bottom: 14rpx;
 }
 
-.picker-card__mode.is-active {
-  color: #fff;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  box-shadow: 0 4rpx 14rpx rgba(46, 169, 133, 0.28);
-  transform: translateY(-1rpx);
+.picker-card__hint {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.7;
+  letter-spacing: 0.3rpx;
 }
 
-.picker-card__mode-icon {
-  font-size: 26rpx;
-  line-height: 1;
-}
-
-.picker-card__mode-label {
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-/* v0.15: hint line removed; chip row now sits directly under the
-   mode toggle with a tighter margin. */
 .picker-card__chip-row {
-  margin-top: 14rpx;
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
@@ -185,121 +163,136 @@
 }
 
 /* ============================================================
-   Exam-strip — slim contextual banner. Designed in v0.13 to
-   replace the previous full-hero countdown card, which fought
-   the timer for visual dominance. The new strip lives in the
-   "secondary information" register: short, horizontal, single-
-   line. Four urgency tiers still drive the palette so the
-   imminent-exam signal isn't lost; the day-count badge picks
-   up a gentle pulse for ≤30 days.
+   Exam-hero — prominent countdown card. v0.18.1 upgrade from
+   the v0.13 slim-pill. Big number on the right, subject + date
+   on the left, motivation line at the bottom. Four urgency
+   tiers still drive the palette + a gentle pulse on the day
+   badge for ≤30 days.
    ============================================================ */
-.exam-strip {
+.exam-hero {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18rpx;
-  padding: 14rpx 22rpx;
-  border-radius: 18rpx;
+  gap: 24rpx;
+  padding: 28rpx 30rpx;
+  border-radius: 28rpx;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.35) 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.16);
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.22), transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
   box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 4rpx 12rpx -3rpx rgba(46, 169, 133, 0.08);
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 12rpx 32rpx -6rpx rgba(46, 169, 133, 0.14);
 }
 
-.exam-strip__left {
+.exam-hero__body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2rpx;
+  gap: 6rpx;
 }
 
-.exam-strip__label {
+.exam-hero__eyebrow {
   font-size: 22rpx;
   font-weight: 700;
+  letter-spacing: 1.5rpx;
   color: #1d6f59;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.exam-hero__subject {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.exam-hero__motivation {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: var(--text-sub);
   letter-spacing: 0.3rpx;
 }
 
-.exam-strip__date {
-  font-size: 20rpx;
-  color: var(--text-sub);
-  font-feature-settings: "tnum" 1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.2rpx;
-}
-
-.exam-strip__badge {
+.exam-hero__count {
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  gap: 4rpx;
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.14);
-  border: 1rpx solid rgba(46, 169, 133, 0.22);
+  gap: 6rpx;
+  padding: 18rpx 24rpx;
+  border-radius: 24rpx;
+  background:
+    linear-gradient(135deg, rgba(99, 203, 168, 0.18) 0%, rgba(46, 169, 133, 0.22) 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.28);
 }
 
-.exam-strip__badge-num {
-  font-size: 36rpx;
+.exam-hero__count-num {
+  font-size: 84rpx;
   font-weight: 800;
   color: #155946;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.4rpx;
-  line-height: 1;
+  line-height: 0.95;
 }
 
-.exam-strip__badge-unit {
-  font-size: 20rpx;
+.exam-hero__count-unit {
+  font-size: 26rpx;
   font-weight: 700;
   color: #1d6f59;
-  letter-spacing: 0.4rpx;
+  letter-spacing: 0.6rpx;
 }
 
-/* Urgency tiers — soon (≤90), urgent (≤30), imminent (≤7).
-   Each only re-tints the palette; the layout is identical. */
-.exam-strip--soon {
-  background: linear-gradient(180deg, rgba(255, 245, 224, 0.6) 0%, rgba(255, 230, 192, 0.4) 100%);
-  border-color: rgba(229, 158, 87, 0.22);
-}
-.exam-strip--soon .exam-strip__label,
-.exam-strip--soon .exam-strip__badge-num,
-.exam-strip--soon .exam-strip__badge-unit { color: #8a4d10; }
-.exam-strip--soon .exam-strip__badge {
-  background: rgba(229, 158, 87, 0.18);
+/* Urgency tiers — calm (default mint), soon (≤90, amber),
+   urgent (≤30, orange + pulse), imminent (≤7, red + faster pulse). */
+.exam-hero--soon {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 138, 0.28), transparent 50%),
+    linear-gradient(180deg, #fff8ec 0%, #ffefcf 100%);
   border-color: rgba(229, 158, 87, 0.32);
 }
-
-.exam-strip--urgent {
-  background: linear-gradient(180deg, rgba(255, 233, 217, 0.6) 0%, rgba(255, 210, 168, 0.4) 100%);
-  border-color: rgba(229, 122, 50, 0.26);
+.exam-hero--soon .exam-hero__eyebrow { color: #8a4d10; }
+.exam-hero--soon .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 207, 138, 0.32) 0%, rgba(229, 158, 87, 0.32) 100%);
+  border-color: rgba(229, 158, 87, 0.4);
 }
-.exam-strip--urgent .exam-strip__label,
-.exam-strip--urgent .exam-strip__badge-num,
-.exam-strip--urgent .exam-strip__badge-unit { color: #7a330a; }
-.exam-strip--urgent .exam-strip__badge {
-  background: rgba(229, 122, 50, 0.18);
+.exam-hero--soon .exam-hero__count-num,
+.exam-hero--soon .exam-hero__count-unit { color: #7a3f0a; }
+
+.exam-hero--urgent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 168, 107, 0.32), transparent 50%),
+    linear-gradient(180deg, #fff3ea 0%, #ffe2cc 100%);
   border-color: rgba(229, 122, 50, 0.32);
-  animation: exam-strip-pulse 2.4s ease-in-out infinite;
 }
+.exam-hero--urgent .exam-hero__eyebrow { color: #7a330a; }
+.exam-hero--urgent .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 168, 107, 0.34) 0%, rgba(229, 122, 50, 0.32) 100%);
+  border-color: rgba(229, 122, 50, 0.4);
+  animation: exam-hero-pulse 2.4s ease-in-out infinite;
+}
+.exam-hero--urgent .exam-hero__count-num,
+.exam-hero--urgent .exam-hero__count-unit { color: #6b2906; }
 
-.exam-strip--imminent {
-  background: linear-gradient(180deg, rgba(255, 220, 220, 0.6) 0%, rgba(255, 196, 196, 0.45) 100%);
-  border-color: rgba(217, 80, 80, 0.3);
-}
-.exam-strip--imminent .exam-strip__label,
-.exam-strip--imminent .exam-strip__badge-num,
-.exam-strip--imminent .exam-strip__badge-unit { color: #7a1a1a; }
-.exam-strip--imminent .exam-strip__badge {
-  background: rgba(217, 80, 80, 0.18);
+.exam-hero--imminent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 156, 156, 0.36), transparent 50%),
+    linear-gradient(180deg, #fff0f0 0%, #ffd9d9 100%);
   border-color: rgba(217, 80, 80, 0.36);
-  animation: exam-strip-pulse 1.6s ease-in-out infinite;
 }
+.exam-hero--imminent .exam-hero__eyebrow { color: #7a1a1a; }
+.exam-hero--imminent .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 156, 156, 0.34) 0%, rgba(217, 80, 80, 0.32) 100%);
+  border-color: rgba(217, 80, 80, 0.42);
+  animation: exam-hero-pulse 1.6s ease-in-out infinite;
+}
+.exam-hero--imminent .exam-hero__count-num,
+.exam-hero--imminent .exam-hero__count-unit { color: #6b0e0e; }
 
-@keyframes exam-strip-pulse {
+@keyframes exam-hero-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.04); }
 }
@@ -497,6 +490,102 @@
 
 .timer-card__primary {
   width: 100%;
+}
+
+/* ============================================================
+   v0.18.1 — compact six-subject progress card on home. Six rows of
+   "subject · bar · minutes / target". Tap anywhere on the card to
+   open the dedicated 六科进度 page.
+   ============================================================ */
+.subjects-card {
+  padding: 24rpx 28rpx 22rpx;
+  border-radius: 26rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.75),
+    0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.subjects-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.subjects-card__title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.subjects-card__hint {
+  font-size: 22rpx;
+  color: var(--mint-600);
+  letter-spacing: 0.2rpx;
+  font-weight: 600;
+}
+
+.subjects-card__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.subjects-card__row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.subjects-card__row-label {
+  flex-shrink: 0;
+  width: 80rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.subjects-card__row-track {
+  flex: 1;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  overflow: hidden;
+  box-shadow: inset 0 1rpx 2rpx rgba(20, 60, 50, 0.04);
+}
+
+.subjects-card__row-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8aa6f0 0%, #4a6ed9 100%);
+  border-radius: 999rpx;
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.subjects-card__row-fill.is-reached {
+  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
+}
+
+.subjects-card__row-value {
+  flex-shrink: 0;
+  min-width: 140rpx;
+  text-align: right;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+}
+
+.subjects-card:active {
+  transform: scale(0.998);
+  transition: transform 0.16s ease;
 }
 
 .goal-card {

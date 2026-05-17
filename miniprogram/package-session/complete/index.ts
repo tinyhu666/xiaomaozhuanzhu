@@ -3,7 +3,9 @@ import { completeSession, uploadCheckinPhoto } from "../../utils/api";
 import { previewCatForSession, type CatCard } from "../../utils/garden";
 import { validateCompletionDraft } from "../../utils/view-models";
 
-const SUBJECTS = ["会计", "审计", "税法", "财管", "经济法", "战略"];
+// v0.18.1 — SUBJECTS list no longer rendered as chips here; the
+// subject is read-only and comes from the home-page chip selection.
+// Tag chip list stays — tags ARE only chosen at completion time.
 const TAGS = ["顺利", "卡住", "高效", "复习", "刷题", "新课"];
 
 type LocalPhoto = {
@@ -21,7 +23,9 @@ type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
-  subjectChips: ChipView[];
+  /** v0.18.1 — read-only locked subject (chosen on home before start).
+   *  Empty string means "user didn't pick" → renders as "未分类". */
+  lockedSubject: string;
   tagChips: ChipView[];
   photos: LocalPhoto[];
   submitting: boolean;
@@ -44,7 +48,7 @@ Page<{}, CompletePageData>({
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
-    subjectChips: makeChips(SUBJECTS),
+    lockedSubject: "",
     tagChips: makeChips(TAGS),
     photos: [],
     submitting: false,
@@ -61,9 +65,9 @@ Page<{}, CompletePageData>({
     this.setData({
       sessionId: String(query.sessionId ?? ""),
       durationText: `${minutes} 分钟`,
-      // If the home page pre-selected a subject, light up that chip
-      // so the user doesn't have to choose twice.
-      subjectChips: SUBJECTS.map((value) => ({ value, selected: value === preselected })),
+      // v0.18.1 — subject is locked from the home-page picker. Stored
+      // as a single string, no toggling possible on this page.
+      lockedSubject: preselected,
       pomodoroCycles: cycles,
       pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
     });
@@ -75,16 +79,8 @@ Page<{}, CompletePageData>({
     });
   },
 
-  toggleSubject(event: WechatMiniprogram.BaseEvent) {
-    const value = event.currentTarget.dataset.value as string;
-    const next = this.data.subjectChips.map((chip) => ({
-      value: chip.value,
-      // single-select: tapping the active chip clears it; tapping another
-      // chip switches selection to that one.
-      selected: chip.value === value ? !chip.selected : false
-    }));
-    this.setData({ subjectChips: next });
-  },
+  // v0.18.1 — toggleSubject handler removed; subject is locked-in
+  // from the home page and rendered read-only above.
 
   toggleTag(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
@@ -156,7 +152,6 @@ Page<{}, CompletePageData>({
   },
 
   async submit() {
-    const selectedSubjectChip = this.data.subjectChips.find((chip) => chip.selected);
     const selectedTags = this.data.tagChips.filter((chip) => chip.selected).map((chip) => chip.value);
 
     const validation = validateCompletionDraft({
@@ -172,7 +167,7 @@ Page<{}, CompletePageData>({
       return;
     }
 
-    const subject = selectedSubjectChip?.value ?? null;
+    const subject = this.data.lockedSubject || null;
     this.setData({ submitting: true });
     try {
       await completeSession(this.data.sessionId, {
