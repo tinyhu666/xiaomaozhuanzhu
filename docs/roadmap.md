@@ -21,7 +21,7 @@
 
 **测试**：184/184 全过（新增 16 个针对 OpenAPI client / scheduler / endpoints 的服务端 spec）。typecheck server + miniprogram 双绿。
 
-**部署需要**：在云托管「服务设置 → 环境变量」加 `WECHAT_APPID` 和 `WECHAT_APP_SECRET`，并在 IP 白名单里放行 `api.weixin.qq.com`。
+**部署需要**：在云托管「服务设置 → 环境变量」加 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`（也接受 `WECHAT_APPID` 别名），并在 IP 白名单里放行 `api.weixin.qq.com`。
 
 ## v0.19.0 已上线（起动系统）
 

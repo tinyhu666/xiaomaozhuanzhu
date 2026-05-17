@@ -49,8 +49,12 @@ ensureMySqlSchema(process.env)
 // Missing either → log a warning and skip; the rest of the server
 // still works. The cron is a setInterval; restart cost is one
 // possibly-missed minute, which is acceptable for a daily moment.
+//
+// We accept both `WECHAT_APP_ID` (the convention already in use in
+// the 云托管 console) and `WECHAT_APPID` (a common WeChat-docs
+// spelling) so the deploy works either way without env renames.
 const reminderDbUrl = resolveDatabaseUrl(process.env);
-const wechatAppId = process.env.WECHAT_APPID ?? "";
+const wechatAppId = process.env.WECHAT_APP_ID ?? process.env.WECHAT_APPID ?? "";
 const wechatAppSecret = process.env.WECHAT_APP_SECRET ?? "";
 if (reminderDbUrl && wechatAppId && wechatAppSecret) {
   try {
