@@ -1038,6 +1038,17 @@ type BadgeKey =
   | "all_six_subjects"
   | "all_six_10h";
 
+/**
+ * Breed assignments calibrated against actual 2026 Chinese pet-cat
+ * market pricing so each rarity tier corresponds to a real-world
+ * scarcity tier:
+ *   common    : 国内本土常见品种 (free-to-low cost): 田园 / 橘 / 狸花
+ *   rare      : 常见纯种 (~¥2k-5k): 美短 / 暹罗 / 银渐层
+ *   epic      : 较稀有纯种 (~¥5k-30k): 布偶 / 波斯 / 金渐层
+ *               (金渐层 is a 银渐层 colour mutation — genuinely rarer.)
+ *   legendary : 顶级 / 半野猫品种 (~¥10k-150k+): 缅因 / 孟加拉豹
+ * 用户在 v0.21.0 的反馈：银渐层不如金渐层稀有，已修正等级。
+ */
 const BADGE_DEFINITIONS: Array<{
   key: BadgeKey;
   /** Cat breed name shown as the badge title. Unique by design. */
@@ -1049,24 +1060,24 @@ const BADGE_DEFINITIONS: Array<{
   /** Rarity tier — drives the badge tile's color treatment. */
   rarity: BadgeRarity;
 }> = [
-  // Common — onboarding tier
+  // Common — 本土常见品种 (almost-free domestic cats)
   { key: "first_checkin",    name: "中华田园猫", description: "完成首次专注打卡",                icon: "🐱", rarity: "common" },
-  { key: "total_10h",        name: "三花橘猫",   description: "累计学习满 10 小时",              icon: "🐈", rarity: "common" },
+  { key: "total_10h",        name: "橘猫",       description: "累计学习满 10 小时",              icon: "🐈", rarity: "common" },
+  { key: "streak_7",         name: "狸花猫",     description: "连续 7 天保持打卡",                icon: "😸", rarity: "common" },
 
-  // Rare — habit-building tier
-  { key: "streak_7",         name: "美短花纹猫", description: "连续 7 天保持打卡",                icon: "😺", rarity: "rare" },
+  // Rare — 常见纯种 (¥2k-5k range)
+  { key: "single_day_4h",    name: "美国短毛猫", description: "单日学习满 4 小时",                icon: "😺", rarity: "rare" },
   { key: "total_50h",        name: "暹罗猫",     description: "累计学习满 50 小时",              icon: "😼", rarity: "rare" },
-  { key: "single_day_4h",    name: "灰豹纹猫",   description: "单日学习满 4 小时",                icon: "🐅", rarity: "rare" },
+  { key: "total_100h",       name: "英短银渐层", description: "累计学习满 100 小时",              icon: "😽", rarity: "rare" },
 
-  // Epic — committed-grind tier
+  // Epic — 较稀有纯种 (¥5k-30k range; 金渐层 is a 银渐层 mutation)
   { key: "streak_30",        name: "布偶猫",     description: "连续 30 天保持打卡",               icon: "😻", rarity: "epic" },
-  { key: "total_100h",       name: "缅因猫",     description: "累计学习满 100 小时",              icon: "🦁", rarity: "epic" },
-  { key: "subject_50h",      name: "雪豹猫",     description: "单科累计满 50 小时",               icon: "🐆", rarity: "epic" },
-  { key: "all_six_subjects", name: "金渐层",     description: "6 科各完成至少 1 分钟专注",         icon: "✨", rarity: "epic" },
+  { key: "subject_50h",      name: "波斯猫",     description: "单科累计满 50 小时",               icon: "💎", rarity: "epic" },
+  { key: "all_six_subjects", name: "英短金渐层", description: "6 科各完成至少 1 分钟专注",         icon: "✨", rarity: "epic" },
 
-  // Legendary — endgame tier
-  { key: "total_300h",       name: "黑豹",       description: "累计学习满 300 小时",              icon: "🐈‍⬛", rarity: "legendary" },
-  { key: "all_six_10h",      name: "银渐层",     description: "6 科各累计满 10 小时",             icon: "💫", rarity: "legendary" }
+  // Legendary — 顶级 / 半野猫品种 (¥10k-150k+)
+  { key: "total_300h",       name: "缅因猫",     description: "累计学习满 300 小时",              icon: "🦁", rarity: "legendary" },
+  { key: "all_six_10h",      name: "孟加拉豹猫", description: "6 科各累计满 10 小时",             icon: "🐅", rarity: "legendary" }
 ];
 
 function computeBadges(args: {
