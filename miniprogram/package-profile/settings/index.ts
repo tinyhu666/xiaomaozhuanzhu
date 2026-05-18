@@ -64,17 +64,22 @@ type ReminderVM = {
 
 type SettingsPageData = {
   goalRows: SettingRowVM[];
-  pomodoroRows: SettingRowVM[];
   audioScenes: AudioSceneVM[];
   reminder: ReminderVM;
 };
 
+// v0.21 — pomodoro settings dropped from the page. The pomodoro mode
+// itself is still available behind the scenes (sessions accept a
+// `mode` field for forward-compat), but the user-facing app pinned
+// the timer to free-mode in v0.18.1 so the pomodoro tuning rows just
+// added noise. The settings *bounds* remain so existing storage with
+// pomodoro values stays harmless.
 const ROW_TEMPLATES: Array<{
   key: keyof UserSettings;
   label: string;
   description: string;
   unit: string;
-  group: "goal" | "pomodoro";
+  group: "goal";
 }> = [
   {
     key: "dailyGoalMinutes",
@@ -89,34 +94,6 @@ const ROW_TEMPLATES: Array<{
     description: "设为 0 即关闭，不再显示周目标进度",
     unit: "分钟",
     group: "goal"
-  },
-  {
-    key: "pomodoroFocusMin",
-    label: "番茄钟 · 专注",
-    description: "每个番茄的专注时长",
-    unit: "分钟",
-    group: "pomodoro"
-  },
-  {
-    key: "pomodoroShortBreakMin",
-    label: "番茄钟 · 短休",
-    description: "每个番茄结束后的短休时长",
-    unit: "分钟",
-    group: "pomodoro"
-  },
-  {
-    key: "pomodoroLongBreakMin",
-    label: "番茄钟 · 长休",
-    description: "一组结束后的长休时长",
-    unit: "分钟",
-    group: "pomodoro"
-  },
-  {
-    key: "pomodoroCyclesPerSet",
-    label: "番茄钟 · 一组数量",
-    description: "几个番茄后进入长休",
-    unit: "个",
-    group: "pomodoro"
   }
 ];
 
@@ -152,8 +129,7 @@ function buildAudioScenes(active: AudioScene): AudioSceneVM[] {
 function buildPageRows(settings: UserSettings) {
   return {
     audioScenes: buildAudioScenes(getAudioScene()),
-    goalRows: ROW_TEMPLATES.filter((t) => t.group === "goal").map((t) => rowFor(settings, t)),
-    pomodoroRows: ROW_TEMPLATES.filter((t) => t.group === "pomodoro").map((t) => rowFor(settings, t))
+    goalRows: ROW_TEMPLATES.map((t) => rowFor(settings, t))
   };
 }
 
@@ -186,7 +162,6 @@ function buildReminderVM(status: ReminderStatus | null, busy = false): ReminderV
 Page<{}, SettingsPageData>({
   data: {
     goalRows: [],
-    pomodoroRows: [],
     audioScenes: [],
     reminder: buildReminderVM(null)
   },
@@ -321,7 +296,7 @@ Page<{}, SettingsPageData>({
   onResetTap() {
     wx.showModal({
       title: "恢复默认",
-      content: "把所有设置恢复成出厂值（每日目标 90 分钟 / 番茄钟 25-5-15-4）。已记录的学习数据不会被清除。",
+      content: "把所有设置恢复成出厂值（每日目标 90 分钟 / 每周目标 600 分钟）。已记录的学习数据不会被清除。",
       confirmText: "恢复",
       cancelText: "取消",
       success: (res) => {

@@ -106,11 +106,20 @@ export type PublicProfileResponse = {
   }>;
 };
 
+/**
+ * v0.21 — each badge maps to a 「成就小猫」 breed. Rarity matches the
+ * difficulty of the underlying achievement. `name` is the breed name
+ * (e.g. "金渐层") — unique across the list by design.
+ */
+export type BadgeRarity = "common" | "rare" | "epic" | "legendary";
+
 export type Badge = {
   key: string;
   name: string;
   description: string;
   icon: string;
+  /** v0.21 — added; tiles render with rarity-specific borders + halo. */
+  rarity?: BadgeRarity;
   unlocked: boolean;
   progress: number;
   current: number;

@@ -1,7 +1,9 @@
 .home-page {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  /* v0.21: tightened from 24rpx — same number of cards but less air
+     between them lets more fit in a viewport without scroll. */
+  gap: 18rpx;
 }
 
 /* Staggered fade-up entrance for the major sections so the page
@@ -16,12 +18,14 @@
   animation: home-fade-up 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
-.home-page > view:nth-child(1) { animation-delay: 0.04s; }
-.home-page > view:nth-child(2) { animation-delay: 0.1s; }
-.home-page > view:nth-child(3) { animation-delay: 0.16s; }
-.home-page > view:nth-child(4) { animation-delay: 0.22s; }
-.home-page > view:nth-child(5) { animation-delay: 0.28s; }
-.home-page > view:nth-child(6) { animation-delay: 0.34s; }
+/* v0.21 density: tightened stagger so the page composes faster
+   (0.04→0.02 first, then 0.05 increments instead of 0.06). */
+.home-page > view:nth-child(1) { animation-delay: 0.02s; }
+.home-page > view:nth-child(2) { animation-delay: 0.07s; }
+.home-page > view:nth-child(3) { animation-delay: 0.12s; }
+.home-page > view:nth-child(4) { animation-delay: 0.17s; }
+.home-page > view:nth-child(5) { animation-delay: 0.22s; }
+.home-page > view:nth-child(6) { animation-delay: 0.27s; }
 
 /* ============================================================
    Pre-start picker — mode toggle + subject chips. Lives only
@@ -29,7 +33,8 @@
    ============================================================ */
 .picker-card {
   position: relative;
-  padding: 18rpx 20rpx 20rpx;
+  /* v0.21 density: 18→14 top / 20→18 horizontal */
+  padding: 14rpx 18rpx 16rpx;
   border-radius: 26rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.12), transparent 38%),
@@ -45,11 +50,12 @@
    "today's subject", not the universe. */
 .picker-card__title {
   display: block;
-  font-size: 24rpx;
+  font-size: 23rpx;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: 0.4rpx;
-  margin-bottom: 14rpx;
+  /* v0.21 density: 14→10 */
+  margin-bottom: 10rpx;
 }
 
 .picker-card__hint {
@@ -64,13 +70,15 @@
 .picker-card__chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  /* v0.21 density: 12→10 */
+  gap: 10rpx;
 }
 
 .picker-chip {
-  padding: 10rpx 22rpx;
+  /* v0.21 density: 10×22→8×18 */
+  padding: 8rpx 18rpx;
   border-radius: 999rpx;
-  font-size: 24rpx;
+  font-size: 23rpx;
   font-weight: 600;
   letter-spacing: 0.3rpx;
   color: var(--text-sub);
@@ -172,8 +180,9 @@
 .exam-hero {
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  padding: 28rpx 30rpx;
+  /* v0.21 density: 24→18 / 28×30→22×24 */
+  gap: 18rpx;
+  padding: 22rpx 24rpx;
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.22), transparent 45%),
@@ -222,7 +231,8 @@
   display: flex;
   align-items: baseline;
   gap: 6rpx;
-  padding: 18rpx 24rpx;
+  /* v0.21 density: 18×24→14×20 */
+  padding: 14rpx 20rpx;
   border-radius: 24rpx;
   background:
     linear-gradient(135deg, rgba(99, 203, 168, 0.18) 0%, rgba(46, 169, 133, 0.22) 100%);
@@ -230,7 +240,8 @@
 }
 
 .exam-hero__count-num {
-  font-size: 84rpx;
+  /* v0.21 density: 84→72 — still readable as the hero number */
+  font-size: 72rpx;
   font-weight: 800;
   color: #155946;
   font-feature-settings: "tnum" 1;
@@ -308,8 +319,9 @@
    cards below. */
 .timer-card {
   position: relative;
-  padding: 40rpx 36rpx;
-  border-radius: 32rpx;
+  /* v0.21 density: 40×36→32×30 */
+  padding: 32rpx 30rpx;
+  border-radius: 28rpx;
   background:
     radial-gradient(circle at 92% 8%, rgba(143, 217, 190, 0.28), transparent 48%),
     radial-gradient(circle at 6% 92%, rgba(94, 195, 157, 0.16), transparent 44%),
@@ -449,8 +461,9 @@
    readable on renderers that ignore -webkit-background-clip. */
 .timer-card__clock {
   display: block;
-  margin-top: 52rpx;
-  font-size: 108rpx;
+  /* v0.21 density: 52→36 / 108→96 — still the page hero, but tighter */
+  margin-top: 36rpx;
+  font-size: 96rpx;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 1rpx;
@@ -466,7 +479,8 @@
 
 .timer-card__hint {
   display: block;
-  margin-top: 18rpx;
+  /* v0.21 density: 18→14 */
+  margin-top: 14rpx;
   text-align: center;
   font-size: 22rpx;
   color: var(--text-sub);
@@ -475,13 +489,15 @@
 }
 
 .timer-card__primary {
-  margin-top: 38rpx;
+  /* v0.21 density: 38→26 */
+  margin-top: 26rpx;
 }
 
 .timer-card__actions {
   display: flex;
-  gap: 16rpx;
-  margin-top: 36rpx;
+  gap: 14rpx;
+  /* v0.21 density: 36→26 */
+  margin-top: 26rpx;
 }
 
 .timer-card__secondary {
@@ -498,8 +514,9 @@
    open the dedicated 六科进度 page.
    ============================================================ */
 .subjects-card {
-  padding: 24rpx 28rpx 22rpx;
-  border-radius: 26rpx;
+  /* v0.21 density: 24×28×22→18×24×18 */
+  padding: 18rpx 24rpx 18rpx;
+  border-radius: 22rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 42%),
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
@@ -513,7 +530,8 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14rpx;
+  /* v0.21 density: 14→10 */
+  margin-bottom: 10rpx;
 }
 
 .subjects-card__title {
@@ -533,7 +551,8 @@
 .subjects-card__grid {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  /* v0.21 density: 10→8 */
+  gap: 8rpx;
 }
 
 .subjects-card__row {
@@ -590,8 +609,9 @@
 
 .goal-card {
   position: relative;
-  padding: 32rpx 32rpx 30rpx;
-  border-radius: 28rpx;
+  /* v0.21 density: 32→24 top / 32→26 horizontal / 30→22 bottom */
+  padding: 24rpx 26rpx 22rpx;
+  border-radius: 24rpx;
   background:
     radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
     linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
@@ -607,12 +627,13 @@
    has a thin progress track underneath. */
 .goal-card__challenge {
   position: relative;
-  padding: 14rpx 18rpx;
-  border-radius: 20rpx;
+  /* v0.21 density: 14→11 / 22→16 */
+  padding: 11rpx 16rpx;
+  border-radius: 18rpx;
   background:
     linear-gradient(180deg, rgba(99, 203, 168, 0.14) 0%, rgba(46, 169, 133, 0.1) 100%);
   border: 1rpx solid rgba(46, 169, 133, 0.2);
-  margin-bottom: 22rpx;
+  margin-bottom: 16rpx;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
@@ -715,8 +736,9 @@
 
 .goal-card__track {
   position: relative;
-  margin-top: 22rpx;
-  height: 14rpx;
+  /* v0.21 density: 22→16 / 14→12 */
+  margin-top: 16rpx;
+  height: 12rpx;
   border-radius: 999rpx;
   background: rgba(46, 169, 133, 0.08);
   overflow: hidden;
@@ -747,7 +769,8 @@
 
 .goal-card__hint {
   display: block;
-  margin-top: 14rpx;
+  /* v0.21 density: 14→10 */
+  margin-top: 10rpx;
   font-size: 22rpx;
   color: var(--mint-600);
   font-weight: 600;
@@ -757,8 +780,9 @@
    Visually quieter (thinner track, smaller text) so the daily metric
    stays the primary focus. */
 .goal-card__weekly {
-  margin-top: 18rpx;
-  padding-top: 16rpx;
+  /* v0.21 density: 18→14 / 16→12 */
+  margin-top: 14rpx;
+  padding-top: 12rpx;
   border-top: 1rpx dashed rgba(46, 169, 133, 0.16);
 }
 

@@ -1,22 +1,69 @@
 <view class="page-shell badges-page">
   <view class="badges-hero">
     <text class="badges-hero__title">{{unlockedCount}} / {{totalCount}}</text>
-    <text class="badges-hero__sub">已解锁徽章 · 继续保持，下一个就快了</text>
+    <text class="badges-hero__sub">已收集到的成就小猫 · 每个成就解锁一个独立品种</text>
   </view>
 
-  <view class="badges-grid">
-    <view
-      wx:for="{{badges}}"
-      wx:key="key"
-      class="badge-tile {{item.unlocked ? 'is-unlocked' : ''}}"
-    >
-      <view class="badge-tile__icon">{{item.icon}}</view>
-      <text class="badge-tile__name">{{item.name}}</text>
-      <text class="badge-tile__desc">{{item.description}}</text>
-      <view class="badge-tile__track">
-        <view class="badge-tile__fill" style="width: {{item.progressPct}}%"></view>
+  <!--
+    v0.21 — 成就说明 collapsed by default. Tap the header to expand.
+    Each row reads as "完成 X → 解锁 Y 小猫" so the user always
+    knows what to chase next.
+  -->
+  <view class="badges-guide {{guideOpen ? 'is-open' : ''}}">
+    <view class="badges-guide__head" bindtap="onTapToggleGuide">
+      <text class="badges-guide__title">📜 成就说明</text>
+      <text class="badges-guide__hint">{{guideOpen ? '收起' : '查看'}}</text>
+      <text class="badges-guide__chevron">{{guideOpen ? '∧' : '∨'}}</text>
+    </view>
+    <view wx:if="{{guideOpen}}" class="badges-guide__body">
+      <view
+        wx:for="{{guide}}"
+        wx:key="name"
+        class="guide-row {{item.unlocked ? 'is-unlocked' : ''}}"
+      >
+        <text class="guide-row__icon">{{item.icon}}</text>
+        <view class="guide-row__text">
+          <view class="guide-row__line1">
+            <text class="guide-row__cat">{{item.name}}</text>
+            <text class="guide-row__pill guide-row__pill--{{item.rarity}}">{{item.rarityLabel}}</text>
+          </view>
+          <text class="guide-row__cond">完成「{{item.description}}」</text>
+        </view>
       </view>
-      <text class="badge-tile__progress">{{item.progressText}}</text>
+    </view>
+  </view>
+
+  <!--
+    Rarity-grouped grid. Section header per rarity, 2-col tile grid
+    underneath. Tiles are greyscale + dim when locked; full color +
+    rarity-themed background when unlocked.
+  -->
+  <view
+    wx:for="{{groups}}"
+    wx:for-item="group"
+    wx:key="rarity"
+    class="badges-section"
+  >
+    <view class="badges-section__head">
+      <text class="badges-section__title">{{group.rarityLabel}}</text>
+      <text class="badges-section__count">{{group.badges.length}} 只</text>
+    </view>
+    <view class="badges-grid">
+      <view
+        wx:for="{{group.badges}}"
+        wx:key="key"
+        class="badge-tile badge-tile--{{item.rarity}} {{item.unlocked ? 'is-unlocked' : ''}}"
+      >
+        <view wx:if="{{item.unlocked && item.rarity === 'legendary'}}" class="badge-tile__crown">👑</view>
+        <view wx:if="{{item.unlocked && item.rarity === 'epic'}}" class="badge-tile__star">🌟</view>
+        <view class="badge-tile__icon">{{item.icon}}</view>
+        <text class="badge-tile__name">{{item.name}}</text>
+        <text class="badge-tile__desc">{{item.description}}</text>
+        <view class="badge-tile__track">
+          <view class="badge-tile__fill" style="width: {{item.progressPct}}%"></view>
+        </view>
+        <text class="badge-tile__progress">{{item.progressText}}</text>
+      </view>
     </view>
   </view>
 </view>

@@ -114,6 +114,7 @@ type HomePageData = {
     progressMinutes: number;
     progressPercent: number;
   } | null;
+  firstShowDone: boolean;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -179,7 +180,10 @@ Page<{}, HomePageData>({
     pomodoroCycleDots: Array.from({ length: pomodoroConfig.cyclesPerSet }, () => ({ done: false })),
     nextExam: null,
     subjectsCard: { visible: false, hint: "", items: [] },
-    dailyChallenge: null
+    dailyChallenge: null,
+    /** v0.21 — true once onShow has fired the first-load path,
+     *  so subsequent tab-switches use the regular refresh path. */
+    firstShowDone: false
   },
 
   async onShow() {
@@ -191,7 +195,17 @@ Page<{}, HomePageData>({
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[home] ensureProfile failed", error);
     });
-    this.refreshAll();
+    // v0.21 — distinguish first-show (app cold-start) from subsequent
+    // tab-switches. On first show we use the silent-retry path so a
+    // slow container wake doesn't surface a scary toast; subsequent
+    // shows use the regular path with the toast safety net.
+    if (this.data.firstShowDone) {
+      this.refreshAll();
+    } else {
+      this.setData({ firstShowDone: true });
+      wx.showNavigationBarLoading();
+      this.loadHomeQuiet().finally(() => wx.hideNavigationBarLoading());
+    }
     // v0.20 — silent refill of the daily-reminder subscription credit
     // pool. Only fires if the user already opted in AND credits ran
     // low AND we haven't refilled today. Don't block onShow on it.
@@ -262,13 +276,35 @@ Page<{}, HomePageData>({
     // in one screen. Heat map lives in its own tab.
     wx.showNavigationBarLoading();
     try {
-      await this.loadHomeStats();
+      await this.loadHomeStats({ silent: false });
     } finally {
       wx.hideNavigationBarLoading();
     }
   },
 
-  async loadHomeStats() {
+  /**
+   * v0.21 — first-open retry without the scary toast.
+   *
+   * Called from onShow on app launch. WeChat 云托管 Node containers
+   * sometimes take longer than the per-request retry budget to wake
+   * up; the user would then see "加载失败，请下拉刷新" on the very
+   * first screen. Awful first impression. Instead, swallow the first
+   * failure silently and auto-retry once in the background — by then
+   * the container is almost certainly warm.
+   */
+  async loadHomeQuiet() {
+    const ok = await this.loadHomeStats({ silent: true });
+    if (ok) return;
+    // Background retry — no nav-bar spinner, no toast. If this also
+    // fails we surface a soft inline state via the existing empty
+    // hint (no red modal).
+    setTimeout(() => {
+      this.loadHomeStats({ silent: false }).catch(() => {});
+    }, 2500);
+  },
+
+  /** Returns true on success, false on caught failure. */
+  async loadHomeStats(options: { silent: boolean } = { silent: false }): Promise<boolean> {
     try {
       // v0.18.1: parallel fetch of dashboard for subject card.
       // v0.19: also parallel fetch of recent sessions for the daily
@@ -330,8 +366,13 @@ Page<{}, HomePageData>({
       });
       this.applyActiveSession(home.activeSession ?? null);
       this.refreshEmptyHint();
+      return true;
     } catch (error) {
       console.error("[home] loadHomeStats failed", error);
+      if (options.silent) {
+        // First-open path — caller will background-retry.
+        return false;
+      }
       // Surface a compact human message; the raw API path / HTML body
       // from cold-start failures is already logged above.
       const message = error instanceof Error ? error.message : "";
@@ -346,6 +387,7 @@ Page<{}, HomePageData>({
         icon: "none",
         duration: 2400
       });
+      return false;
     }
   },
 

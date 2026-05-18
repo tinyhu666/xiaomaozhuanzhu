@@ -86,7 +86,11 @@ type RequestOptions = {
 //   - transient network: request:fail / connection reset. Retry once
 //     with a short delay so a flaky cell signal recovers, but don't
 //     punish a genuinely-offline user with multiple long waits.
-const COLD_START_RETRY_DELAYS = [500, 1500, 2500, 2500];
+// v0.21: extended cold-start budget. WeChat 云托管 Node containers
+// can take 10-15s to wake from completely cold; the 7s budget from
+// v0.20 was just shy of that and produced spurious "加载失败" toasts
+// on first open. New schedule sums to ~13.5s with five back-offs.
+const COLD_START_RETRY_DELAYS = [500, 1500, 2500, 3500, 5500];
 const NETWORK_RETRY_DELAYS = [250];
 
 function delay(ms: number) {

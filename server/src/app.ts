@@ -999,6 +999,32 @@ function getLongestStreak(stats: Map<string, DailyStat>) {
   return longest;
 }
 
+/**
+ * v0.21 — badges redesigned as 「成就小猫」: every achievement
+ * unlocks a uniquely-named cat breed whose rarity matches the
+ * difficulty. The miniprogram badges page now renders these as
+ * a collectible grid with a rarity-tinted card per breed, and an
+ * achievement-guide section that explicitly says
+ *   "完成 X → 解锁 Y 小猫"
+ * so the user knows what to chase.
+ *
+ * Why this redesign
+ * =================
+ * The original list (积少成多 / 稳扎稳打 / 百时备考) used near-identical
+ * book/trophy icons + similar Chinese names, so the page felt full of
+ * duplicates. Tying each badge to a distinct cat breed gives each
+ * achievement its own identity — both visually (unique emoji per
+ * breed) and verbally (no two breed names overlap).
+ *
+ * Rarity ladder
+ * =============
+ *   common    : 起步成就 (mint  border)
+ *   rare      : 中阶 (blue  border)
+ *   epic      : 高阶 (amber border)
+ *   legendary : 终极 (gold  border)
+ */
+type BadgeRarity = "common" | "rare" | "epic" | "legendary";
+
 type BadgeKey =
   | "first_checkin"
   | "streak_7"
@@ -1006,25 +1032,41 @@ type BadgeKey =
   | "total_10h"
   | "total_50h"
   | "total_100h"
+  | "total_300h"
   | "single_day_4h"
   | "subject_50h"
-  | "all_six_subjects";
+  | "all_six_subjects"
+  | "all_six_10h";
 
 const BADGE_DEFINITIONS: Array<{
   key: BadgeKey;
+  /** Cat breed name shown as the badge title. Unique by design. */
   name: string;
+  /** Plain-language achievement requirement, used as the badge description AND the guide-section entry. */
   description: string;
+  /** Single emoji chosen to visually evoke the breed. */
   icon: string;
+  /** Rarity tier — drives the badge tile's color treatment. */
+  rarity: BadgeRarity;
 }> = [
-  { key: "first_checkin", name: "初次打卡", description: "完成第一次学习记录", icon: "🌱" },
-  { key: "streak_7", name: "连签 7 日", description: "连续 7 天保持打卡", icon: "🔥" },
-  { key: "streak_30", name: "连签 30 日", description: "连续 30 天稳如老狗", icon: "💎" },
-  { key: "total_10h", name: "积少成多", description: "累计学习满 10 小时", icon: "📚" },
-  { key: "total_50h", name: "稳扎稳打", description: "累计学习满 50 小时", icon: "📖" },
-  { key: "total_100h", name: "百时备考", description: "累计学习满 100 小时", icon: "🏆" },
-  { key: "single_day_4h", name: "高强度日", description: "单日学习满 4 小时", icon: "⚡" },
-  { key: "subject_50h", name: "科目专家", description: "单科累计满 50 小时", icon: "🎯" },
-  { key: "all_six_subjects", name: "六科齐学", description: "六门科目都有学习记录", icon: "🌈" }
+  // Common — onboarding tier
+  { key: "first_checkin",    name: "中华田园猫", description: "完成首次专注打卡",                icon: "🐱", rarity: "common" },
+  { key: "total_10h",        name: "三花橘猫",   description: "累计学习满 10 小时",              icon: "🐈", rarity: "common" },
+
+  // Rare — habit-building tier
+  { key: "streak_7",         name: "美短花纹猫", description: "连续 7 天保持打卡",                icon: "😺", rarity: "rare" },
+  { key: "total_50h",        name: "暹罗猫",     description: "累计学习满 50 小时",              icon: "😼", rarity: "rare" },
+  { key: "single_day_4h",    name: "灰豹纹猫",   description: "单日学习满 4 小时",                icon: "🐅", rarity: "rare" },
+
+  // Epic — committed-grind tier
+  { key: "streak_30",        name: "布偶猫",     description: "连续 30 天保持打卡",               icon: "😻", rarity: "epic" },
+  { key: "total_100h",       name: "缅因猫",     description: "累计学习满 100 小时",              icon: "🦁", rarity: "epic" },
+  { key: "subject_50h",      name: "雪豹猫",     description: "单科累计满 50 小时",               icon: "🐆", rarity: "epic" },
+  { key: "all_six_subjects", name: "金渐层",     description: "6 科各完成至少 1 分钟专注",         icon: "✨", rarity: "epic" },
+
+  // Legendary — endgame tier
+  { key: "total_300h",       name: "黑豹",       description: "累计学习满 300 小时",              icon: "🐈‍⬛", rarity: "legendary" },
+  { key: "all_six_10h",      name: "银渐层",     description: "6 科各累计满 10 小时",             icon: "💫", rarity: "legendary" }
 ];
 
 function computeBadges(args: {
@@ -1041,6 +1083,16 @@ function computeBadges(args: {
     (max, item) => (item.totalMinutes > max ? item.totalMinutes : max),
     0
   );
+  // v0.21 — for the "全科都达到 X" gates, what matters is the *minimum*
+  // subject's minutes, not the max. If even the worst subject crosses
+  // the threshold, all 6 have. Used by all_six_10h.
+  const minSubjectMinutes = args.subjectTotals.length === SUBJECTS.length
+    ? args.subjectTotals.reduce(
+        (min, item) => (item.totalMinutes < min ? item.totalMinutes : min),
+        Number.POSITIVE_INFINITY
+      )
+    : 0;
+
   // Per-badge progress so the miniprogram can show "5/7 天" instead of
   // just a binary locked/unlocked.
   const progressMap: Record<BadgeKey, { current: number; goal: number; unit: string }> = {
@@ -1050,9 +1102,15 @@ function computeBadges(args: {
     total_10h: { current: args.totalMinutes, goal: 600, unit: "min" },
     total_50h: { current: args.totalMinutes, goal: 3000, unit: "min" },
     total_100h: { current: args.totalMinutes, goal: 6000, unit: "min" },
+    total_300h: { current: args.totalMinutes, goal: 18_000, unit: "min" },
     single_day_4h: { current: args.bestDayMinutes, goal: 240, unit: "min" },
     subject_50h: { current: maxSubjectMinutes, goal: 3000, unit: "min" },
-    all_six_subjects: { current: args.completedSubjectCount, goal: SUBJECTS.length, unit: "科" }
+    all_six_subjects: { current: args.completedSubjectCount, goal: SUBJECTS.length, unit: "科" },
+    all_six_10h: {
+      current: Number.isFinite(minSubjectMinutes) ? minSubjectMinutes : 0,
+      goal: 600,
+      unit: "min"
+    }
   };
 
   return BADGE_DEFINITIONS.map((badge) => {
