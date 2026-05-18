@@ -1,0 +1,27 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 布偶猫 · Ragdoll, cream body + seal-point mask + BIG blue eyes + long-hair fluff -->
+  <!-- Long-hair fluff outline (slightly larger silhouette behind the head) -->
+  <ellipse cx="50" cy="62" rx="36" ry="34" fill="#f8eedb" opacity="0.55"/>
+  <!-- Seal-point dark ears -->
+  <polygon points="22,28 18,55 38,48" fill="#5a3e2a"/>
+  <polygon points="78,28 82,55 62,48" fill="#5a3e2a"/>
+  <polygon points="25,33 24,50 33,47" fill="#8a6448"/>
+  <polygon points="75,33 76,50 67,47" fill="#8a6448"/>
+  <!-- Cream body -->
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#f4e8d2"/>
+  <!-- Seal-point face mask (around eyes + nose), softer than Siamese -->
+  <path d="M32,52 Q50,46 68,52 Q70,64 62,72 Q50,78 38,72 Q30,64 32,52 Z"
+        fill="#7a5340" opacity="0.7"/>
+  <!-- Huge blue eyes (Ragdoll hallmark — bigger than other breeds) -->
+  <ellipse cx="40" cy="56" rx="5.5" ry="6.4" fill="#1a3a60"/>
+  <ellipse cx="60" cy="56" rx="5.5" ry="6.4" fill="#1a3a60"/>
+  <ellipse cx="40" cy="55" rx="3.4" ry="4.4" fill="#6fc5e8"/>
+  <ellipse cx="60" cy="55" rx="3.4" ry="4.4" fill="#6fc5e8"/>
+  <ellipse cx="41" cy="53" rx="1.4" ry="1.9" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.4" ry="1.9" fill="#fff"/>
+  <!-- Tiny secondary highlight for "dreamy" look -->
+  <ellipse cx="39" cy="58" rx="0.8" ry="1" fill="#fff" opacity="0.6"/>
+  <ellipse cx="59" cy="58" rx="0.8" ry="1" fill="#fff" opacity="0.6"/>
+  <polygon points="47,68 53,68 50,72" fill="#5a3e2a"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#3a2818" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

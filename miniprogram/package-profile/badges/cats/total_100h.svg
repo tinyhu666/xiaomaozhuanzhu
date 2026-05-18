@@ -1,0 +1,30 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 英短银渐层 · British Shorthair silver shaded, round chubby face -->
+  <defs>
+    <radialGradient id="silver" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#f4f6f8"/>
+      <stop offset="55%" stop-color="#dde3e8"/>
+      <stop offset="100%" stop-color="#9faab4"/>
+    </radialGradient>
+  </defs>
+  <!-- Round low-set ears (British Shorthair signature) -->
+  <polygon points="26,34 24,52 38,48" fill="#c0c8d0"/>
+  <polygon points="74,34 76,52 62,48" fill="#c0c8d0"/>
+  <polygon points="28,38 27,49 34,47" fill="#f0d2d8"/>
+  <polygon points="72,38 73,49 66,47" fill="#f0d2d8"/>
+  <!-- Extra-round chubby head (rx larger, body lower) -->
+  <ellipse cx="50" cy="62" rx="34" ry="32" fill="url(#silver)"/>
+  <!-- Dark eye liner (signature shaded silver "eyeliner" look) -->
+  <path d="M34,55 Q40,52 47,55" stroke="#3a4450" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <path d="M66,55 Q60,52 53,55" stroke="#3a4450" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+  <!-- Eyes (mint-green, signature) -->
+  <ellipse cx="40" cy="58" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="60" cy="58" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="40" cy="57" rx="2.8" ry="3.8" fill="#6fb878"/>
+  <ellipse cx="60" cy="57" rx="2.8" ry="3.8" fill="#6fb878"/>
+  <ellipse cx="41" cy="55" rx="1.2" ry="1.7" fill="#fff"/>
+  <ellipse cx="61" cy="55" rx="1.2" ry="1.7" fill="#fff"/>
+  <!-- Pink nose with dark outline (chinchilla feature) -->
+  <polygon points="46,70 54,70 50,74" fill="#e89aa6" stroke="#3a4450" stroke-width="0.8"/>
+  <path d="M50,74 Q46,78 43,76 M50,74 Q54,78 57,76" stroke="#3a4450" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

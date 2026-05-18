@@ -1,0 +1,24 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 狸花猫 · Chinese tabby, brown-gray with dense striping -->
+  <polygon points="22,30 18,55 38,48" fill="#6b5a3c"/>
+  <polygon points="78,30 82,55 62,48" fill="#6b5a3c"/>
+  <polygon points="25,35 24,50 33,47" fill="#e0b890"/>
+  <polygon points="75,35 76,50 67,47" fill="#e0b890"/>
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#9c8460"/>
+  <!-- Dense tabby stripes — forehead -->
+  <path d="M40,36 L42,46 M50,34 L50,46 M60,36 L58,46" stroke="#4a3a22" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Top of head ticking -->
+  <path d="M34,42 L36,48 M66,42 L64,48" stroke="#4a3a22" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Heavy cheek stripes -->
+  <path d="M20,60 L33,60 M19,67 L32,66 M21,74 L30,72" stroke="#4a3a22" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M80,60 L67,60 M81,67 L68,66 M79,74 L70,72" stroke="#4a3a22" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- Eyes (amber-gold) -->
+  <ellipse cx="40" cy="56" rx="4.5" ry="5.5" fill="#222"/>
+  <ellipse cx="60" cy="56" rx="4.5" ry="5.5" fill="#222"/>
+  <ellipse cx="40" cy="55" rx="2.6" ry="3.6" fill="#c08828"/>
+  <ellipse cx="60" cy="55" rx="2.6" ry="3.6" fill="#c08828"/>
+  <ellipse cx="41" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#a0606a"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#3a2812" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

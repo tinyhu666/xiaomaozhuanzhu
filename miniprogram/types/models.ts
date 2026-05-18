@@ -117,9 +117,14 @@ export type Badge = {
   key: string;
   name: string;
   description: string;
+  /** Fallback emoji icon — used if `imageUrl` isn't set or fails to load. */
   icon: string;
-  /** v0.21 — added; tiles render with rarity-specific borders + halo. */
+  /** v0.21 — rarity tier drives the badge tile's color treatment. */
   rarity?: BadgeRarity;
+  /** v0.21.2 — absolute path to a bundled SVG of the breed.
+   *  Server returns "/package-profile/badges/cats/{key}.svg"; the
+   *  WXML <image> component renders SVGs since 基础库 2.0.0. */
+  imageUrl?: string;
   unlocked: boolean;
   progress: number;
   current: number;

@@ -1,0 +1,22 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 中华田园猫 · orange tabby with M-mark forehead -->
+  <polygon points="22,30 18,55 38,48" fill="#d97a3a"/>
+  <polygon points="78,30 82,55 62,48" fill="#d97a3a"/>
+  <polygon points="25,35 24,50 33,47" fill="#f4b890"/>
+  <polygon points="75,35 76,50 67,47" fill="#f4b890"/>
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#e88c45"/>
+  <!-- M-shape forehead stripes -->
+  <path d="M40,38 L43,46 M50,36 L50,46 M60,38 L57,46" stroke="#a05418" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Cheek stripes -->
+  <path d="M22,62 L32,62 M22,70 L31,69" stroke="#a05418" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M78,62 L68,62 M78,70 L69,69" stroke="#a05418" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- Eyes (green) -->
+  <ellipse cx="40" cy="56" rx="4.5" ry="5.5" fill="#243"/>
+  <ellipse cx="60" cy="56" rx="4.5" ry="5.5" fill="#243"/>
+  <ellipse cx="40" cy="55" rx="2.6" ry="3.6" fill="#7ba045"/>
+  <ellipse cx="60" cy="55" rx="2.6" ry="3.6" fill="#7ba045"/>
+  <ellipse cx="41" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#c97075"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#5a3920" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

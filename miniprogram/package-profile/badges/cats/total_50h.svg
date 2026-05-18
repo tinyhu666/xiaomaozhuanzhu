@@ -1,0 +1,22 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 暹罗猫 · cream body with dark seal-point mask + ears, blue eyes -->
+  <!-- Dark seal-point ears -->
+  <polygon points="22,28 18,55 38,48" fill="#4a3322"/>
+  <polygon points="78,28 82,55 62,48" fill="#4a3322"/>
+  <polygon points="25,33 24,50 33,47" fill="#6a4830"/>
+  <polygon points="75,33 76,50 67,47" fill="#6a4830"/>
+  <!-- Cream body -->
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#f0e2c8"/>
+  <!-- Dark mask around eyes + nose (signature Siamese point pattern) -->
+  <path d="M30,52 Q50,42 70,52 Q72,62 64,72 Q50,80 36,72 Q28,62 30,52 Z"
+        fill="#4a3322" opacity="0.78"/>
+  <!-- Eyes (vivid blue) — Siamese hallmark -->
+  <ellipse cx="40" cy="56" rx="4.8" ry="5.6" fill="#1a3a60"/>
+  <ellipse cx="60" cy="56" rx="4.8" ry="5.6" fill="#1a3a60"/>
+  <ellipse cx="40" cy="55" rx="2.8" ry="3.8" fill="#5fb4e8"/>
+  <ellipse cx="60" cy="55" rx="2.8" ry="3.8" fill="#5fb4e8"/>
+  <ellipse cx="41" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#3a2818"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#2a1a0e" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

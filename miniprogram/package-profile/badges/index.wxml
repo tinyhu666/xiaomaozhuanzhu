@@ -21,7 +21,13 @@
         wx:key="name"
         class="guide-row {{item.unlocked ? 'is-unlocked' : ''}}"
       >
-        <text class="guide-row__icon">{{item.icon}}</text>
+        <image
+          wx:if="{{item.imageUrl}}"
+          class="guide-row__cat-img"
+          src="{{item.imageUrl}}"
+          mode="aspectFit"
+        />
+        <text wx:else class="guide-row__icon">{{item.icon}}</text>
         <view class="guide-row__text">
           <view class="guide-row__line1">
             <text class="guide-row__cat">{{item.name}}</text>
@@ -56,7 +62,13 @@
       >
         <view wx:if="{{item.unlocked && item.rarity === 'legendary'}}" class="badge-tile__crown">👑</view>
         <view wx:if="{{item.unlocked && item.rarity === 'epic'}}" class="badge-tile__star">🌟</view>
-        <view class="badge-tile__icon">{{item.icon}}</view>
+        <image
+          wx:if="{{item.imageUrl}}"
+          class="badge-tile__cat-img"
+          src="{{item.imageUrl}}"
+          mode="aspectFit"
+        />
+        <view wx:else class="badge-tile__icon">{{item.icon}}</view>
         <text class="badge-tile__name">{{item.name}}</text>
         <text class="badge-tile__desc">{{item.description}}</text>
         <view class="badge-tile__track">

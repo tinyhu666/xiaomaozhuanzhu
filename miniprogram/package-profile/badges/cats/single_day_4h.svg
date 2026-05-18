@@ -1,0 +1,24 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 美国短毛猫 · silver classic tabby with cheek bullseye -->
+  <polygon points="22,30 18,55 38,48" fill="#9aa6b0"/>
+  <polygon points="78,30 82,55 62,48" fill="#9aa6b0"/>
+  <polygon points="25,35 24,50 33,47" fill="#f3d2d8"/>
+  <polygon points="75,35 76,50 67,47" fill="#f3d2d8"/>
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#c4ccd2"/>
+  <!-- Classic dark tabby markings — M forehead -->
+  <path d="M40,37 L42,46 M50,35 L50,46 M60,37 L58,46" stroke="#3a4450" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <!-- Bullseye swirls on cheeks (signature American Shorthair pattern) -->
+  <circle cx="26" cy="68" r="4.5" stroke="#3a4450" stroke-width="1.8" fill="none"/>
+  <circle cx="26" cy="68" r="1.8" fill="#3a4450"/>
+  <circle cx="74" cy="68" r="4.5" stroke="#3a4450" stroke-width="1.8" fill="none"/>
+  <circle cx="74" cy="68" r="1.8" fill="#3a4450"/>
+  <!-- Eyes (gold-green) -->
+  <ellipse cx="40" cy="56" rx="4.5" ry="5.5" fill="#222"/>
+  <ellipse cx="60" cy="56" rx="4.5" ry="5.5" fill="#222"/>
+  <ellipse cx="40" cy="55" rx="2.6" ry="3.6" fill="#b8a040"/>
+  <ellipse cx="60" cy="55" rx="2.6" ry="3.6" fill="#b8a040"/>
+  <ellipse cx="41" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.1" ry="1.6" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#c97075"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#3a4450" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

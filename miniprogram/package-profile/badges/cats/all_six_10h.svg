@@ -1,0 +1,31 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 孟加拉豹猫 · Bengal, orange-gold base with leopard rosettes -->
+  <polygon points="22,30 18,55 38,48" fill="#a86c28"/>
+  <polygon points="78,30 82,55 62,48" fill="#a86c28"/>
+  <polygon points="25,35 24,50 33,47" fill="#e8b878"/>
+  <polygon points="75,35 76,50 67,47" fill="#e8b878"/>
+  <!-- Orange-gold base -->
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#d49444"/>
+  <!-- Leopard rosettes — outlined dark with lighter centers -->
+  <!-- Top row -->
+  <ellipse cx="34" cy="42" rx="3.2" ry="2.4" fill="#9a5818" opacity="0.95"/>
+  <ellipse cx="34" cy="42" rx="1.6" ry="1.2" fill="#d49444"/>
+  <ellipse cx="66" cy="42" rx="3.2" ry="2.4" fill="#9a5818" opacity="0.95"/>
+  <ellipse cx="66" cy="42" rx="1.6" ry="1.2" fill="#d49444"/>
+  <!-- Mid row scattered around face -->
+  <ellipse cx="24" cy="58" rx="2.8" ry="2.2" fill="#5a3010"/>
+  <ellipse cx="76" cy="58" rx="2.8" ry="2.2" fill="#5a3010"/>
+  <ellipse cx="28" cy="74" rx="2.4" ry="1.9" fill="#5a3010"/>
+  <ellipse cx="72" cy="74" rx="2.4" ry="1.9" fill="#5a3010"/>
+  <!-- Forehead M (Bengals also have a faint M) -->
+  <path d="M44,36 L46,42 M54,36 L52,42" stroke="#5a3010" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Eyes (vivid green — Bengal hallmark) -->
+  <ellipse cx="40" cy="56" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="60" cy="56" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="40" cy="55" rx="2.8" ry="3.8" fill="#3aa460"/>
+  <ellipse cx="60" cy="55" rx="2.8" ry="3.8" fill="#3aa460"/>
+  <ellipse cx="41" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#c97075"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#2a1a08" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

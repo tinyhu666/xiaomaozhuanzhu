@@ -276,6 +276,26 @@
   margin-bottom: 6rpx;
 }
 
+/* v0.21.2 — bundled SVG breed illustration. Takes the slot the
+   emoji used to occupy; aspectFit on a square viewport keeps each
+   breed centered regardless of how its SVG was drawn. The grayscale
+   filter on locked tiles drains the breed color so the lock state
+   stays legible (matches the .badge-tile filter rule). */
+.badge-tile__cat-img {
+  width: 120rpx;
+  height: 120rpx;
+  margin-bottom: 6rpx;
+}
+
+.guide-row__cat-img {
+  width: 56rpx;
+  height: 56rpx;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 14rpx;
+  flex-shrink: 0;
+  padding: 4rpx;
+}
+
 .badge-tile__name {
   font-size: 28rpx;
   font-weight: 800;

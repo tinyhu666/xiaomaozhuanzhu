@@ -1,0 +1,29 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 缅因猫 · Maine Coon, brown tabby with lynx-tipped ears + thick mane -->
+  <!-- Massive mane outline (long-hair signature, larger than Persian) -->
+  <path d="M10,62 Q8,40 18,28 Q14,18 28,18 Q36,8 50,12 Q64,8 72,18 Q86,18 82,28 Q92,40 90,62 Q94,80 82,86 Q76,94 64,90 Q56,98 50,92 Q44,98 36,90 Q24,94 18,86 Q6,80 10,62 Z"
+        fill="#7a5530"/>
+  <!-- Lynx tips on ears (Maine Coon signature long ear tufts) -->
+  <line x1="22" y1="32" x2="14" y2="14" stroke="#3a2818" stroke-width="2" stroke-linecap="round"/>
+  <line x1="78" y1="32" x2="86" y2="14" stroke="#3a2818" stroke-width="2" stroke-linecap="round"/>
+  <!-- Ears -->
+  <polygon points="20,30 16,52 38,46" fill="#5e3f22"/>
+  <polygon points="80,30 84,52 62,46" fill="#5e3f22"/>
+  <polygon points="23,34 22,48 33,46" fill="#a07850"/>
+  <polygon points="77,34 78,48 67,46" fill="#a07850"/>
+  <!-- Head — warm brown tabby -->
+  <ellipse cx="50" cy="60" rx="32" ry="30" fill="#a47854"/>
+  <!-- Heavy tabby M forehead + cheek stripes -->
+  <path d="M40,38 L43,46 M50,36 L50,46 M60,38 L57,46" stroke="#3a2210" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  <path d="M22,60 L34,60 M22,68 L33,67" stroke="#3a2210" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M78,60 L66,60 M78,68 L67,67" stroke="#3a2210" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Eyes (amber-gold) — Maine Coon classic -->
+  <ellipse cx="40" cy="56" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="60" cy="56" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="40" cy="55" rx="2.8" ry="3.8" fill="#d49830"/>
+  <ellipse cx="60" cy="55" rx="2.8" ry="3.8" fill="#d49830"/>
+  <ellipse cx="41" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <ellipse cx="61" cy="53" rx="1.2" ry="1.7" fill="#fff"/>
+  <polygon points="47,68 53,68 50,72" fill="#a0606a"/>
+  <path d="M50,72 Q46,76 43,74 M50,72 Q54,76 57,74" stroke="#2a1a0a" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+</svg>

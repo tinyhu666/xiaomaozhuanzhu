@@ -1,0 +1,33 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- 英短金渐层 · British Shorthair golden shaded, round chubby face -->
+  <defs>
+    <radialGradient id="gold" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fbe9b8"/>
+      <stop offset="55%" stop-color="#e8c47a"/>
+      <stop offset="100%" stop-color="#b78a36"/>
+    </radialGradient>
+  </defs>
+  <!-- Round low-set ears -->
+  <polygon points="26,34 24,52 38,48" fill="#c89a48"/>
+  <polygon points="74,34 76,52 62,48" fill="#c89a48"/>
+  <polygon points="28,38 27,49 34,47" fill="#f0d2d8"/>
+  <polygon points="72,38 73,49 66,47" fill="#f0d2d8"/>
+  <!-- Extra-round chubby head (英短特征) -->
+  <ellipse cx="50" cy="62" rx="34" ry="32" fill="url(#gold)"/>
+  <!-- Dark eye liner (signature golden shaded look — darker than silver) -->
+  <path d="M34,55 Q40,52 47,55" stroke="#5a3a18" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <path d="M66,55 Q60,52 53,55" stroke="#5a3a18" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  <!-- Eyes (mint-green, signature) -->
+  <ellipse cx="40" cy="58" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="60" cy="58" rx="4.8" ry="5.6" fill="#222"/>
+  <ellipse cx="40" cy="57" rx="2.8" ry="3.8" fill="#6fb878"/>
+  <ellipse cx="60" cy="57" rx="2.8" ry="3.8" fill="#6fb878"/>
+  <ellipse cx="41" cy="55" rx="1.2" ry="1.7" fill="#fff"/>
+  <ellipse cx="61" cy="55" rx="1.2" ry="1.7" fill="#fff"/>
+  <!-- Pink nose with dark golden outline -->
+  <polygon points="46,70 54,70 50,74" fill="#e89aa6" stroke="#5a3a18" stroke-width="0.8"/>
+  <path d="M50,74 Q46,78 43,76 M50,74 Q54,78 57,76" stroke="#5a3a18" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  <!-- Sparkle hints — golden "shimmer" -->
+  <text x="78" y="34" font-size="10" fill="#fcd34d" opacity="0.85">✦</text>
+  <text x="14" y="44" font-size="8" fill="#fcd34d" opacity="0.7">✦</text>
+</svg>

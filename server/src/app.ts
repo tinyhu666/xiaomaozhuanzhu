@@ -1129,6 +1129,11 @@ function computeBadges(args: {
     const ratio = p.goal > 0 ? p.current / p.goal : 0;
     return {
       ...badge,
+      // v0.21.2 — bundled SVG illustration of the breed. The client
+      // renders <image src="..."> using this absolute path inside
+      // the miniprogram package. Falls back to the emoji `icon` if
+      // the asset fails to load.
+      imageUrl: `/package-profile/badges/cats/${badge.key}.svg`,
       unlocked: ratio >= 1,
       progress: Math.max(0, Math.min(1, ratio)),
       current: Math.min(p.current, p.goal),
