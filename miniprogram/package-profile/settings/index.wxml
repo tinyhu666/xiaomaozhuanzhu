@@ -30,6 +30,39 @@
     </view>
   </view>
 
+  <!--
+    v0.23 — section order rearranged by usage frequency:
+      goals (every settings visit) → reminder (set once) → audio
+      (occasional pick) → share (rare, used to be top-level menu).
+    The reminder section moved up because it's the most actionable
+    toggle on the page; audio went down because most users pick once
+    and forget.
+  -->
+
+  <view class="settings-section">
+    <view class="settings-section__title">每日提醒</view>
+    <view class="settings-section__hint">每天 20:30 微信提醒一次，需要授权一次性订阅。</view>
+    <view class="settings-section__body">
+      <view class="reminder-row">
+        <view class="reminder-row__text">
+          <text class="reminder-row__label">20:30 学习提醒</text>
+          <text class="reminder-row__desc">{{reminder.statusLabel}}</text>
+        </view>
+        <view
+          class="reminder-row__switch {{reminder.enabled ? 'is-on' : ''}} {{reminder.busy ? 'is-busy' : ''}}"
+          bindtap="onTapReminderToggle"
+        >
+          <view class="reminder-row__switch-knob"></view>
+        </view>
+      </view>
+      <view
+        wx:if="{{reminder.enabled && reminder.credits < 2 && reminder.hasOpenid}}"
+        class="reminder-refill"
+        bindtap="onTapReminderRefill"
+      >立刻续订一次提醒额度</view>
+    </view>
+  </view>
+
   <view class="settings-section">
     <view class="settings-section__title">学习音景</view>
     <view class="settings-section__hint">专注开始时自动循环播放，结束自动停止。</view>
@@ -52,31 +85,21 @@
   </view>
 
   <!--
-    v0.20 — daily 20:30 reminder. WeChat 一次性订阅消息: each accept
-    grants one server-side send credit; we top up silently on home
-    cold-start when credits run low.
+    v0.23 — 公开学习页 demoted from the main profile menu (a daily-
+    touch surface) to a row in 学习设置 (a settings surface). It's
+    a one-time toggle for users who want to share their progress;
+    daily users won't visit it once it's set.
   -->
   <view class="settings-section">
-    <view class="settings-section__title">每日提醒</view>
-    <view class="settings-section__hint">每天 20:30 微信提醒一次，需要授权一次性订阅。</view>
+    <view class="settings-section__title">其他</view>
     <view class="settings-section__body">
-      <view class="reminder-row">
-        <view class="reminder-row__text">
-          <text class="reminder-row__label">20:30 学习提醒</text>
-          <text class="reminder-row__desc">{{reminder.statusLabel}}</text>
+      <view class="settings-link-row" bindtap="onTapOpenShare">
+        <view class="settings-link-row__text">
+          <text class="settings-link-row__label">公开学习页</text>
+          <text class="settings-link-row__desc">生成可分享的学习主页链接</text>
         </view>
-        <view
-          class="reminder-row__switch {{reminder.enabled ? 'is-on' : ''}} {{reminder.busy ? 'is-busy' : ''}}"
-          bindtap="onTapReminderToggle"
-        >
-          <view class="reminder-row__switch-knob"></view>
-        </view>
+        <text class="settings-link-row__chevron">›</text>
       </view>
-      <view
-        wx:if="{{reminder.enabled && reminder.credits < 2 && reminder.hasOpenid}}"
-        class="reminder-refill"
-        bindtap="onTapReminderRefill"
-      >📨 立刻续订一次提醒额度</view>
     </view>
   </view>
 

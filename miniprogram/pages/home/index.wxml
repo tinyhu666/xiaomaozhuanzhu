@@ -46,7 +46,7 @@
     code stays for legacy in-flight sessions started before v0.18.1.
   -->
 
-  <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}}">
+  <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">
     <view class="timer-card__head">
       <view class="timer-card__status-wrap">
         <view class="timer-card__status {{activeSession && activeSession.status === 'running' ? 'is-running' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">

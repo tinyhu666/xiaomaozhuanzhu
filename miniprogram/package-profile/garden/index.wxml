@@ -85,7 +85,7 @@
       <text class="garden-milestone__number">{{milestone.milestone}}</text>
       <text class="garden-milestone__title">{{milestone.title}}</text>
       <text class="garden-milestone__subtitle">{{milestone.subtitle}}</text>
-      <view class="garden-milestone__close" bindtap="onTapMilestoneDismiss">继续努力</view>
+      <view class="garden-milestone__close" bindtap="onTapMilestoneDismiss">知道了</view>
     </view>
   </view>
 

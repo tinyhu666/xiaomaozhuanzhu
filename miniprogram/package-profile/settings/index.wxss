@@ -298,6 +298,49 @@
   background: rgba(229, 123, 123, 0.14);
 }
 
+/* v0.23 — generic "link row" used by the demoted 公开学习页 entry.
+   Style intentionally lighter than .settings-row so it reads as a
+   "secondary nav" not a "toggle/value". */
+.settings-link-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 18rpx 6rpx;
+}
+
+.settings-link-row__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.settings-link-row__label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.settings-link-row__desc {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  opacity: 0.78;
+  letter-spacing: 0.2rpx;
+}
+
+.settings-link-row__chevron {
+  font-size: 32rpx;
+  color: var(--text-sub);
+  opacity: 0.45;
+}
+
+.settings-link-row:active {
+  background: rgba(46, 169, 133, 0.04);
+  border-radius: 12rpx;
+}
+
 .settings-foot {
   margin-top: 8rpx;
   text-align: center;

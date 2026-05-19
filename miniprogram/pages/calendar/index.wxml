@@ -33,38 +33,28 @@
       </view>
     </view>
 
-    <view class="calendar-board__legend">
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-0"></view>
-        <text class="calendar-board__legend-text">无</text>
-      </view>
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-1"></view>
-        <text class="calendar-board__legend-text">30m内</text>
-      </view>
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-2"></view>
-        <text class="calendar-board__legend-text">1h内</text>
-      </view>
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-3"></view>
-        <text class="calendar-board__legend-text">2h内</text>
-      </view>
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-4"></view>
-        <text class="calendar-board__legend-text">4h内</text>
-      </view>
-      <view class="calendar-board__legend-row">
-        <view class="calendar-board__legend-swatch level-5"></view>
-        <text class="calendar-board__legend-text">4h+</text>
-      </view>
+    <!-- v0.23 — legend collapsed from 6-row vertical to 1-row
+         horizontal strip. Same information, fraction of the vertical
+         space. The user only reads it once to calibrate the heat
+         colors anyway. -->
+    <view class="calendar-board__legend calendar-board__legend--horizontal">
+      <text class="calendar-board__legend-label">少</text>
+      <view class="calendar-board__legend-swatch level-0"></view>
+      <view class="calendar-board__legend-swatch level-1"></view>
+      <view class="calendar-board__legend-swatch level-2"></view>
+      <view class="calendar-board__legend-swatch level-3"></view>
+      <view class="calendar-board__legend-swatch level-4"></view>
+      <view class="calendar-board__legend-swatch level-5"></view>
+      <text class="calendar-board__legend-label">多</text>
     </view>
   </view>
 
-  <view class="day-panel">
+  <!-- v0.23 — day-panel only renders when a date is actually selected.
+       The default "--" placeholder was busywork. -->
+  <view wx:if="{{selectedDate}}" class="day-panel">
     <view class="day-panel__header">
       <view>
-        <text class="day-panel__date">{{selectedDateText || '--'}}</text>
+        <text class="day-panel__date">{{selectedDateText}}</text>
         <text class="day-panel__meta">{{selectedDetail ? (selectedDetail.sessionCount + '次学习') : '0次学习'}}</text>
       </view>
       <text class="day-panel__total">{{selectedTotalText}}</text>

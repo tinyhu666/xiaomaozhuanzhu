@@ -50,6 +50,26 @@
   font-size: 180rpx;
   margin-top: auto;
   margin-bottom: auto;
+  /* v0.23 — slow breathing glow. 4-second cycle (calm-breath cadence,
+     not anxious). Only animates when the session is running, not
+     paused — see the .timer-card__status.is-running guard below.
+     Pure opacity transform; CPU/GPU cost negligible. */
+  animation: focus-clock-breathe 4s ease-in-out infinite;
+}
+
+/* Stop the breathing animation when the session is paused so the
+   stillness reads as "you stepped away." `.timer-card.is-paused`
+   is bound from the wxml — see the class string in the template.
+   (We can't use CSS :has() because WeChat's CSS engine doesn't
+   support it reliably across older base library versions.) */
+.home-page.is-focus-mode .timer-card.is-paused .timer-card__clock {
+  animation: none;
+  opacity: 0.7;
+}
+
+@keyframes focus-clock-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.86; transform: scale(0.985); }
 }
 
 .home-page.is-focus-mode .timer-card__hint {

@@ -260,6 +260,15 @@ Page<{}, SettingsPageData>({
   },
 
   /**
+   * v0.23 — public-learning-page link, moved here from the main
+   * profile menu. Navigates to the existing /package-profile/share
+   * page which owns the toggle + slug copy UI.
+   */
+  onTapOpenShare() {
+    wx.navigateTo({ url: "/package-profile/share/index" });
+  },
+
+  /**
    * Stepper handler: shared between − and +. We move the value by
    * one `step` for that field (e.g. daily goal moves in 15-min
    * blocks) and persist immediately so the user doesn't need a

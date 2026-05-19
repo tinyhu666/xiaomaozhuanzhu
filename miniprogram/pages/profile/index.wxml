@@ -55,29 +55,13 @@
   </view>
 
   <!--
-    Insights — 24h focus pattern. Compacted in v0.15: smaller title
-    block (no separate "title + sub" rows), thinner bars, peak hour
-    callout pinned on the right. Only renders when there's data.
+    v0.23 — removed the 24h-pattern "学习时段" insights card and the
+    decorative daily-quote block. The insights chart was eye candy
+    but rarely actionable; users who want to dig into time-of-day
+    patterns can still look at the calendar heat map. The daily
+    quote wasn't tied to focus or 备考, so removing it cuts noise
+    and lets the page breathe.
   -->
-  <view wx:if="{{insights.hasData}}" class="insights-card">
-    <view class="insights-card__head">
-      <text class="insights-card__title">学习时段</text>
-      <text class="insights-card__peak">{{insights.peakHourLabel}} · {{insights.peakWeekdayLabel}}</text>
-    </view>
-    <view class="insights-card__chart">
-      <view
-        wx:for="{{insights.bars}}"
-        wx:key="index"
-        class="insights-card__bar {{item.isPeak ? 'is-peak' : ''}}"
-        style="height: {{item.height}}%; animation-delay: {{index * 18}}ms;"
-      ></view>
-    </view>
-  </view>
-
-  <view class="profile-quote">
-    <text class="profile-quote__en">{{quoteEn}}</text>
-    <text class="profile-quote__zh">— {{quoteZh}}</text>
-  </view>
 
   <view class="menu-list">
     <view class="menu-item" bindtap="openGarden">
@@ -108,7 +92,7 @@
       <view class="menu-item__icon">⚙️</view>
       <view class="menu-item__body">
         <text class="menu-item__title">学习设置</text>
-        <text class="menu-item__hint">目标 · 番茄钟</text>
+        <text class="menu-item__hint">目标 · 提醒 · 音景</text>
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
@@ -120,14 +104,9 @@
       </view>
       <text class="menu-item__chevron">›</text>
     </view>
-    <view class="menu-item" bindtap="openShare">
-      <view class="menu-item__icon">🔗</view>
-      <view class="menu-item__body">
-        <text class="menu-item__title">公开学习页</text>
-        <text class="menu-item__hint">{{shareHint}}</text>
-      </view>
-      <text class="menu-item__chevron">›</text>
-    </view>
+    <!-- v0.23 — 公开学习页 was demoted from the main menu to a row
+         inside 学习设置. It's a social-sharing toggle, not a daily-
+         use surface, so it doesn't deserve a top-level slot. -->
   </view>
 
   <text class="profile-version">小猫专注 · v{{appVersion}}</text>
@@ -209,7 +188,7 @@
 
       <text class="monthly-modal__encouragement">{{monthlySummary.encouragement}}</text>
 
-      <view class="monthly-modal__cta" bindtap="onTapMonthlyDismiss">继续努力</view>
+      <view class="monthly-modal__cta" bindtap="onTapMonthlyDismiss">知道了</view>
     </view>
   </view>
 </view>
