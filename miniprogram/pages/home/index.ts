@@ -552,36 +552,50 @@ Page<{}, HomePageData>({
   },
 
   /**
-   * v0.22 — full-screen focus mode side-effects. Called from
-   * applyActiveSession whenever the active session reference changes.
-   *  - session live  → hide the bottom tabbar + keep the screen on,
-   *                    so the user gets a distraction-free view and
-   *                    the phone won't auto-dim mid-session.
-   *  - session null  → restore the tabbar + release the screen-on
-   *                    hold, returning the home page to its idle
-   *                    dashboard layout.
+   * v0.22.1 — focus-mode side-effects. Tabbar hide stays; screen-on
+   * is now OFF by default (was ON in v0.22.0).
    *
-   * Both wx APIs are best-effort: wrapped in try/catch + .catch()
-   * because they can reject when the app is in a transient state
-   * (e.g., called during a sub-page navigation). The visual focus-
-   * mode WXML toggle (`is-focus-mode` class on .home-page) drives
-   * the layout independently, so a wx-API rejection here doesn't
-   * leave the UI half-broken.
+   * Why we reversed the screen-on default
+   * =====================================
+   * 1. Battery: On OLED phones, an always-on screen with our mint
+   *    gradient page draws 1.2-3 W. A 2-hour session = 6-20% of
+   *    the phone's battery JUST for backlight. Users mid-day-cram
+   *    notice this.
+   * 2. Industry norm: Forest / Flora / 番茄ToDo / Tide all DEFAULT
+   *    screen-on to OFF. 番茄ToDo offers it as a manual toggle on
+   *    the focus page; Forest actively encourages "don't unlock
+   *    the phone during this tree", which we should not undermine.
+   * 3. We don't need it for correctness: session timing is server-
+   *    authoritative (startedAt + pauseSegments[]). Phone sleeping,
+   *    app backgrounding, full miniprogram exit, even device reboot
+   *    don't lose elapsed minutes — applyActiveSession reconstructs
+   *    on the next onShow.
+   *
+   * Tabbar hide stays on because hiding a chrome element is free —
+   * it has no power cost and meaningfully reduces visual noise.
+   *
+   * Both wx APIs are best-effort: wrapped + .catch() because they
+   * can reject during sub-page navigations. The visual focus-mode
+   * toggle (`is-focus-mode` class on .home-page) drives layout
+   * independently, so an API rejection doesn't leave the UI broken.
    */
   syncFocusMode(session: ActiveSession | null) {
     const enter = !!session;
     try {
       if (enter) {
         (wx as any).hideTabBar?.({ animation: true }).catch?.(() => {});
-        (wx as any).setKeepScreenOn?.({ keepScreenOn: true }).catch?.(() => {});
+        // NB: NO setKeepScreenOn(true) — let the phone sleep naturally.
+        // If a user really wants the screen on, they can use the OS
+        // setting (Settings → Display → Auto-Lock → Never).
       } else {
         (wx as any).showTabBar?.({ animation: true }).catch?.(() => {});
+        // Defensive: if a previous version (v0.22.0) flipped screen-on
+        // ON for this user, explicitly turn it OFF on session end so
+        // we don't leave a stale hold from the older client.
         (wx as any).setKeepScreenOn?.({ keepScreenOn: false }).catch?.(() => {});
       }
     } catch (_) {
-      /* non-fatal — the visual layout is already correct via the
-         is-focus-mode class binding, so worst case the tabbar stays
-         visible briefly. */
+      /* non-fatal */
     }
   },
 
