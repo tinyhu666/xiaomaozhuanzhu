@@ -45,6 +45,14 @@ type BadgesPageData = {
   guideOpen: boolean;
   unlockedCount: number;
   totalCount: number;
+  /** v0.25 — hero sub-line: "最近解锁: <最高稀有度的猫>" — gives the
+   *  user a glanceable "what was the biggest one I got" cue. Empty
+   *  string when nothing is unlocked yet. */
+  latestUnlockedName: string;
+  /** v0.25 — when nothing is unlocked, show what's nearest to
+   *  unlocking instead (highest progress). Helps the user pick what
+   *  to chase next. */
+  nextUnlockHint: string;
 };
 
 const RARITY_LABEL: Record<BadgeRarity, string> = {
@@ -67,7 +75,9 @@ Page<{}, BadgesPageData>({
     guide: [],
     guideOpen: false,
     unlockedCount: 0,
-    totalCount: 0
+    totalCount: 0,
+    latestUnlockedName: "",
+    nextUnlockHint: ""
   },
 
   async onLoad() {
@@ -120,11 +130,42 @@ Page<{}, BadgesPageData>({
           unlocked: b.unlocked
         }));
 
+      // v0.25 — pick the hero sub-line content.
+      // If anything is unlocked: surface the rarest of the unlocked
+      //   set as "最近解锁: <name>" — the most rewarding name to see
+      //   when the page opens.
+      // Else: surface the closest-to-unlock locked badge as a "next"
+      //   nudge, so the page is never an empty "0/11 锁定" wall.
+      const rarityRank: Record<BadgeRarity, number> = {
+        legendary: 4, epic: 3, rare: 2, common: 1
+      };
+      const unlocked = badges.filter((b) => b.unlocked);
+      let latestUnlockedName = "";
+      let nextUnlockHint = "";
+      if (unlocked.length > 0) {
+        const best = unlocked.reduce((acc, b) =>
+          rarityRank[b.rarity] > rarityRank[acc.rarity] ? b : acc
+        );
+        latestUnlockedName = best.name;
+      } else {
+        const closest = badges
+          .filter((b) => !b.unlocked)
+          .reduce<BadgeView | null>(
+            (acc, b) => (!acc || (b.progress ?? 0) > (acc.progress ?? 0) ? b : acc),
+            null
+          );
+        if (closest) {
+          nextUnlockHint = `下一个: ${closest.name} · ${closest.progressText}`;
+        }
+      }
+
       this.setData({
         groups,
         guide,
         totalCount: badges.length,
-        unlockedCount: badges.filter((b) => b.unlocked).length
+        unlockedCount: unlocked.length,
+        latestUnlockedName,
+        nextUnlockHint
       });
     } catch (error) {
       console.error("[badges] dashboard failed", error);

@@ -479,9 +479,14 @@ export function createApp(options: CreateAppOptions = {}) {
     if (session.status === "completed") {
       const stats = await store.getDailyStats(context.user.id);
       const dateKey = session.endedAt ? formatShanghaiDate(session.endedAt) : formatShanghaiDate(clock.now());
+      // Idempotent re-completion: same response shape as a fresh
+      // complete, but newlyUnlockedBadge is null (we already counted
+      // this session in the prior call). The client treats `null`
+      // as "no unlock animation needed".
       response.json({
         session,
-        dailyStats: stats.get(dateKey) ?? emptyDailyStat(context.user.id, dateKey, clock.now().toISOString())
+        dailyStats: stats.get(dateKey) ?? emptyDailyStat(context.user.id, dateKey, clock.now().toISOString()),
+        newlyUnlockedBadge: null
       });
       return;
     }
@@ -489,6 +494,14 @@ export function createApp(options: CreateAppOptions = {}) {
     if (session.status === "abandoned") {
       throw new AppError(409, "INVALID_STATE", "Abandoned sessions cannot be completed");
     }
+
+    // v0.25 — snapshot badges BEFORE saving the completion so we can
+    // diff for newly-unlocked achievements after the save. We do this
+    // before the state transition so the snapshot reflects "as of last
+    // session"; the second snapshot below reflects "with this one
+    // counted". Cost: one extra listSessions+getDailyStats round-trip,
+    // acceptable for the one-call-per-session endpoint.
+    const badgesBefore = await computeBadgesFromUserData(store, context.user.id);
 
     const now = clock.now().toISOString();
     if (session.status === "paused" && session.currentPauseStartedAt) {
@@ -536,9 +549,15 @@ export function createApp(options: CreateAppOptions = {}) {
     );
 
     const endDate = formatShanghaiDate(now);
+    // v0.25 — second badge snapshot, this time after the session has
+    // been saved. Diff against the pre-save snapshot to find the most
+    // notable badge that just flipped unlocked.
+    const badgesAfter = await computeBadgesFromUserData(store, context.user.id);
+    const newlyUnlockedBadge = pickNewlyUnlockedBadge(badgesBefore, badgesAfter);
     response.json({
       session,
-      dailyStats: (await store.getDailyStats(context.user.id)).get(endDate) ?? emptyDailyStat(context.user.id, endDate, now)
+      dailyStats: (await store.getDailyStats(context.user.id)).get(endDate) ?? emptyDailyStat(context.user.id, endDate, now),
+      newlyUnlockedBadge
     });
   }));
 
@@ -1093,6 +1112,85 @@ const BADGE_DEFINITIONS: Array<{
   { key: "total_300h",       name: "缅因猫",     description: "累计学习满 300 小时",              icon: "🦁", rarity: "legendary" },
   { key: "all_six_10h",      name: "孟加拉豹猫", description: "6 科各累计满 10 小时",             icon: "🐅", rarity: "legendary" }
 ];
+
+/**
+ * v0.25 — single source of truth for "what would the user's badge
+ * list look like right now". Used by /api/me/dashboard (where the
+ * full list is rendered to the client) and by /api/sessions/:id/
+ * complete (which calls it twice — once before saveSession, once
+ * after — to detect newly-unlocked badges and surface a single
+ * achievement-unlock event to the client).
+ *
+ * The "subjectTotals must include all 6" comment in the legacy
+ * caller used to gate the all_six_10h calculation; we preserve that
+ * invariant by always passing the full SUBJECTS list with zero
+ * fallbacks rather than the filtered "has progress" subset.
+ */
+async function computeBadgesFromUserData(
+  store: DataStore,
+  userId: string
+): Promise<ReturnType<typeof computeBadges>> {
+  const sessions = (await store.listSessions(userId)).filter(
+    (session) => session.status === "completed"
+  );
+  const dailyStats = await store.getDailyStats(userId);
+  const subjectFullTotals = SUBJECTS.map((subject) => ({
+    subject,
+    totalMinutes: sessions
+      .filter((session) => session.subject === subject)
+      .reduce((sum, session) => sum + session.durationMinutes, 0)
+  }));
+  const totalMinutes = [...dailyStats.values()].reduce(
+    (sum, stat) => sum + stat.totalMinutes,
+    0
+  );
+  const bestDayMinutes = [...dailyStats.values()].reduce(
+    (max, stat) => (stat.totalMinutes > max ? stat.totalMinutes : max),
+    0
+  );
+  const completedSubjects = new Set(
+    sessions
+      .map((session) => session.subject)
+      .filter((subject): subject is Subject => Boolean(subject))
+  );
+  return computeBadges({
+    totalMinutes,
+    currentStreakDays: getCurrentStreak(dailyStats),
+    longestStreakDays: getLongestStreak(dailyStats),
+    bestDayMinutes,
+    completedCount: sessions.length,
+    subjectTotals: subjectFullTotals,
+    completedSubjectCount: completedSubjects.size
+  });
+}
+
+/**
+ * Diff two snapshots of the user's badges to find ones that just
+ * flipped unlocked=false → unlocked=true. Returns the first such
+ * badge (a single session typically crosses ≤1 threshold; if a
+ * mega-session crosses several at once, we surface the rarest so
+ * the user feels the bigger achievement).
+ */
+function pickNewlyUnlockedBadge(
+  before: ReturnType<typeof computeBadges>,
+  after: ReturnType<typeof computeBadges>
+): ReturnType<typeof computeBadges>[number] | null {
+  const beforeMap = new Map(before.map((b) => [b.key, b]));
+  const justUnlocked = after.filter((b) => {
+    const prev = beforeMap.get(b.key);
+    return b.unlocked && (!prev || !prev.unlocked);
+  });
+  if (justUnlocked.length === 0) return null;
+  const rarityRank: Record<string, number> = {
+    legendary: 4,
+    epic: 3,
+    rare: 2,
+    common: 1
+  };
+  return justUnlocked.reduce((best, cand) =>
+    (rarityRank[cand.rarity] ?? 0) > (rarityRank[best.rarity] ?? 0) ? cand : best
+  );
+}
 
 function computeBadges(args: {
   totalMinutes: number;

@@ -68,26 +68,37 @@
   <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
 
   <!--
-    v0.18 — instant cat reveal. After a successful submit, the
-    overlay covers the page while the new cat pops in. Tap the
-    backdrop or "继续专注" to head home; "去花园看看" navigates to
-    the full garden so the user can see their growing collection
-    in context.
+    v0.25 — Achievement unlock overlay. Replaces the per-session
+    cat-reveal modal that used to fire after every submit (it felt
+    repetitive: 100 sessions = 100 nearly-identical "你又收获了一只
+    小猫" pops). Now this only renders when the just-completed
+    session actually crossed an achievement threshold — i.e. the
+    server set `newlyUnlockedBadge` on the response. Card content
+    leans on the achievement's real metadata: breed SVG, name,
+    unlock condition, rarity. Big "解锁" eyebrow makes the
+    achievement framing unmistakable.
   -->
-  <view wx:if="{{earnedCat}}" class="cat-reveal" bindtap="onTapCatDismiss">
-    <view class="cat-reveal__card cat-reveal__card--{{earnedCat.rarity}}" catchtap="onTapCatContent">
-      <view class="cat-reveal__halo"></view>
-      <view wx:if="{{earnedCat.rarity === 'legendary'}}" class="cat-reveal__crown">👑</view>
-      <view wx:elif="{{earnedCat.rarity === 'epic'}}" class="cat-reveal__star">🌟</view>
+  <view wx:if="{{unlockedBadge}}" class="unlock-reveal" bindtap="onTapUnlockDismiss">
+    <view class="unlock-reveal__card unlock-reveal__card--{{unlockedBadge.rarity}}" catchtap="onTapUnlockContent">
+      <view class="unlock-reveal__halo"></view>
+      <view wx:if="{{unlockedBadge.rarity === 'legendary'}}" class="unlock-reveal__crown">👑</view>
+      <view wx:elif="{{unlockedBadge.rarity === 'epic'}}" class="unlock-reveal__star">🌟</view>
 
-      <text class="cat-reveal__rarity cat-reveal__rarity--{{earnedCat.rarity}}">{{earnedCatRarityLabel}}</text>
-      <text class="cat-reveal__emoji">{{earnedCat.emoji}}</text>
-      <text class="cat-reveal__title">收获一只小猫</text>
-      <text class="cat-reveal__sub">{{earnedCat.subject}}{{earnedCat.accessory !== "—" ? " · " + earnedCat.accessory : ""}}</text>
+      <text class="unlock-reveal__eyebrow">🎉 成就解锁</text>
+      <image
+        wx:if="{{unlockedBadge.imageUrl}}"
+        class="unlock-reveal__cat-img"
+        src="{{unlockedBadge.imageUrl}}"
+        mode="aspectFit"
+      />
+      <text wx:else class="unlock-reveal__emoji">{{unlockedBadge.icon}}</text>
+      <text class="unlock-reveal__name">{{unlockedBadge.name}}</text>
+      <text class="unlock-reveal__rarity unlock-reveal__rarity--{{unlockedBadge.rarity}}">{{unlockedBadgeRarityLabel}}</text>
+      <text class="unlock-reveal__cond">{{unlockedBadge.description}}</text>
 
-      <view class="cat-reveal__actions">
-        <view class="cat-reveal__ghost" bindtap="onTapOpenGarden">去花园看看</view>
-        <view class="cat-reveal__primary" bindtap="onTapCatDismiss">继续专注</view>
+      <view class="unlock-reveal__actions">
+        <view class="unlock-reveal__ghost" bindtap="onTapOpenAchievements">去成就墙</view>
+        <view class="unlock-reveal__primary" bindtap="onTapUnlockDismiss">继续专注</view>
       </view>
     </view>
   </view>

@@ -422,9 +422,7 @@ Page<{}, ProfilePageData>({
     event.stopPropagation?.();
   },
 
-  openGarden() {
-    wx.navigateTo({ url: "/package-profile/garden/index" });
-  },
+  // v0.25 — openGarden removed alongside the garden subsystem.
 
   openBadges() {
     wx.navigateTo({ url: "/package-profile/badges/index" });

@@ -64,18 +64,15 @@
   -->
 
   <view class="menu-list">
-    <view class="menu-item" bindtap="openGarden">
-      <view class="menu-item__icon">🐱</view>
-      <view class="menu-item__body">
-        <text class="menu-item__title">小猫花园</text>
-        <text class="menu-item__hint">每完成一次专注收一只小猫</text>
-      </view>
-      <text class="menu-item__chevron">›</text>
-    </view>
+    <!--
+      v0.25 — 「小猫花园」 menu item removed alongside the garden
+      subsystem. 「徽章」 was renamed to 「成就」 to align with the
+      vocabulary used in the unlock animation (「成就解锁」).
+    -->
     <view class="menu-item" bindtap="openBadges">
       <view class="menu-item__icon">🏆</view>
       <view class="menu-item__body">
-        <text class="menu-item__title">徽章</text>
+        <text class="menu-item__title">成就</text>
         <text class="menu-item__hint">{{badgeProgressLabel}}</text>
       </view>
       <text class="menu-item__chevron">›</text>

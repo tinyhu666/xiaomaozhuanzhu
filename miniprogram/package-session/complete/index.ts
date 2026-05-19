@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { completeSession, uploadCheckinPhoto } from "../../utils/api";
-import { previewCatForSession, type CatCard } from "../../utils/garden";
+import type { Badge } from "../../types/models";
 import { validateCompletionDraft } from "../../utils/view-models";
 
 // v0.21.3 — restored subject-as-chips on the complete page (reverts
@@ -34,11 +34,14 @@ type CompletePageData = {
   /** Pomodoro cycles completed in this session — display + submit. */
   pomodoroCycles: number;
   pomodoroBadgeText: string;
-  /** When non-null, the page renders a celebratory overlay showing the
-   *  cat the user just earned. Set after a successful submit; cleared
-   *  when we navigate away. */
-  earnedCat: CatCard | null;
-  earnedCatRarityLabel: string;
+  /** v0.25 — when set, the user just unlocked an achievement on this
+   *  submit. We surface a dedicated unlock overlay. If null, we just
+   *  toast "已记录" and head home — no celebratory noise for sessions
+   *  that didn't actually cross a threshold. (Replaces the per-
+   *  session 「收获一只小猫」 modal that lived here in v0.18 - v0.24,
+   *  which felt repetitive: every session triggered it.) */
+  unlockedBadge: Badge | null;
+  unlockedBadgeRarityLabel: string;
 };
 
 function makeChips(values: string[]): ChipView[] {
@@ -56,8 +59,8 @@ Page<{}, CompletePageData>({
     submitting: false,
     pomodoroCycles: 0,
     pomodoroBadgeText: "",
-    earnedCat: null,
-    earnedCatRarityLabel: ""
+    unlockedBadge: null,
+    unlockedBadgeRarityLabel: ""
   },
 
   onLoad(query) {
@@ -196,7 +199,12 @@ Page<{}, CompletePageData>({
     const subject = selectedSubjectChip?.value ?? null;
     this.setData({ submitting: true });
     try {
-      await completeSession(this.data.sessionId, {
+      // v0.25 — the server now responds with `newlyUnlockedBadge` set
+      // when this completion crossed an achievement threshold. If so,
+      // we show a dedicated achievement-unlock overlay. Otherwise we
+      // just toast and head home — no per-session "你又收获了一只
+      // 小猫" noise (the old garden cat-reveal modal was removed).
+      const response = await completeSession(this.data.sessionId, {
         summary: this.data.summary,
         subject,
         tags: selectedTags,
@@ -206,25 +214,23 @@ Page<{}, CompletePageData>({
         })),
         pomodoroCycles: this.data.pomodoroCycles || 0
       });
-      // Derive the cat the user just earned and reveal it inline.
-      // This is the v0.18 "instant feedback" moment — the dopamine
-      // hit lands at session-complete time instead of being deferred
-      // until the user navigates to the garden tab.
-      const minutesFromText = Number((this.data.durationText.match(/\d+/) || [0])[0]);
-      const earnedCat = previewCatForSession({
-        sessionId: this.data.sessionId,
-        subject,
-        durationMinutes: Number.isFinite(minutesFromText) ? minutesFromText : 0,
-        pomodoroCycles: this.data.pomodoroCycles || 0
-      });
-      const rarityLabelMap: Record<string, string> = {
-        common: "普通", rare: "稀有", epic: "史诗", legendary: "传说"
-      };
-      this.setData({
-        submitting: false,
-        earnedCat,
-        earnedCatRarityLabel: rarityLabelMap[earnedCat.rarity] ?? "普通"
-      });
+      const unlocked = (response as { newlyUnlockedBadge?: Badge }).newlyUnlockedBadge ?? null;
+      if (unlocked) {
+        const rarityLabelMap: Record<string, string> = {
+          common: "普通", rare: "稀有", epic: "史诗", legendary: "传说"
+        };
+        this.setData({
+          submitting: false,
+          unlockedBadge: unlocked,
+          unlockedBadgeRarityLabel: rarityLabelMap[unlocked.rarity ?? "common"] ?? "普通"
+        });
+      } else {
+        // No new achievement → quietly head home. The toast is just a
+        // beat of acknowledgement so the tap doesn't feel like it
+        // vanished into nothing.
+        wx.showToast({ title: "已记录", icon: "success", duration: 1200 });
+        setTimeout(() => wx.switchTab({ url: "/pages/home/index" }), 800);
+      }
     } catch (error) {
       wx.showToast({
         title: error instanceof Error ? error.message : "提交失败",
@@ -235,23 +241,22 @@ Page<{}, CompletePageData>({
   },
 
   /**
-   * Dismissal — both the "继续专注" CTA and tap-backdrop call this.
-   * We always navigate home; the alternative ("stay on the complete
-   * page") would leave the user staring at a useless form.
+   * Achievement-unlock overlay dismissal. Both the primary CTA
+   * 「继续专注」 and backdrop-tap call this. Always heads home —
+   * staying on a useless form is worse than auto-nav.
    */
-  onTapCatDismiss() {
+  onTapUnlockDismiss() {
     wx.switchTab({ url: "/pages/home/index" });
   },
 
-  onTapCatContent(event: WechatMiniprogram.BaseEvent) {
-    // Stop tap propagation so the user can read the card details
-    // without the backdrop tap dismissing them.
+  onTapUnlockContent(event: WechatMiniprogram.BaseEvent) {
+    // Stop propagation so the card body doesn't dismiss.
     event.stopPropagation?.();
   },
 
-  onTapOpenGarden() {
-    // The garden subpackage lives in package-profile; we navigate
-    // there directly rather than going through 我的 tab.
-    wx.navigateTo({ url: "/package-profile/garden/index" });
+  onTapOpenAchievements() {
+    // Navigate to the achievement wall so the user can see the new
+    // unlock in context with the rest.
+    wx.navigateTo({ url: "/package-profile/badges/index" });
   }
 });

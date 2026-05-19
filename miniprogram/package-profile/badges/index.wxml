@@ -1,7 +1,14 @@
 <view class="page-shell badges-page">
+  <!--
+    v0.25 — hero now also shows the rarest unlocked breed name (or
+    a "next to unlock" hint when nothing's unlocked yet) so the page
+    leads with achievement texture instead of a bare ratio.
+  -->
   <view class="badges-hero">
     <text class="badges-hero__title">{{unlockedCount}} / {{totalCount}}</text>
-    <text class="badges-hero__sub">已收集到的成就小猫 · 每个成就解锁一个独立品种</text>
+    <text wx:if="{{latestUnlockedName}}" class="badges-hero__sub">最强解锁：{{latestUnlockedName}}</text>
+    <text wx:elif="{{nextUnlockHint}}" class="badges-hero__sub">{{nextUnlockHint}}</text>
+    <text wx:else class="badges-hero__sub">完成专注解锁独立品种小猫</text>
   </view>
 
   <!--
