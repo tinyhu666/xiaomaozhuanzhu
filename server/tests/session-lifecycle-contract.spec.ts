@@ -139,7 +139,14 @@ describe("Session lifecycle (end-to-end happy path)", () => {
     expect(wrongPause.status).toBeLessThan(500);
   });
 
-  it("rejects complete with empty summary or zero photos (the two main client-side guards)", async () => {
+  /* v0.24 — photos + summary are now OPTIONAL. The previous version
+   * of this test asserted 400 on missing photos / empty summary; the
+   * contract changed in v0.24 so the new expectation is 200. We keep
+   * the test (inverted) because future regressions that re-introduce
+   * the min(1) guards would silently break the "tap submit, done"
+   * flow that the v0.24 critical path depends on.
+   */
+  it("accepts complete with empty summary AND zero photos (v0.24 contract)", async () => {
     await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
     const started = await request(app)
       .post("/api/sessions/start")
@@ -149,28 +156,96 @@ describe("Session lifecycle (end-to-end happy path)", () => {
     const sessionId = started.body.session.id as string;
     clock.advanceMinutes(30);
 
-    // Missing photos
-    const missingPhotos = await request(app)
-      .post(`/api/sessions/${sessionId}/complete`)
-      .set("x-wx-openid", openid)
-      .send({
-        summary: "valid summary text",
-        subject: null,
-        tags: [],
-        photos: []
-      });
-    expect(missingPhotos.status).toBe(400);
-
-    // Empty summary
-    const emptySummary = await request(app)
+    // Nothing filled — should still succeed.
+    const fully = await request(app)
       .post(`/api/sessions/${sessionId}/complete`)
       .set("x-wx-openid", openid)
       .send({
         summary: "",
         subject: null,
         tags: [],
+        photos: []
+      })
+      .expect(200);
+    expect(fully.body.session.status).toBe("completed");
+    expect(fully.body.session.summary).toBe("");
+  });
+
+  it("accepts complete with just a summary (no photos)", async () => {
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", "summary-only").expect(200);
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "summary-only")
+      .send({ mode: "free" })
+      .expect(200);
+    const sessionId = started.body.session.id as string;
+    clock.advanceMinutes(30);
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .set("x-wx-openid", "summary-only")
+      .send({
+        summary: "纯文字记一句",
+        subject: null,
+        tags: [],
+        photos: []
+      })
+      .expect(200);
+    expect(res.body.session.summary).toBe("纯文字记一句");
+  });
+
+  it("accepts complete with just photos (no summary)", async () => {
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", "photos-only").expect(200);
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "photos-only")
+      .send({ mode: "free" })
+      .expect(200);
+    const sessionId = started.body.session.id as string;
+    clock.advanceMinutes(30);
+
+    const res = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .set("x-wx-openid", "photos-only")
+      .send({
+        summary: "",
+        subject: null,
+        tags: [],
         photos: [{ fileId: "cloud://x/y.jpg", objectKey: "k.jpg" }]
+      })
+      .expect(200);
+    expect(res.body.session.summary).toBe("");
+  });
+
+  it("still rejects oversize summary (>80 chars) and oversize photo array (>3)", async () => {
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", "oversize").expect(200);
+    const started = await request(app)
+      .post("/api/sessions/start")
+      .set("x-wx-openid", "oversize")
+      .send({ mode: "free" })
+      .expect(200);
+    const sessionId = started.body.session.id as string;
+    clock.advanceMinutes(30);
+
+    const longSummary = "x".repeat(81);
+    const tooLong = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .set("x-wx-openid", "oversize")
+      .send({ summary: longSummary, subject: null, tags: [], photos: [] });
+    expect(tooLong.status).toBe(400);
+
+    const tooMany = await request(app)
+      .post(`/api/sessions/${sessionId}/complete`)
+      .set("x-wx-openid", "oversize")
+      .send({
+        summary: "",
+        subject: null,
+        tags: [],
+        photos: Array.from({ length: 4 }, (_, i) => ({
+          fileId: `cloud://x/${i}.jpg`,
+          objectKey: `${i}.jpg`
+        }))
       });
-    expect(emptySummary.status).toBe(400);
+    expect(tooMany.status).toBe(400);
   });
 });

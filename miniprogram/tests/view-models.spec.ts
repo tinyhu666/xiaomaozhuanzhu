@@ -16,31 +16,35 @@ describe("miniprogram view models", () => {
     expect(getSessionActions("paused")).toEqual(["resume", "complete"]);
   });
 
-  it("validates completion draft requirements", () => {
+  it("validates completion draft requirements (v0.24: empty form is valid)", () => {
+    // v0.24 — empty form is OK; the "tap submit, done" path is the
+    // explicit value-prop of this version. Only oversize fields fail.
     expect(
-      validateCompletionDraft({
-        summary: "",
-        photos: []
-      })
-    ).toEqual({
-      valid: false,
-      message: "请先上传 1 张学习照片，并填写一句话总结"
-    });
+      validateCompletionDraft({ summary: "", photos: [] })
+    ).toEqual({ valid: true, message: "" });
 
     expect(
       validateCompletionDraft({
         summary: "今天把会计分录重新梳理了一遍",
-        photos: [
-          {
-            fileId: "cloud://demo/a.jpg",
-            objectKey: "checkins/a.jpg"
-          }
-        ]
+        photos: [{ fileId: "cloud://demo/a.jpg", objectKey: "checkins/a.jpg" }]
       })
-    ).toEqual({
-      valid: true,
-      message: ""
-    });
+    ).toEqual({ valid: true, message: "" });
+
+    // Oversize summary still fails (server enforces, client guards early).
+    expect(
+      validateCompletionDraft({ summary: "x".repeat(81), photos: [] })
+    ).toEqual({ valid: false, message: "总结最多 80 字" });
+
+    // Too many photos still fails.
+    expect(
+      validateCompletionDraft({
+        summary: "",
+        photos: Array.from({ length: 4 }, (_, i) => ({
+          fileId: `cloud://demo/${i}.jpg`,
+          objectKey: `${i}.jpg`
+        }))
+      })
+    ).toEqual({ valid: false, message: "最多上传 3 张照片" });
   });
 
   it("builds a stable month grid for the heat calendar", () => {

@@ -43,12 +43,22 @@ export function getSessionActions(state: SessionState): SessionAction[] {
   return ["start"];
 }
 
+/**
+ * v0.24 — photo + summary are optional. The only client-side guards
+ * left are length / count caps (server enforces too, but rejecting
+ * early avoids a round-trip). Submitting an empty form is allowed
+ * and intentional: the user gets a session row recorded as having
+ * happened, even without a photo or text. Cuts the 7-tap completion
+ * path down to 3 taps for users who don't want to journal.
+ */
 export function validateCompletionDraft(draft: { summary: string; photos: CompletionPhoto[] }) {
-  const valid = draft.summary.trim().length > 0 && draft.photos.length >= 1;
-  return {
-    valid,
-    message: valid ? "" : "请先上传 1 张学习照片，并填写一句话总结"
-  };
+  if (draft.summary.length > 80) {
+    return { valid: false, message: "总结最多 80 字" };
+  }
+  if (draft.photos.length > 3) {
+    return { valid: false, message: "最多上传 3 张照片" };
+  }
+  return { valid: true, message: "" };
 }
 
 /**

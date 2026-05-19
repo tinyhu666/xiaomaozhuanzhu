@@ -62,13 +62,27 @@ const profileSchema = z.object({
   requireWechatAuth: z.boolean().optional()
 });
 
+/**
+ * v0.24 — summary + photos are now OPTIONAL on complete. Users can
+ * tap "完成打卡" with neither field touched and the server accepts
+ * it. Rationale: the打卡 ritual was a 7-tap path even for a 25-min
+ * focus session where the user has no photo to upload (commute,
+ * mental rehearsal, exam-room walking, etc.). Making the form
+ * fields skippable cuts the critical path to 3 taps.
+ *
+ * What we still enforce:
+ *  - subject (if provided) must be one of the 6 known categories
+ *  - tags (if provided) must come from the curated TAGS list
+ *  - summary max length 80 (overshoot is still a real bug)
+ *  - photos max 3 + cloud:// fileId + safe objectKey
+ *  - pomodoro cycles 0-32 (sanity bound)
+ *
+ * Removed: summary.min(1) and photos.min(1).
+ */
 const completeSchema = z.object({
-  summary: z.string().trim().min(1).max(80),
+  summary: z.string().trim().max(80).default(""),
   subject: z.enum(SUBJECTS).nullable().optional(),
   tags: z.array(z.enum(TAGS)).max(6).default([]),
-  // Cycles completed during the session — only meaningful for
-  // pomodoro mode. We accept it from any session for forward-
-  // compat; free-mode sessions just ignore the field.
   pomodoroCycles: z.number().int().min(0).max(32).optional(),
   photos: z
     .array(
@@ -80,8 +94,8 @@ const completeSchema = z.object({
           .refine((value) => !value.startsWith("/"), "objectKey must not start with /")
       })
     )
-    .min(1)
     .max(3)
+    .default([])
 });
 
 const startSessionSchema = z
