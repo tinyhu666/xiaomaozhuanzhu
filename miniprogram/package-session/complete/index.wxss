@@ -16,40 +16,10 @@
   box-sizing: border-box;
 }
 
-/* v0.18.1 — read-only subject display. Replaces the 6-chip selector
-   that used to live here; the subject is now decided once on home. */
-.subject-readonly {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-  margin-top: 8rpx;
-  flex-wrap: wrap;
-}
-
-.subject-readonly__chip {
-  padding: 10rpx 28rpx;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 700;
-  letter-spacing: 0.4rpx;
-  color: #fff;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  box-shadow: 0 4rpx 12rpx rgba(46, 169, 133, 0.22);
-}
-
-.subject-readonly__chip.is-empty {
-  color: var(--text-sub);
-  background: rgba(94, 125, 117, 0.12);
-  box-shadow: none;
-  font-weight: 600;
-}
-
-.subject-readonly__hint {
-  font-size: 20rpx;
-  color: var(--text-sub);
-  opacity: 0.72;
-  letter-spacing: 0.3rpx;
-}
+/* v0.21.3 — subject is back as a tag-chip selector here. The
+   shared `.tag-list` + `.tag-chip` styles (declared globally in
+   app.wxss) handle layout + active-state visuals, so this file
+   doesn't need any subject-specific selectors. */
 
 /* ============================================================
    v0.18 — Cat reveal overlay. Shown after successful submit;

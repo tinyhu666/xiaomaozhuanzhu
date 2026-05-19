@@ -27,77 +27,11 @@
 .home-page > view:nth-child(5) { animation-delay: 0.22s; }
 .home-page > view:nth-child(6) { animation-delay: 0.27s; }
 
-/* ============================================================
-   Pre-start picker — mode toggle + subject chips. Lives only
-   while a session is idle; collapses cleanly once running.
-   ============================================================ */
-.picker-card {
-  position: relative;
-  /* v0.21 density: 18→14 top / 20→18 horizontal */
-  padding: 14rpx 18rpx 16rpx;
-  border-radius: 26rpx;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.12), transparent 38%),
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.08);
-}
-
-/* v0.18.1: removed mode toggle, kept the chip row as the single
-   pre-start input. The optional title nudges the user that this is
-   "today's subject", not the universe. */
-.picker-card__title {
-  display: block;
-  font-size: 23rpx;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: 0.4rpx;
-  /* v0.21 density: 14→10 */
-  margin-bottom: 10rpx;
-}
-
-.picker-card__hint {
-  display: block;
-  margin-top: 12rpx;
-  font-size: 20rpx;
-  color: var(--text-sub);
-  opacity: 0.7;
-  letter-spacing: 0.3rpx;
-}
-
-.picker-card__chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  /* v0.21 density: 12→10 */
-  gap: 10rpx;
-}
-
-.picker-chip {
-  /* v0.21 density: 10×22→8×18 */
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 23rpx;
-  font-weight: 600;
-  letter-spacing: 0.3rpx;
-  color: var(--text-sub);
-  background: rgba(46, 169, 133, 0.06);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-
-.picker-chip:active {
-  transform: scale(0.96);
-}
-
-.picker-chip.is-active {
-  color: #fff;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  border-color: transparent;
-  box-shadow: 0 6rpx 18rpx rgba(46, 169, 133, 0.28);
-  transform: translateY(-1rpx);
-}
+/* v0.21.3 — .picker-card / .picker-chip styles removed along with the
+   home-page subject picker. Subject is now chosen on the complete
+   page (post-session). The `.timer-card__subject-pill` below is
+   still used to surface the picked subject on a running session's
+   meta row when present on the server record. */
 
 /* Subject pill that appears in timer card meta when running. */
 .timer-card__subject-pill {

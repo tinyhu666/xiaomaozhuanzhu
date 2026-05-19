@@ -36,18 +36,21 @@
   </view>
 
   <!--
-    v0.18.1 — subject is now selected ONCE on the home page before
-    starting; the complete page renders it as a read-only chip so the
-    user can confirm what they're submitting without re-picking from
-    six options (which is the same decision they already made). If
-    no subject was selected on home, we show a "未分类" placeholder
-    chip instead of forcing a pick here.
+    v0.21.3 — restored subject chip picker. Single-select: tapping a
+    chip selects it; tapping the active chip clears the selection.
+    Picking here (after the session, not before start) avoids the
+    URL-encoding round-trip that broke submits in v0.21.2.
   -->
   <view class="surface-card" style="margin-top: 20rpx;">
-    <view class="field-label">科目</view>
-    <view class="subject-readonly">
-      <text class="subject-readonly__chip {{lockedSubject ? '' : 'is-empty'}}">{{lockedSubject || '未分类'}}</text>
-      <text class="subject-readonly__hint">如需修改请回到首页重新开始</text>
+    <view class="field-label">可选科目</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{subjectChips}}"
+        wx:key="value"
+        class="tag-chip {{item.selected ? 'is-active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="toggleSubject"
+      >{{item.value}}</view>
     </view>
 
     <view class="field-label" style="margin-top: 24rpx;">标签</view>

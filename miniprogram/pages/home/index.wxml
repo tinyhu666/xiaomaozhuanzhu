@@ -28,26 +28,14 @@
   </view>
 
   <!--
-    Pre-start picker: subject chip row only (v0.18.1 removed the
-    mode toggle — free timer is the single canonical mode now; the
-    pomodoro state-machine code is kept so legacy running sessions
-    still render their cycle dots / phase label correctly).
-    The chip row is also the *one* place we ask "what subject?" —
-    the complete page renders the chosen subject read-only.
+    v0.21.3 — pre-start subject picker removed. Subject is now chosen
+    on the complete page (post-session), matching v0.17 behavior. The
+    short-lived v0.18.1 "pick before start" flow caused the v0.21.2
+    submit outage when Chinese subject names round-tripped through
+    wx.navigateTo's query string and weren't decoded server-side.
+    Free timer is still the only startable mode; pomodoro state-machine
+    code stays for legacy in-flight sessions started before v0.18.1.
   -->
-  <view wx:if="{{!activeSession}}" class="picker-card">
-    <text class="picker-card__title">今天学什么？</text>
-    <view class="picker-card__chip-row">
-      <view
-        wx:for="{{subjectChips}}"
-        wx:key="label"
-        class="picker-chip {{item.active ? 'is-active' : ''}}"
-        data-label="{{item.label}}"
-        bindtap="onTapSubjectChip"
-      >{{item.label}}</view>
-    </view>
-    <text wx:if="{{!selectedSubject}}" class="picker-card__hint">可不选 · 后续记录会按"未分类"归档</text>
-  </view>
 
   <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}}">
     <view class="timer-card__head">

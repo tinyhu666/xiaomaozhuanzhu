@@ -3,9 +3,12 @@ import { completeSession, uploadCheckinPhoto } from "../../utils/api";
 import { previewCatForSession, type CatCard } from "../../utils/garden";
 import { validateCompletionDraft } from "../../utils/view-models";
 
-// v0.18.1 — SUBJECTS list no longer rendered as chips here; the
-// subject is read-only and comes from the home-page chip selection.
-// Tag chip list stays — tags ARE only chosen at completion time.
+// v0.21.3 — restored subject-as-chips on the complete page (reverts
+// v0.18.1's "pick before start" experiment). Subject is now a single-
+// select chip row picked AFTER the session, which is when the user
+// actually knows what they studied + dodges the URL-encoding round-
+// trip bug that broke submits in v0.21.2.
+const SUBJECTS = ["会计", "审计", "税法", "财管", "经济法", "战略"];
 const TAGS = ["顺利", "卡住", "高效", "复习", "刷题", "新课"];
 
 type LocalPhoto = {
@@ -23,9 +26,8 @@ type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
-  /** v0.18.1 — read-only locked subject (chosen on home before start).
-   *  Empty string means "user didn't pick" → renders as "未分类". */
-  lockedSubject: string;
+  /** v0.21.3 — restored single-select subject chip row. */
+  subjectChips: ChipView[];
   tagChips: ChipView[];
   photos: LocalPhoto[];
   submitting: boolean;
@@ -48,7 +50,7 @@ Page<{}, CompletePageData>({
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
-    lockedSubject: "",
+    subjectChips: makeChips(SUBJECTS),
     tagChips: makeChips(TAGS),
     photos: [],
     submitting: false,
@@ -60,14 +62,29 @@ Page<{}, CompletePageData>({
 
   onLoad(query) {
     const minutes = Number(query.minutes ?? 0);
-    const preselected = String(query.subject ?? "");
     const cycles = Math.max(0, Math.min(32, Number(query.cycles ?? 0) | 0));
+    // v0.21.3 — defensively decode a `subject` query param for any
+    // in-flight session started under v0.21.2 (where the home page
+    // still passed an encoded subject through). New sessions will
+    // never pass this param; once they pre-select it, the user can
+    // still tap to change.
+    const rawSubject = String(query.subject ?? "");
+    let preselected = "";
+    if (rawSubject) {
+      try {
+        preselected = decodeURIComponent(rawSubject);
+      } catch {
+        preselected = rawSubject;
+      }
+      if (!SUBJECTS.includes(preselected)) preselected = "";
+    }
     this.setData({
       sessionId: String(query.sessionId ?? ""),
       durationText: `${minutes} 分钟`,
-      // v0.18.1 — subject is locked from the home-page picker. Stored
-      // as a single string, no toggling possible on this page.
-      lockedSubject: preselected,
+      subjectChips: SUBJECTS.map((value) => ({
+        value,
+        selected: value === preselected
+      })),
       pomodoroCycles: cycles,
       pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
     });
@@ -79,8 +96,16 @@ Page<{}, CompletePageData>({
     });
   },
 
-  // v0.18.1 — toggleSubject handler removed; subject is locked-in
-  // from the home page and rendered read-only above.
+  toggleSubject(event: WechatMiniprogram.BaseEvent) {
+    const value = event.currentTarget.dataset.value as string;
+    // Single-select: tapping the active chip clears it; tapping a
+    // different chip switches selection.
+    const next = this.data.subjectChips.map((chip) => ({
+      value: chip.value,
+      selected: chip.value === value ? !chip.selected : false
+    }));
+    this.setData({ subjectChips: next });
+  },
 
   toggleTag(event: WechatMiniprogram.BaseEvent) {
     const value = event.currentTarget.dataset.value as string;
@@ -152,6 +177,7 @@ Page<{}, CompletePageData>({
   },
 
   async submit() {
+    const selectedSubjectChip = this.data.subjectChips.find((chip) => chip.selected);
     const selectedTags = this.data.tagChips.filter((chip) => chip.selected).map((chip) => chip.value);
 
     const validation = validateCompletionDraft({
@@ -167,7 +193,7 @@ Page<{}, CompletePageData>({
       return;
     }
 
-    const subject = this.data.lockedSubject || null;
+    const subject = selectedSubjectChip?.value ?? null;
     this.setData({ submitting: true });
     try {
       await completeSession(this.data.sessionId, {

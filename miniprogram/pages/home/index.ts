@@ -22,7 +22,9 @@ import { formatStopwatch, getElapsedMs } from "../../utils/timer";
 import { formatDuration, getSessionActions } from "../../utils/view-models";
 
 /* ---------- Pomodoro constants ---------- */
-const SUBJECTS = ["会计", "审计", "税法", "财管", "经济法", "战略"] as const;
+// SUBJECTS constant removed in v0.21.3 — the only home reference was
+// the pre-start picker, which moved to the complete page along with
+// its own SUBJECTS list. Keeping a stray copy here would invite drift.
 /**
  * Default pomodoro parameters — used when the user hasn't set their
  * own in the settings page. v0.12 onward we look up the live values
@@ -36,10 +38,17 @@ const POMODORO_DEFAULTS = {
   longBreakSec: 15 * 60,
   cyclesPerSet: 4
 } as const;
-const STORAGE_LAST_SUBJECT = "cpa.lastSubject";
-// STORAGE_LAST_MODE removed in v0.18.1 — free timer is the only mode
-// the user can start now. The pomodoro state-machine code stays in
-// case a legacy "in-progress" pomodoro session is still on the server.
+// v0.21.3 — subject picker reverted off the home page (back to
+// v0.17 behavior). Users now pick a subject on the COMPLETE page,
+// after the session, when they actually know what they studied.
+// Why: pre-start chips silently URL-encoded the subject through
+// wx.navigateTo, the receiving page didn't decode, and the server
+// rejected the doubly-encoded payload with "Request payload
+// validation failed" — a hard outage. Removing the URL hop entirely
+// is the structural fix (vs. patching encode/decode pairs).
+// STORAGE_LAST_MODE was already removed in v0.18.1 — free timer is
+// the only startable mode. Pomodoro runtime code stays for in-flight
+// legacy sessions.
 
 type PomodoroPhase = "focus" | "shortBreak" | "longBreak";
 
@@ -74,10 +83,8 @@ type HomePageData = {
   /** Compact "音景: 雨声" badge that appears on the timer-card meta row when
    *  an ambient sound is playing during an active session. */
   audioBadge: { visible: boolean; label: string; emoji: string };
-  /** Pre-start chip + mode picker state (hidden while a session is active). */
-  selectedSubject: string | null;
+  /** Mode picker state (subject picker removed in v0.21.3 — moved to complete page). */
   selectedMode: SessionMode;
-  subjectChips: Array<{ label: string; active: boolean }>;
   pomodoroPhase: PomodoroPhase | null;
   pomodoroPhaseLabel: string;
   pomodoroCyclesCompleted: number;
@@ -171,9 +178,7 @@ Page<{}, HomePageData>({
     makeupLoading: false,
     appVersion: runtimeConfig.appVersion,
     showEmptyHint: true,
-    selectedSubject: null,
     selectedMode: "free",
-    subjectChips: SUBJECTS.map((label) => ({ label, active: false })),
     pomodoroPhase: null,
     pomodoroPhaseLabel: "",
     pomodoroCyclesCompleted: 0,
@@ -190,8 +195,8 @@ Page<{}, HomePageData>({
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
     tabBar?.setData?.({ selected: 0 });
     // Restore the user's last-used mode + subject so the picker
-    // doesn't reset every time they open the app.
-    this.restorePickerFromStorage();
+    // v0.21.3 — subject picker is no longer on this page; no storage
+    // restore needed.
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[home] ensureProfile failed", error);
     });
@@ -214,47 +219,11 @@ Page<{}, HomePageData>({
     });
   },
 
-  /**
-   * Pre-start picker: read last selection from local storage so the
-   * user doesn't have to re-pick their subject every time. We never
-   * default to a subject the user hasn't explicitly chosen — null
-   * (no subject yet) is the honest fallback.
-   */
-  restorePickerFromStorage() {
-    try {
-      const savedSubject = wx.getStorageSync(STORAGE_LAST_SUBJECT);
-      const subject = SUBJECTS.includes(savedSubject) ? savedSubject : null;
-      this.setData({
-        selectedSubject: subject,
-        // Mode pinned to "free" — see top-of-file note.
-        selectedMode: "free",
-        subjectChips: SUBJECTS.map((label) => ({ label, active: label === subject }))
-      });
-    } catch (error) {
-      console.warn("[home] restorePicker failed", error);
-    }
-  },
-
-  onTapSubjectChip(event: WechatMiniprogram.BaseEvent) {
-    if (this.data.activeSession) return; // locked while session is live
-    const label = String(event.currentTarget.dataset.label ?? "");
-    // Tap-again toggles off so the user can clear without a separate
-    // "不选" chip.
-    const next = this.data.selectedSubject === label ? null : label;
-    this.setData({
-      selectedSubject: next,
-      subjectChips: SUBJECTS.map((s) => ({ label: s, active: s === next }))
-    });
-    try {
-      if (next) wx.setStorageSync(STORAGE_LAST_SUBJECT, next);
-      else wx.removeStorageSync(STORAGE_LAST_SUBJECT);
-    } catch (error) {
-      console.warn("[home] persist subject failed", error);
-    }
-  },
-
-  // onTapModeOption removed in v0.18.1 — see top-of-file note.
-  // (The handler reference is no longer bound in the wxml.)
+  // v0.21.3 — restorePickerFromStorage / onTapSubjectChip removed
+  // along with the home-page subject picker. Subject is now chosen
+  // on the complete page (post-session) — same as v0.17 behavior.
+  // The cpa.lastSubject storage key is intentionally NOT cleaned up
+  // here to avoid clobbering it for any stale tab still running.
 
   onHide() {
     this.stopTimer();
@@ -569,14 +538,9 @@ Page<{}, HomePageData>({
       actions: getSessionActions(session?.status ?? null),
       ...pomodoroView,
       pausedMinutes: this.computePausedMinutes(session, now),
-      // Keep the pre-start picker in sync with what's actually running
-      // (server is the source of truth for subject + mode).
-      selectedSubject: session?.subject ?? this.data.selectedSubject,
+      // v0.21.3 — subject is picked on the complete page now; only the
+      // mode (free vs in-flight pomodoro) is reflected here.
       selectedMode: (session?.mode ?? this.data.selectedMode) as SessionMode,
-      subjectChips: SUBJECTS.map((s) => ({
-        label: s,
-        active: s === (session?.subject ?? this.data.selectedSubject)
-      })),
       audioBadge: this.buildAudioBadge(session)
     });
     this.refreshEmptyHint();
@@ -830,11 +794,12 @@ Page<{}, HomePageData>({
     // running session uses the user's custom durations rather than
     // the static defaults.
     snapshotPomodoroConfigFromSettings(getSettings());
-    const subject = this.data.selectedSubject;
+    // v0.21.3 — subject no longer chosen pre-start; we pass null
+    // and the user picks on the complete page after the session.
     const mode = this.data.selectedMode;
     await this.runSessionAction(
       async () => {
-        const result = await startSession({ subject, mode });
+        const result = await startSession({ subject: null, mode });
         if (result?.session) {
           this.applyActiveSession(result.session);
         }
@@ -894,11 +859,11 @@ Page<{}, HomePageData>({
           }
         }
 
-        // Forward subject + pomodoro cycles to the complete page so
-        // the user doesn't have to re-pick the subject they already
-        // chose before starting, and so the cycle count lands in
-        // the database with the session.
-        const subject = target.subject || this.data.selectedSubject || "";
+        // v0.21.3 — only forward sessionId + minutes + cycles. Subject
+        // is picked on the complete page now (the URL-encoding round-
+        // trip via wx.navigateTo was the source of the v0.21.2 submit
+        // outage — Chinese subject names got double-encoded and the
+        // server rejected them).
         const cycles = target.mode === "pomodoro"
           ? (pomodoroState?.cyclesCompleted ?? target.pomodoroCycles ?? 0)
           : 0;
@@ -906,7 +871,6 @@ Page<{}, HomePageData>({
           `sessionId=${target.id}`,
           `minutes=${Math.max(1, target.effectiveMinutes)}`
         ];
-        if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
         if (cycles > 0) params.push(`cycles=${cycles}`);
         wx.navigateTo({
           url: `/package-session/complete/index?${params.join("&")}`
