@@ -96,8 +96,9 @@ Page<{}, ProfilePageData>({
 
   async onShow() {
     const tabBar = this.getTabBar?.() as WechatMiniprogram.Component.TrivialInstance | undefined;
-    // 4 tabs: 首页 / 日历 / 动态 / 我的 → profile is index 3
-    tabBar?.setData?.({ selected: 3 });
+    // v0.22 — 3 tabs (首页 / 日历 / 我的); profile is index 2.
+    // 动态 tab was removed because it wasn't tied to the focus loop.
+    tabBar?.setData?.({ selected: 2 });
     // Refresh the daily quote each time the user opens this tab so a
     // re-entry mid-day picks a different line. getDailyQuote already
     // persists "last shown" to avoid back-to-back duplicates.

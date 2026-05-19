@@ -532,6 +532,10 @@ Page<{}, HomePageData>({
     // reopen / pause→resume / complete all converge to the right
     // playback state without per-call branching here.
     this.syncAmbientAudio(session);
+    // v0.22 — focus-mode side-effects: hide tabbar + keep screen on
+    // while a session is live. Mirror state in `inFocusMode` so any
+    // future render path knows whether to render full-screen styling.
+    this.syncFocusMode(session);
 
     this.setData({
       activeSession: session,
@@ -545,6 +549,40 @@ Page<{}, HomePageData>({
     });
     this.refreshEmptyHint();
     this.syncTimer(session);
+  },
+
+  /**
+   * v0.22 — full-screen focus mode side-effects. Called from
+   * applyActiveSession whenever the active session reference changes.
+   *  - session live  → hide the bottom tabbar + keep the screen on,
+   *                    so the user gets a distraction-free view and
+   *                    the phone won't auto-dim mid-session.
+   *  - session null  → restore the tabbar + release the screen-on
+   *                    hold, returning the home page to its idle
+   *                    dashboard layout.
+   *
+   * Both wx APIs are best-effort: wrapped in try/catch + .catch()
+   * because they can reject when the app is in a transient state
+   * (e.g., called during a sub-page navigation). The visual focus-
+   * mode WXML toggle (`is-focus-mode` class on .home-page) drives
+   * the layout independently, so a wx-API rejection here doesn't
+   * leave the UI half-broken.
+   */
+  syncFocusMode(session: ActiveSession | null) {
+    const enter = !!session;
+    try {
+      if (enter) {
+        (wx as any).hideTabBar?.({ animation: true }).catch?.(() => {});
+        (wx as any).setKeepScreenOn?.({ keepScreenOn: true }).catch?.(() => {});
+      } else {
+        (wx as any).showTabBar?.({ animation: true }).catch?.(() => {});
+        (wx as any).setKeepScreenOn?.({ keepScreenOn: false }).catch?.(() => {});
+      }
+    } catch (_) {
+      /* non-fatal — the visual layout is already correct via the
+         is-focus-mode class binding, so worst case the tabbar stays
+         visible briefly. */
+    }
   },
 
   /**

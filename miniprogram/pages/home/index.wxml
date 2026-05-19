@@ -1,5 +1,14 @@
-<view class="page-shell home-page">
-  <view wx:if="{{makeup}}" class="makeup-banner">
+<view class="page-shell home-page {{activeSession ? 'is-focus-mode' : ''}}">
+  <!--
+    v0.22 — full-screen focus view. When a session is live, the page
+    drops all idle clutter (exam hero, makeup banner, goal+challenge
+    card, six-subject grid) and lets the timer-card fill the viewport.
+    The custom tabbar + makeup CTA + the rest of the dashboard come
+    back the moment the session ends. Side-effects (wx.hideTabBar,
+    setKeepScreenOn) are driven from applyActiveSession in index.ts,
+    not the wxml — see syncFocusMode().
+  -->
+  <view wx:if="{{makeup && !activeSession}}" class="makeup-banner">
     <view class="makeup-banner__text">
       <text class="makeup-banner__title">昨天没打卡，今天还能补回来</text>
       <text class="makeup-banner__sub">补签后连签可恢复到 {{makeup.streakIfRecovered}} 天，每 7 天可用一次</text>
@@ -15,7 +24,7 @@
     right + urgency-tinted background reads at a glance from the
     home screen lock.
   -->
-  <view wx:if="{{nextExam}}" class="exam-hero exam-hero--{{nextExam.urgency}}">
+  <view wx:if="{{nextExam && !activeSession}}" class="exam-hero exam-hero--{{nextExam.urgency}}">
     <view class="exam-hero__body">
       <text class="exam-hero__eyebrow">距下一科考试</text>
       <text class="exam-hero__subject">{{nextExam.subject}} · {{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
@@ -111,7 +120,7 @@
     Hidden when no subject has any minutes yet (the empty grid is
     just noise on a brand-new account).
   -->
-  <view wx:if="{{subjectsCard.visible}}" class="subjects-card" bindtap="openSubjectsPage">
+  <view wx:if="{{subjectsCard.visible && !activeSession}}" class="subjects-card" bindtap="openSubjectsPage">
     <view class="subjects-card__head">
       <text class="subjects-card__title">六科进度</text>
       <text class="subjects-card__hint">{{subjectsCard.hint}} ›</text>
@@ -127,39 +136,29 @@
     </view>
   </view>
 
-  <view class="goal-card">
-    <!--
-      v0.19 — daily challenge chip. Sits above the user's stretch goal.
-      Auto-generated each morning based on the user's 7-day median.
-      Tap the "?" mini-hint for a toast explaining why this number.
-    -->
-    <view wx:if="{{dailyChallenge}}" class="goal-card__challenge {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
-      <view class="goal-card__challenge-head">
-        <text class="goal-card__challenge-emoji">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
-        <text class="goal-card__challenge-label">{{dailyChallenge.completed ? '今日挑战已完成' : '今日挑战'}}</text>
-        <text class="goal-card__challenge-target">{{dailyChallenge.targetMinutes}} 分钟</text>
-      </view>
-      <view wx:if="{{!dailyChallenge.completed}}" class="goal-card__challenge-track">
-        <view class="goal-card__challenge-fill" style="width: {{dailyChallenge.progressPercent}}%"></view>
-      </view>
-    </view>
-
+  <!--
+    v0.22 — Goal card consolidation. The standalone "daily challenge"
+    chip was promoted into a quiet inline label next to the target
+    value ("今日 30/90 · 挑战 60") so the user reads one row instead
+    of two. The "在「我的 · 学习设置」里可以改" subtitle was dropped —
+    most users don't need that pointer on every page open. Card is
+    hidden entirely during an active session (focus mode).
+  -->
+  <view wx:if="{{!activeSession}}" class="goal-card">
     <view class="goal-card__head">
       <view class="goal-card__title-wrap">
         <text class="goal-card__title">今日目标</text>
-        <text class="goal-card__sub">在「我的 · 学习设置」里可以改</text>
+        <text wx:if="{{dailyChallenge}}" class="goal-card__challenge-inline {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
+          {{dailyChallenge.completed ? '✓ 挑战 ' : '🎯 挑战 '}}{{dailyChallenge.targetMinutes}}分
+        </text>
       </view>
       <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
     </view>
     <view class="goal-card__track">
       <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
     </view>
-    <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成，继续保持！</text>
+    <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成</text>
 
-    <!-- Weekly progress: only shown when the user opts in by setting
-         a non-zero weekly target in settings. Compact second row
-         under the day bar so it feels like "today + this week" rather
-         than a separate card. -->
     <view wx:if="{{weeklyGoal.visible}}" class="goal-card__weekly">
       <view class="goal-card__weekly-row">
         <text class="goal-card__weekly-label">本周</text>

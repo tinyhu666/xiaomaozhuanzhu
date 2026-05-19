@@ -4,6 +4,74 @@
   /* v0.21: tightened from 24rpx — same number of cards but less air
      between them lets more fit in a viewport without scroll. */
   gap: 18rpx;
+  transition: padding 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* ============================================================
+   v0.22 — Focus mode. When `is-focus-mode` is on, the page-shell
+   collapses to a single tall card filling the viewport: the timer
+   becomes the page. Other sections (exam-hero, makeup, goal-card,
+   subjects-card) are already wx:if'd off, so this just stretches
+   what remains. Tabbar is hidden via wx.hideTabBar from TS so the
+   bottom region is the user's button bar, not a 4-icon dock.
+   ============================================================ */
+.home-page.is-focus-mode {
+  position: fixed;
+  inset: 0;
+  padding: 0;
+  margin: 0;
+  z-index: 50;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(143, 217, 190, 0.32), transparent 58%),
+    linear-gradient(180deg, #ffffff 0%, #ebf7f1 100%);
+  /* Centered single-card stack */
+  justify-content: stretch;
+}
+
+.home-page.is-focus-mode > .timer-card {
+  /* The timer-card fills the entire focus-mode viewport. Border /
+     shadow stripped since we're already on a tinted page. The card's
+     internal flex layout (head row up top + clock centered + actions
+     at bottom) handles spacing. */
+  flex: 1;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 100rpx 56rpx 56rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-page.is-focus-mode .timer-card__clock {
+  /* Hero clock grows from 96rpx to 180rpx — the single most important
+     piece of information on the screen during a session. */
+  font-size: 180rpx;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.home-page.is-focus-mode .timer-card__hint {
+  display: none;
+}
+
+.home-page.is-focus-mode .timer-card__meta {
+  /* In focus mode the meta row sits compact at the top, no values
+     compete with the clock for the eye. */
+  font-size: 22rpx;
+}
+
+.home-page.is-focus-mode .timer-card__actions {
+  /* Buttons bunched at the bottom; pause shrinks to a ghost so the
+     primary "结束" reads as the only obvious action. */
+  margin-top: auto;
+  padding-top: 40rpx;
+}
+
+.home-page.is-focus-mode .timer-card__cycles {
+  /* Pomodoro dots (legacy live sessions only) — kept small */
+  justify-content: center;
 }
 
 /* Staggered fade-up entrance for the major sections so the page
@@ -556,78 +624,39 @@
     0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
 }
 
-/* v0.19 — daily challenge chip sitting at the top of the goal card.
-   Done state is a flat green pill with a check; in-progress state
-   has a thin progress track underneath. */
-.goal-card__challenge {
-  position: relative;
-  /* v0.21 density: 14→11 / 22→16 */
-  padding: 11rpx 16rpx;
-  border-radius: 18rpx;
-  background:
-    linear-gradient(180deg, rgba(99, 203, 168, 0.14) 0%, rgba(46, 169, 133, 0.1) 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.2);
-  margin-bottom: 16rpx;
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-
-.goal-card__challenge.is-done {
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  border-color: transparent;
-  box-shadow: 0 6rpx 16rpx rgba(46, 169, 133, 0.28);
-}
-
-.goal-card__challenge:active {
-  transform: scale(0.99);
-}
-
-.goal-card__challenge-head {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.goal-card__challenge-emoji {
-  font-size: 28rpx;
-  line-height: 1;
-}
-
-.goal-card__challenge-label {
-  flex: 1;
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: 0.4rpx;
-}
-
-.goal-card__challenge-target {
-  font-size: 24rpx;
-  font-weight: 800;
+/* v0.22 — daily challenge collapsed into an inline subtitle on
+   goal-card. The earlier dedicated chip + progress track ate a full
+   row on home; in practice users glance at the goal bar and the
+   "挑战 60分" number is enough information to know whether they've
+   cleared the soft floor. Done state turns mint, otherwise a quiet
+   sub-text styling that doesn't compete with the goal value.
+   The big chip + sub progress track block was deleted. */
+.goal-card__challenge-inline {
+  display: inline-block;
+  margin-left: 10rpx;
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 600;
   color: var(--mint-600);
-  font-feature-settings: "tnum" 1;
-  font-variant-numeric: tabular-nums;
+  background: rgba(46, 169, 133, 0.1);
   letter-spacing: 0.3rpx;
+  font-feature-settings: "tnum" 1;
 }
 
-.goal-card__challenge.is-done .goal-card__challenge-label,
-.goal-card__challenge.is-done .goal-card__challenge-target {
+.goal-card__challenge-inline.is-done {
   color: #fff;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
 }
 
-.goal-card__challenge-track {
-  margin-top: 8rpx;
-  height: 6rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.14);
-  overflow: hidden;
+.goal-card__challenge-inline:active {
+  opacity: 0.85;
 }
 
-.goal-card__challenge-fill {
-  height: 100%;
-  border-radius: 999rpx;
-  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
-  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
+/* v0.22 note: the dedicated challenge chip (.goal-card__challenge,
+   its head/emoji/label/target/track/fill children) was removed when
+   the challenge collapsed into the inline pill above. Search the git
+   history at tag v0.21.x for the previous styling. */
 
 .goal-card__head {
   display: flex;
