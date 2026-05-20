@@ -781,6 +781,11 @@
   font-size: 22rpx;
   color: var(--mint-600);
   font-weight: 600;
+  /* v0.25.3 — text-align:center added after the button-text audit.
+     The hint reads "🎉 今日目标已达成"; with an emoji leading the
+     line and the underlying progress bar centered, left-aligning
+     made the celebration line look misplaced. */
+  text-align: center;
 }
 
 /* Weekly progress row — sits under the daily bar in the same card.
