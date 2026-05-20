@@ -108,7 +108,13 @@ button::after {
   justify-content: center;
   border: none;
   border-radius: 999rpx;
-  padding: 0 32rpx;
+  /* v0.25.1 — was `padding: 0 32rpx`. WeChat <button> renders a
+     `::after` pseudo-element for its default outline; combined with
+     our outer padding the layout sometimes shifted text fractionally
+     to the left (user spotted it on the home "开始专注" button).
+     Setting padding to 0 lets the flex centering control text
+     position alone. Internal min-height still anchors the height. */
+  padding: 0;
   min-height: 84rpx;
   height: 84rpx;
   font-size: 28rpx;
@@ -120,6 +126,17 @@ button::after {
   overflow: hidden;
   box-sizing: border-box;
   transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* v0.25.1 — kill WeChat's default ::after border outline. Without
+   this, the pseudo-element sits over the button with its own border
+   width, and on certain devices it visually offsets the centered
+   content. Our box-shadow + border-radius already provide the
+   "button looks like a button" visual treatment. */
+.cta-button::after,
+.ghost-button::after,
+.danger-button::after {
+  border: none !important;
 }
 
 /* Press feedback: a small scale-down + reduced shadow gives the button
