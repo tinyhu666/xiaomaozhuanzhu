@@ -651,10 +651,21 @@
    cleared the soft floor. Done state turns mint, otherwise a quiet
    sub-text styling that doesn't compete with the goal value.
    The big chip + sub progress track block was deleted. */
+/* v0.25.2 — the pill switched from inline-block <text> to
+   inline-flex <view>. Mixing emoji (🎯 / ✓) with Chinese ("挑战") and
+   digits in a single <text> caused baseline misalignment because
+   emoji glyphs sit taller than CJK characters. inline-flex with
+   align-items:center makes the layout glyph-height-agnostic, and a
+   small gap separates icon from text instead of relying on a raw
+   space character in the template. Vertical padding bumped from
+   2rpx to 4rpx so the pill has visible breathing room. */
 .goal-card__challenge-inline {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
   margin-left: 10rpx;
-  padding: 2rpx 14rpx;
+  padding: 4rpx 14rpx;
   border-radius: 999rpx;
   font-size: 20rpx;
   font-weight: 600;
@@ -662,6 +673,19 @@
   background: rgba(46, 169, 133, 0.1);
   letter-spacing: 0.3rpx;
   font-feature-settings: "tnum" 1;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.goal-card__challenge-inline-icon {
+  font-size: 20rpx;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.goal-card__challenge-inline-text {
+  line-height: 1.4;
 }
 
 .goal-card__challenge-inline.is-done {

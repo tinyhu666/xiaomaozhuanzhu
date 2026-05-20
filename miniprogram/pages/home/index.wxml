@@ -148,9 +148,18 @@
     <view class="goal-card__head">
       <view class="goal-card__title-wrap">
         <text class="goal-card__title">今日目标</text>
-        <text wx:if="{{dailyChallenge}}" class="goal-card__challenge-inline {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
-          {{dailyChallenge.completed ? '✓ 挑战 ' : '🎯 挑战 '}}{{dailyChallenge.targetMinutes}}分
-        </text>
+        <!--
+          v0.25.2 — switched from a single <text> to <view> wrapping
+          explicit <text> children. Mixing emoji + Chinese + digits in
+          one <text> caused subtle baseline drift inside the pill (the
+          🎯 sits taller than the Chinese characters), making the
+          content read as left-leaning. inline-flex + align-items:center
+          + explicit gap centers the children regardless of glyph height.
+        -->
+        <view wx:if="{{dailyChallenge}}" class="goal-card__challenge-inline {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
+          <text class="goal-card__challenge-inline-icon">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
+          <text class="goal-card__challenge-inline-text">挑战 {{dailyChallenge.targetMinutes}} 分</text>
+        </view>
       </view>
       <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
     </view>
