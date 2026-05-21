@@ -32,14 +32,19 @@
   /* The timer-card fills the entire focus-mode viewport. Border /
      shadow stripped since we're already on a tinted page. The card's
      internal flex layout (head row up top + clock centered + actions
-     at bottom) handles spacing. */
+     at bottom) handles spacing.
+     v0.25.4 — bottom padding now respects env(safe-area-inset-bottom)
+     so the 暂停 / 结束 buttons clear the iPhone home indicator. The
+     custom tab bar is also hidden in focus mode (syncFocusMode →
+     getTabBar().setData({hidden: true})), so we don't have to reserve
+     space for it anymore. */
   flex: 1;
   height: 100vh;
   border-radius: 0;
   border: none;
   box-shadow: none;
   background: transparent;
-  padding: 100rpx 56rpx 56rpx;
+  padding: 100rpx 56rpx calc(56rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }

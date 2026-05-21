@@ -552,30 +552,43 @@ Page<{}, HomePageData>({
   },
 
   /**
-   * v0.25.1 — focus-mode side-effects, fixed.
+   * v0.25.4 — focus-mode side-effects, properly fixed.
    *
-   * The previous v0.22.x implementation called wx.hideTabBar /
-   * wx.showTabBar to hide the bottom tabbar during a session. This
-   * was a bug under `tabBar.custom: true`: those APIs control the
-   * NATIVE tabbar, and calling showTabBar() while the custom one is
-   * also rendering produces TWO bars stacked on top of each other
-   * (the screenshot the user posted in 0.25 testing). Removed both
-   * calls — visual chrome is governed by the custom tabbar component
-   * instead.
+   * History recap (see CLAUDE.md + docs/ui-review-checklist.md §2A):
+   *   v0.22.0  added wx.hideTabBar / wx.showTabBar — WRONG: those
+   *            target the NATIVE tab bar, and showTabBar under
+   *            tabBar.custom:true spawns a phantom native bar on
+   *            top of the custom one.
+   *   v0.25.1  removed both wx.* API calls. Left visual chrome
+   *            entirely to the page's `.is-focus-mode` class.
+   *            Missed that the custom tab bar still floated over
+   *            the focus-mode action buttons (this v0.25.3 user
+   *            screenshot: 暂停/结束 covered by tab bar).
+   *   v0.25.4  this version. Talk to the custom-tab-bar component
+   *            directly: this.getTabBar().setData({ hidden: ... }).
+   *            The component owns the rendered chrome, so this is
+   *            the architecturally correct path.
    *
-   * The screen-on side-effect was also already removed in v0.22.1
-   * (battery + industry norm). So this method now only carries a
-   * defensive setKeepScreenOn(false) on session end, which clears
-   * any stale hold from a user still running a cached v0.22.0 client.
-   *
-   * The visual focus-mode (is-focus-mode class on .home-page) is
-   * driven purely by the wxml class binding, so no API call is
-   * needed here for the layout shift. If we ever want to hide the
-   * custom tabbar during a session, we should talk to the
-   * custom-tab-bar component directly via this.getTabBar() rather
-   * than using these legacy wx APIs.
+   * Both setKeepScreenOn and the tab-bar toggle are best-effort
+   * (wrapped + .catch()) so any failure doesn't leave the UI
+   * half-broken — the wxml `.is-focus-mode` class binding still
+   * drives the layout shift regardless.
    */
   syncFocusMode(session: ActiveSession | null) {
+    const enter = !!session;
+    // 1) Custom tab bar: hide during session, show during idle.
+    try {
+      const tabBar = this.getTabBar?.() as
+        | WechatMiniprogram.Component.TrivialInstance
+        | undefined;
+      tabBar?.setData?.({ hidden: enter });
+    } catch (_) {
+      /* non-fatal — wxml drives the layout, tab bar overlap is
+         a polish issue, not a functional break. */
+    }
+    // 2) Screen-on: still OFF by default (battery, see v0.22.1).
+    //    Defensive false on session end clears any stale hold from
+    //    a cached v0.22.0 client.
     if (!session) {
       try {
         (wx as any).setKeepScreenOn?.({ keepScreenOn: false }).catch?.(() => {});
@@ -583,8 +596,6 @@ Page<{}, HomePageData>({
         /* non-fatal */
       }
     }
-    // Intentional no-op for the enter case — visual change is
-    // entirely CSS-driven via the is-focus-mode class.
   },
 
   /**

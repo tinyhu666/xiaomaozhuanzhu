@@ -69,11 +69,19 @@ center）。
 调 `showTabBar` 会渲染一条**额外的**原生 tab bar 浮在自定义 tab bar
 上面（v0.22 - v0.25 的真实 bug 历史）。
 
-要隐藏/显示自定义 tab bar，通过组件:
+要隐藏/显示自定义 tab bar，通过组件（v0.25.4 已实现）:
 ```ts
 const tabBar = this.getTabBar?.();
-tabBar?.setData?.({ hidden: true });  // 需要 tab-bar 组件支持这个字段
+tabBar?.setData?.({ hidden: true });
 ```
+custom-tab-bar 组件根 view 绑了 `{{hidden ? 'is-hidden' : ''}}` 类，
+对应 WXSS 用 `transform: translateY(...)` + `opacity: 0` 优雅退场。
+
+### C. 改全屏覆盖元素（focus mode / 模态/弹窗）时，要同步隐藏自定义 tab bar
+
+任何 fixed 全屏元素都会被 z-index 100 的自定义 tab bar 盖住底部一截。
+要么主动调 `getTabBar().setData({hidden: true})`，要么给元素底部留够
+`env(safe-area-inset-bottom) + 120rpx` 的 padding 让按钮高于 tab bar。
 
 ### B. tab 顺序变了？
 
@@ -122,3 +130,5 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 | v0.25.0 | 完成按钮文字微偏 | WeChat `<button>::after` outline | `app.wxss` 全局防御 |
 | v0.25.0 | 「🎯 挑战 20分」 pill 内容不齐 | 单 `<text>` 混 emoji + CJK | §1A 本文件 |
 | v0.25.0 | 「🎉 今日目标已达成」hint 左偏 | 块级元素未居中 | v0.25.3 fix |
+| v0.25.0 | 自定义 tab bar 4-列 grid 留空列 → 视觉左偏 | v0.22 删动态时漏改 `repeat(4, ...)` | `custom-tab-bar/index.wxss` `repeat(3, ...)` |
+| v0.25.3 | focus mode 全屏覆盖时自定义 tab bar 挡住「暂停/结束」 | focus mode 没主动隐藏 tab bar | `home/index.ts syncFocusMode` 通过 `getTabBar().setData({hidden})` 控制；`custom-tab-bar` 加 `is-hidden` 类 |

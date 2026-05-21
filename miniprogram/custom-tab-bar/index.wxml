@@ -1,4 +1,4 @@
-<view class="tab-shell">
+<view class="tab-shell {{hidden ? 'is-hidden' : ''}}">
   <view
     wx:for="{{items}}"
     wx:key="pagePath"
