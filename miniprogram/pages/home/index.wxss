@@ -26,6 +26,25 @@
     linear-gradient(180deg, #ffffff 0%, #ebf7f1 100%);
   /* Centered single-card stack */
   justify-content: stretch;
+  /* v0.26 — entrance animation. Tapping「开始专注」kicks the page
+     into focus mode; this 0.32s fade + tiny scale-up gives it a
+     "world zooms in on the timer" feel, marking the transition as
+     a ritual rather than an instant flip. Disabled when reduced-
+     motion is preferred. */
+  animation: focus-mode-enter 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes focus-mode-enter {
+  0%   { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Respect user accessibility preference — no animation when they
+   asked for none at the OS level. */
+@media (prefers-reduced-motion: reduce) {
+  .home-page.is-focus-mode {
+    animation: none;
+  }
 }
 
 .home-page.is-focus-mode > .timer-card {

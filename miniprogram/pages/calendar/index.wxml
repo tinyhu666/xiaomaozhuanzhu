@@ -8,6 +8,19 @@
     <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handleNextMonth">下月</view>
   </view>
 
+  <!--
+    v0.26 — empty-month hint. When totalMinutes for this month is 0
+    we surface a small message above the grid so the all-gray board
+    reads as "no data yet" instead of "broken". Tapping any future
+    day in the grid still works, but tapping is unlikely to help
+    discoverability — the friendly text spells it out.
+  -->
+  <view wx:if="{{monthIsEmpty}}" class="calendar-empty-month">
+    <text class="calendar-empty-month__icon">🐾</text>
+    <text class="calendar-empty-month__text">本月还没有打卡记录</text>
+    <text class="calendar-empty-month__sub">回到首页开始一次专注吧</text>
+  </view>
+
   <view class="calendar-board">
     <view class="calendar-board__weekdays">
       <text>一</text>

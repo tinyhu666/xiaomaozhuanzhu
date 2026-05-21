@@ -2,9 +2,6 @@ import { runtimeConfig } from "../config/runtime";
 import type {
   CalendarDayResponse,
   HomeResponse,
-  NewsCategory,
-  NewsDetailResponse,
-  NewsListResponse,
   ProfileDashboardResponse,
   PublicProfileResponse,
   SessionPhoto,
@@ -438,22 +435,9 @@ export function reminderDisable() {
   });
 }
 
-export function getNewsList(params: { category?: NewsCategory | "all"; limit?: number; before?: string } = {}) {
-  const queryParts: string[] = [];
-  if (params.category && params.category !== "all") queryParts.push(`category=${encodeURIComponent(params.category)}`);
-  if (params.limit) queryParts.push(`limit=${params.limit}`);
-  if (params.before) queryParts.push(`before=${encodeURIComponent(params.before)}`);
-  const query = queryParts.length ? `?${queryParts.join("&")}` : "";
-  return callContainer<NewsListResponse>({
-    path: `/news${query}`
-  });
-}
-
-export function getNewsDetail(id: string) {
-  return callContainer<NewsDetailResponse>({
-    path: `/news/${encodeURIComponent(id)}`
-  });
-}
+// v0.26 — getNewsList / getNewsDetail removed alongside the v0.22
+// 「动态」 tab deletion. Client had 0 importers since v0.22; server
+// /api/news + /api/news/:id routes are also gone (this version).
 
 export async function uploadCheckinPhoto(localPath: string) {
   ensureCloudReady();

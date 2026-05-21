@@ -8,6 +8,10 @@ type CalendarPageData = {
   monthTitle: string;
   grid: ReturnType<typeof buildMonthGrid>;
   monthTotalText: string;
+  /** v0.26 — true when the current month has 0 minutes of recorded
+   *  study. The wxml uses this to swap the heat grid for a friendly
+   *  empty-state instead of a blank gray grid. */
+  monthIsEmpty: boolean;
   selectedDate: string;
   selectedDateText: string;
   selectedTotalText: string;
@@ -20,6 +24,7 @@ Page<{}, CalendarPageData>({
     monthTitle: "",
     grid: [],
     monthTotalText: "0m",
+    monthIsEmpty: false,
     selectedDate: "",
     selectedDateText: "",
     selectedTotalText: "0m",
@@ -77,7 +82,11 @@ Page<{}, CalendarPageData>({
       this.setData({
         grid,
         monthTotalText: formatDuration(totalMinutes),
-        selectedDate
+        selectedDate,
+        // v0.26 — show an empty-month hint when there's truly no
+        // data in this month. Previously the whole grid rendered
+        // gray with no explanation, which read as "broken".
+        monthIsEmpty: totalMinutes === 0
       });
 
       await this.loadDay(selectedDate);

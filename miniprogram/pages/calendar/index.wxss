@@ -408,3 +408,40 @@
 .session-item__photo:active {
   transform: scale(0.97);
 }
+
+/* v0.26 — empty-month hint card. Sits between the hero and the heat
+   grid when the month has no recorded sessions. Soft mint background
+   so it doesn't shout; sits compact in one stack. */
+.calendar-empty-month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  padding: 22rpx 28rpx;
+  border-radius: 22rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.18), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
+  margin-bottom: 12rpx;
+}
+
+.calendar-empty-month__icon {
+  font-size: 40rpx;
+  line-height: 1;
+  margin-bottom: 4rpx;
+}
+
+.calendar-empty-month__text {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.calendar-empty-month__sub {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  opacity: 0.8;
+  letter-spacing: 0.2rpx;
+}

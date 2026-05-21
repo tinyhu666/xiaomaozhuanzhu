@@ -66,28 +66,16 @@ Page<{}, CompletePageData>({
   onLoad(query) {
     const minutes = Number(query.minutes ?? 0);
     const cycles = Math.max(0, Math.min(32, Number(query.cycles ?? 0) | 0));
-    // v0.21.3 — defensively decode a `subject` query param for any
-    // in-flight session started under v0.21.2 (where the home page
-    // still passed an encoded subject through). New sessions will
-    // never pass this param; once they pre-select it, the user can
-    // still tap to change.
-    const rawSubject = String(query.subject ?? "");
-    let preselected = "";
-    if (rawSubject) {
-      try {
-        preselected = decodeURIComponent(rawSubject);
-      } catch {
-        preselected = rawSubject;
-      }
-      if (!SUBJECTS.includes(preselected)) preselected = "";
-    }
+    // v0.26 — removed the v0.21.3 defensive `query.subject` decode.
+    // It was a transition-period fallback for v0.21.2 in-flight
+    // sessions that had encoded subject in the URL. By now, every
+    // installed client passes subject=null on start (v0.21.3+), so
+    // the URL never carries a subject. Subject is always chosen on
+    // this page via the chip row.
     this.setData({
       sessionId: String(query.sessionId ?? ""),
       durationText: `${minutes} 分钟`,
-      subjectChips: SUBJECTS.map((value) => ({
-        value,
-        selected: value === preselected
-      })),
+      subjectChips: SUBJECTS.map((value) => ({ value, selected: false })),
       pomodoroCycles: cycles,
       pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
     });
@@ -255,8 +243,13 @@ Page<{}, CompletePageData>({
   },
 
   onTapOpenAchievements() {
-    // Navigate to the achievement wall so the user can see the new
-    // unlock in context with the rest.
-    wx.navigateTo({ url: "/package-profile/badges/index" });
+    // v0.26 — was wx.navigateTo. Reading the flow end-to-end:
+    //   complete (modal) → navigateTo badges → user back-gesture →
+    //   complete still on stack with modal open → user has to tap
+    //   "继续专注" again to actually leave.
+    // redirectTo replaces /complete on the stack, so back from
+    // badges goes straight to home (the tab the user was on before
+    // they opened /complete). One fewer tap.
+    wx.redirectTo({ url: "/package-profile/badges/index" });
   }
 });

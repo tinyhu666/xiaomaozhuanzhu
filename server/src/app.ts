@@ -7,8 +7,11 @@ import { registerAdminRoutes } from "./admin/routes";
 import { SUBJECTS, SUBJECT_TARGET_MINUTES, TAGS, type SessionTag, type Subject } from "./constants";
 import { addShanghaiDays, monthBounds, formatShanghaiDate, startOfShanghaiWeek } from "./domain/date-utils";
 import { getExamSchedule } from "./domain/exam-dates";
-import { maybeKickoffNewsRefresh } from "./domain/news";
-import { ensureNewsSeed } from "./domain/news-seed";
+// v0.26 — maybeKickoffNewsRefresh / ensureNewsSeed imports removed.
+// The public /api/news routes were deleted alongside the v0.22 「动态」
+// tab cleanup; news_items table + admin curation routes still exist
+// in case the feature is revived later, but the boot-time seed and
+// auto-refresh trigger are no longer wired from app.ts.
 import {
   buildDayContributions,
   buildHourlyPattern,
@@ -140,14 +143,10 @@ export function createApp(options: CreateAppOptions = {}) {
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
 
-  // Install the curated「动态」seed once per process start. Fire-and-
-  // forget — the seed is idempotent and small (7 items), so failure
-  // here just means the user sees fetched-only content on this boot.
-  if (options.seedNews !== false) {
-    void ensureNewsSeed(store, clock.now()).catch((error) => {
-      console.warn("[news] seed install failed", error);
-    });
-  }
+  // v0.26 — news seed no longer installed at boot. The public news
+  // routes were removed in v0.26 alongside the 「动态」 tab cleanup;
+  // existing news_items data + admin curation routes are still
+  // available if we revive the feature later.
 
   app.use(express.json({ limit: "1mb" }));
 
@@ -687,44 +686,11 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   });
 
-  // -------- News (考试动态) --------
-  // Reads are intentionally un-authenticated: the「动态」tab is
-  // public-facing content (CICPA announcements) and the miniprogram
-  // sometimes calls /api/news before identity bootstrap completes.
-  // Hitting GET kicks off a fire-and-forget refresh whenever the
-  // cache is stale (>3h since last successful fetch); the response
-  // always serves the current cache so users never block on network.
-  app.get("/api/news", async (request, response, next) => {
-    try {
-      const category = parseNewsCategoryParam(request.query.category);
-      const limit = parseLimit(request.query.limit, 30, 100);
-      const before = typeof request.query.before === "string" ? request.query.before : undefined;
-      // Fire-and-forget; the user reads whatever is currently in cache.
-      maybeKickoffNewsRefresh(store, clock.now());
-      const items = await store.listNews({ category, limit, before });
-      response.json({
-        items: items.map(serializeNewsListItem),
-        // Pagination cursor: callers feed the last publishedAt as
-        // `before=` to request the next page.
-        nextBefore: items.length === limit ? items[items.length - 1].publishedAt : null
-      });
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  app.get("/api/news/:id", async (request, response, next) => {
-    try {
-      const id = String(request.params.id);
-      const item = await store.getNewsById(id);
-      if (!item || item.hidden) {
-        throw new AppError(404, "NOT_FOUND", "News item does not exist");
-      }
-      response.json({ item: serializeNewsDetail(item) });
-    } catch (error) {
-      next(error);
-    }
-  });
+  // v0.26 — 「动态」 (news) tab removed in v0.22 from the client.
+  // Public /api/news + /api/news/:id routes removed here; the
+  // admin /admin/news routes (curation + manual posts) stay for
+  // now in case we revive the feature later. news_items table
+  // also kept so existing data isn't deleted.
 
   app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);
