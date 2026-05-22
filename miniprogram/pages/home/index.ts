@@ -229,19 +229,12 @@ Page<{}, HomePageData>({
     maybeRefillReminderCredits(new Date()).catch((error) => {
       console.warn("[home] reminder refill failed", error);
     });
-    // v0.29 — cold-start quote card. Fires exactly once per app
-    // launch via the module-level `quoteShownThisLaunch` flag (set
-    // to true here, reset to false only when the Page is
-    // reconstructed — which happens on cold-start). Tab switches +
-    // background→foreground resumes preserve the flag so this
-    // doesn't pester the user mid-day.
-    if (!quoteShownThisLaunch) {
-      quoteShownThisLaunch = true;
-      const now = new Date();
-      const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      const quote = getDailyQuote(dateKey);
-      this.setData({ launchQuote: quote });
-    }
+    // v0.29 — cold-start quote card. The actual fire is gated inside
+    // applyActiveSession's first call per launch, so we KNOW the
+    // server-resolved session state before deciding whether to show.
+    // Firing here directly raced the server roundtrip: this.data
+    // .activeSession is null at onShow time, so the quote popped
+    // even when the user was actually mid-session.
   },
 
   /** Tap-to-dismiss the cold-start quote card. */
@@ -584,6 +577,20 @@ Page<{}, HomePageData>({
     });
     this.refreshEmptyHint();
     this.syncTimer(session);
+    // v0.29.1 — cold-start quote card. Fires on the FIRST
+    // applyActiveSession call per launch (which happens after the
+    // /home server roundtrip resolves the actual session state), so
+    // we know whether the user is mid-session and skip the modal if
+    // they are. quoteShownThisLaunch is a module-level boolean that
+    // resets only on Page() reconstruction (= miniprogram cold-start).
+    if (!quoteShownThisLaunch) {
+      quoteShownThisLaunch = true;
+      if (!session) {
+        const today = new Date();
+        const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        this.setData({ launchQuote: getDailyQuote(dateKey) });
+      }
+    }
   },
 
   /**

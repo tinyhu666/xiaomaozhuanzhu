@@ -790,7 +790,8 @@ button::after {
   .stat-tile__value,
   .stat-card .stat-value,
   .public-stat__value,
-  .badges-hero__title {
+  .badges-hero__title,
+  .subject-card__pct.is-reached {
     color: var(--c-accent) !important;
   }
 

@@ -272,33 +272,9 @@
   box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.3);
 }
 
-/* ============================================================
-   Quote — minimal italic block, no card chrome. Decorative.
-   ============================================================ */
-.profile-quote {
-  padding: 4rpx 8rpx;
-}
-
-.profile-quote__en {
-  display: block;
-  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
-  font-size: 28rpx;
-  font-weight: 600;
-  font-style: italic;
-  line-height: 1.5;
-  color: #155946;
-  letter-spacing: 0.2rpx;
-}
-
-.profile-quote__zh {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  font-weight: 400;
-  line-height: 1.6;
-  color: var(--text-sub);
-  letter-spacing: 0.3rpx;
-}
+/* v0.26.1 — .profile-quote* styles removed alongside the wxml block
+   in v0.23. The quote content lives in the v0.29 cold-start modal
+   now (pages/home/index.wxss .quote-card class). */
 
 /* ============================================================
    Menu list — staggered fade-in for each item gives a sense of

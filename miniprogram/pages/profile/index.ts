@@ -4,7 +4,7 @@ import type { Badge, ProfileDashboardResponse, SubjectProgress } from "../../typ
 import { getProfileDashboard, listMySessions, saveProfile, uploadAvatar } from "../../utils/api";
 import { consumeMonthlySummary, type MonthlySummary } from "../../utils/monthly";
 import { consumeWeeklyRecap, type WeeklyRecap } from "../../utils/weekly-recap";
-import { formatDuration, getDailyQuote } from "../../utils/view-models";
+import { formatDuration } from "../../utils/view-models";
 
 /**
  * Plain-Chinese hour label, e.g. 8 → "早上 8 点", 20 → "晚上 8 点",
@@ -56,8 +56,6 @@ type ProfilePageData = {
   subjectsHint: string;
   shareHint: string;
   appVersion: string;
-  quoteEn: string;
-  quoteZh: string;
   statTiles: StatTileView[];
   insights: InsightView;
   /** v0.18 — the "上月小结" modal payload. Non-null only on the first
@@ -83,8 +81,6 @@ Page<{}, ProfilePageData>({
     subjectsHint: "—",
     shareHint: "未开启",
     appVersion: runtimeConfig.appVersion,
-    quoteEn: "One page at a time.",
-    quoteZh: "一页一页，也是在前进。",
     statTiles: [],
     insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] },
     monthlySummary: null,
@@ -99,13 +95,7 @@ Page<{}, ProfilePageData>({
     // v0.22 — 3 tabs (首页 / 日历 / 我的); profile is index 2.
     // 动态 tab was removed because it wasn't tied to the focus loop.
     tabBar?.setData?.({ selected: 2 });
-    // Refresh the daily quote each time the user opens this tab so a
-    // re-entry mid-day picks a different line. getDailyQuote already
-    // persists "last shown" to avoid back-to-back duplicates.
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const quote = getDailyQuote(today);
-    this.setData({ quoteEn: quote.en, quoteZh: quote.zh });
+    // v0.26.1 — daily quote moved to v0.29 cold-start modal on home.
     await getApp<IAppOption>().ensureProfile().catch((error) => {
       console.error("[profile] ensureProfile failed", error);
     });
