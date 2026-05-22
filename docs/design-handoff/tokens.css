@@ -1,0 +1,315 @@
+/* ─────────────────────────────────────────────────────────
+   小猫专注 · Design Tokens
+   Mirrors §5 of ui-redesign-brief.md
+   All px values are at iPhone 14 (390×844) — i.e. rpx ÷ 2
+   ───────────────────────────────────────────────────────── */
+:root {
+  /* Palette */
+  --c-primary: #155946;       /* 深墨绿 */
+  --c-primary-700: #0e4434;
+  --c-accent: #2EA985;        /* 薄荷绿 */
+  --c-bg-light: #F3FAF6;      /* 奶绿 */
+  --c-bg-dark: #1A1F1C;       /* 碳灰 (focus mode) */
+  --c-surface-light: #FFFFFF;
+  --c-surface-dark: #2A2F2D;
+  --c-soft-mint: #ECF5F0;     /* chip bg light */
+  --c-soft-mint-deep: #2D3433;
+
+  --c-text-1: #1F2624;
+  --c-text-2: #5E7D75;
+  --c-text-3: #98ABA4;
+  --c-stroke: #E3EBE7;
+  --c-placeholder: #C2D0CB;
+
+  --c-text-1-dark: #E8EFEC;
+  --c-text-2-dark: #8FA59C;
+  --c-stroke-dark: #2E3633;
+
+  --c-rarity-common: #98ABA4;
+  --c-rarity-rare: #4A6ED9;
+  --c-rarity-epic: #E57B2B;
+  --c-rarity-legendary: #C9881C;
+
+  --c-warning: #C2562B;
+  --c-error: #A0322B;
+
+  /* Heatmap — 6 mint→deep-green stops (light) */
+  --hm-0: #ECF5F0;
+  --hm-1: #C8E4D5;
+  --hm-2: #95CDB1;
+  --hm-3: #5CB489;
+  --hm-4: #2E9869;
+  --hm-5: #155946;
+
+  /* Heatmap — 6 stops for dark mode (carbon → accent mint) */
+  --hm-d-0: #232927;
+  --hm-d-1: #283832;
+  --hm-d-2: #285043;
+  --hm-d-3: #266957;
+  --hm-d-4: #28876D;
+  --hm-d-5: #2EA985;
+
+  /* Type sizes (px @ 390 viewport ≈ rpx÷2) */
+  --fs-display: 64px;   /* 128rpx */
+  --fs-hero: 32px;      /* 64rpx */
+  --fs-t1: 20px;        /* 40rpx */
+  --fs-t2: 16px;        /* 32rpx */
+  --fs-body: 14px;      /* 28rpx */
+  --fs-caption: 11px;   /* 22rpx */
+  --fs-micro: 9px;      /* 18rpx */
+
+  /* Spacing (8-base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-page: 16px;       /* 32rpx */
+
+  /* Radius */
+  --r-pill: 999px;
+  --r-md: 8px;          /* 16rpx — buttons, inputs */
+  --r-lg: 12px;         /* 24rpx — cards */
+  --r-xl: 16px;         /* 32rpx — modals */
+
+  /* Shadow */
+  --sh-1: 0 1px 4px rgba(20, 60, 50, 0.04);
+  --sh-2: 0 6px 16px -2px rgba(20, 60, 50, 0.08);
+  --sh-3: 0 12px 30px -4px rgba(20, 60, 50, 0.16);
+
+  /* Motion */
+  --ease-std: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --ease-out: cubic-bezier(0.4, 0, 1, 1);
+  --d-1: 100ms;
+  --d-2: 220ms;
+  --d-3: 320ms;
+  --d-celebrate: 600ms;
+
+  /* Type stack */
+  --ff-cn: "PingFang SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --ff-num: "SF Pro Rounded", "SF Pro Display", -apple-system, "Helvetica Neue", sans-serif;
+}
+
+/* Reset and base */
+.app {
+  width: 100%;
+  height: 100%;
+  background: var(--c-bg-light);
+  color: var(--c-text-1);
+  font-family: var(--ff-cn);
+  font-size: var(--fs-body);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+}
+.app.dark {
+  background: var(--c-bg-dark);
+  color: var(--c-text-1-dark);
+}
+
+.app *, .app *::before, .app *::after { box-sizing: border-box; }
+
+/* Numeric — tabular-nums, no italic, weights 400/600/800 only */
+.num {
+  font-family: var(--ff-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  letter-spacing: -0.02em;
+}
+
+/* Card */
+.card {
+  background: var(--c-surface-light);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+}
+.dark .card {
+  background: var(--c-surface-dark);
+  box-shadow: none;
+  border: 1px solid var(--c-stroke-dark);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 0 var(--s-5);
+  height: 44px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-family: var(--ff-cn);
+  border: 0;
+  cursor: pointer;
+  transition: transform var(--d-1) var(--ease-std), background var(--d-2) var(--ease-std), opacity var(--d-2) var(--ease-std);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn[disabled] { opacity: 0.55; pointer-events: none; }
+.btn-primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--c-primary-700); }
+.btn-ghost {
+  background: transparent;
+  color: var(--c-primary);
+  border: 1.5px solid var(--c-primary);
+}
+.dark .btn-ghost {
+  color: #E8EFEC;
+  border-color: rgba(232,239,236,0.35);
+}
+.btn-danger {
+  background: transparent;
+  color: var(--c-warning);
+  border: 1.5px solid var(--c-warning);
+}
+
+/* Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  height: 28px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--c-soft-mint);
+  color: var(--c-text-1);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--d-2) var(--ease-std), color var(--d-2) var(--ease-std), transform var(--d-1) var(--ease-std);
+  border: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active { transform: scale(0.97); }
+.chip.active {
+  background: var(--c-primary);
+  color: #fff;
+}
+.dark .chip {
+  background: var(--c-soft-mint-deep);
+  color: var(--c-text-1-dark);
+}
+.dark .chip.active { background: var(--c-accent); color: #fff; }
+
+/* Caption */
+.caption { font-size: var(--fs-caption); color: var(--c-text-2); }
+.dark .caption { color: var(--c-text-2-dark); }
+.micro { font-size: var(--fs-micro); color: var(--c-text-2); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+.dark .micro { color: var(--c-text-2-dark); }
+
+/* Page padding helper */
+.page-pad { padding-left: var(--s-page); padding-right: var(--s-page); }
+
+/* Custom switch */
+.swt {
+  width: 44px; height: 24px; border-radius: var(--r-pill);
+  background: var(--c-stroke); position: relative; cursor: pointer;
+  transition: background var(--d-2) var(--ease-std);
+}
+.swt::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+  background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  transition: transform var(--d-2) var(--ease-std);
+}
+.swt.on { background: var(--c-primary); }
+.swt.on::after { transform: translateX(20px); }
+
+/* Tab bar */
+.tab-bar {
+  position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  transform: translateX(-50%);
+  display: flex; gap: 4px;
+  padding: 6px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-radius: var(--r-pill);
+  box-shadow: var(--sh-2);
+  z-index: 10;
+}
+.dark .tab-bar {
+  background: rgba(42,47,45,0.88);
+}
+.tab-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  font-size: var(--fs-caption); font-weight: 600;
+  color: var(--c-text-2); background: transparent;
+  cursor: pointer; border: 0;
+  transition: background var(--d-2) var(--ease-std), color var(--d-2) var(--ease-std);
+}
+.tab-btn.active { background: var(--c-primary); color: #fff; }
+.dark .tab-btn.active { background: var(--c-accent); }
+
+/* Breathing animation for focus timer */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.86; transform: scale(0.985); }
+}
+.breathe { animation: breathe 4s ease-in-out infinite; }
+
+/* Soft fade-up entry (decorative; once) */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.32s var(--ease-std) both; }
+
+/* Progress bar */
+.bar {
+  height: 6px; background: var(--c-stroke); border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.bar > i {
+  display: block; height: 100%; background: var(--c-primary);
+  border-radius: var(--r-pill);
+  transition: width 600ms var(--ease-std);
+}
+.dark .bar { background: var(--c-stroke-dark); }
+.dark .bar > i { background: var(--c-accent); }
+
+/* Avatar */
+.avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #2EA985 0%, #155946 100%);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 22px;
+  flex: 0 0 auto;
+}
+
+/* Cat-breed photo — sourced from cataas.com, treated for cohesion */
+.cat-photo {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  background: var(--c-soft-mint);
+  filter: saturate(1.05) contrast(1.02);
+  transition: filter var(--d-2) var(--ease-std), opacity var(--d-2) var(--ease-std);
+}
+.cat-photo.locked {
+  filter: grayscale(0.95) brightness(0.95) contrast(0.9);
+  opacity: 0.55;
+}
+.dark .cat-photo { filter: saturate(0.95) contrast(1.02) brightness(0.92); }
+.dark .cat-photo.locked { filter: grayscale(0.95) brightness(0.6) contrast(0.85); opacity: 0.5; }
+
+/* Focus mode atmospheric glow */
+.focus-halo {
+  position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+  width: 480px; height: 480px; pointer-events: none;
+  background: radial-gradient(circle at center, rgba(46,169,133,0.16) 0%, rgba(46,169,133,0) 60%);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .breathe, .fade-up, .bar > i { animation: none !important; transition: none !important; }
+}

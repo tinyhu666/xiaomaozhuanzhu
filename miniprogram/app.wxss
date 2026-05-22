@@ -1,4 +1,104 @@
+/* ─────────────────────────────────────────────────────────
+ * v0.27.0 — Design tokens migrated from docs/ui-redesign-brief.md
+ * §5 and the Claude-Design handoff (tokens.css).
+ *
+ * Two layers live here in parallel:
+ *   1. NEW tokens (--c-*, --fs-*, --r-*, --sh-*, --d-*, --ease-*,
+ *      --hm-*) — what new code (Phase 2+) is supposed to use.
+ *   2. LEGACY tokens (--bg-soft, --mint-500, --text-main, etc.) —
+ *      kept because all existing page WXSS still references them.
+ *      As pages migrate, references will switch to new tokens and
+ *      the legacy block can shrink.
+ *
+ * WXSS supports CSS custom properties when declared on `:root` or
+ * `page`. We use `:root` here because all pages inherit through
+ * the cascade. If a particular component needs an override, declare
+ * the var inside that component's WXSS as well.
+ * ───────────────────────────────────────────────────────── */
 :root {
+  /* ===== NEW (Phase 2+ uses these) ===================== */
+
+  /* Palette */
+  --c-primary: #155946;           /* 深墨绿 — 主品牌、大字号数字、CTA */
+  --c-primary-700: #0e4434;       /* primary hover */
+  --c-accent: #2EA985;            /* 薄荷绿 — 次要强调、链接、深色态主品牌替代 */
+  --c-bg-light: #F3FAF6;          /* 浅模式背景 */
+  --c-bg-dark: #1A1F1C;           /* 深模式背景 (focus mode) */
+  --c-surface-light: #FFFFFF;     /* 卡片底（浅）*/
+  --c-surface-dark: #2A2F2D;      /* 卡片底（深）*/
+  --c-soft-mint: #ECF5F0;         /* chip 默认底（浅）*/
+  --c-soft-mint-deep: #2D3433;    /* chip 默认底（深）*/
+
+  --c-text-1: #1F2624;            /* 正文（浅）*/
+  --c-text-2: #5E7D75;            /* 次要（浅）*/
+  --c-text-3: #98ABA4;            /* 极次要（浅）*/
+  --c-stroke: #E3EBE7;            /* 描边（浅）*/
+  --c-placeholder: #C2D0CB;       /* 输入框 placeholder */
+
+  --c-text-1-dark: #E8EFEC;
+  --c-text-2-dark: #8FA59C;
+  --c-stroke-dark: #2E3633;
+
+  /* 稀有度（成就系统专用，不要外溢到其他模块）*/
+  --c-rarity-common: #98ABA4;
+  --c-rarity-rare: #4A6ED9;
+  --c-rarity-epic: #E57B2B;
+  --c-rarity-legendary: #C9881C;
+
+  --c-warning: #C2562B;
+  --c-error: #A0322B;
+
+  /* 日历热力 — 6 档（浅）*/
+  --hm-0: #ECF5F0;
+  --hm-1: #C8E4D5;
+  --hm-2: #95CDB1;
+  --hm-3: #5CB489;
+  --hm-4: #2E9869;
+  --hm-5: #155946;
+  /* 日历热力 — 6 档（深）*/
+  --hm-d-0: #232927;
+  --hm-d-1: #283832;
+  --hm-d-2: #285043;
+  --hm-d-3: #266957;
+  --hm-d-4: #28876D;
+  --hm-d-5: #2EA985;
+
+  /* 字号阶梯（rpx — 750 设计宽度）*/
+  --fs-display: 128rpx;   /* focus mode 计时器，唯一 */
+  --fs-hero: 64rpx;       /* 考试倒计时数字、解锁名 */
+  --fs-t1: 40rpx;         /* 页面标题 */
+  --fs-t2: 32rpx;         /* 卡片标题 */
+  --fs-body: 28rpx;       /* 正文 */
+  --fs-caption: 22rpx;    /* 说明 */
+  --fs-micro: 18rpx;      /* 极次要标签 / eyebrow */
+
+  /* 间距 — 8-base 网格 */
+  --s-1: 8rpx;
+  --s-2: 16rpx;
+  --s-3: 24rpx;
+  --s-4: 32rpx;            /* 页边距 */
+  --s-5: 40rpx;            /* 卡片间距 */
+
+  /* 圆角 — 仅 4 档 */
+  --r-pill: 999rpx;
+  --r-md: 16rpx;           /* 按钮 / 输入框 */
+  --r-lg: 24rpx;           /* 卡片 */
+  --r-xl: 32rpx;           /* modal */
+
+  /* 阴影 — 仅 3 档 */
+  --sh-1: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);          /* 卡片浮起 */
+  --sh-2: 0 12rpx 32rpx -4rpx rgba(20, 60, 50, 0.08);  /* 浮层突出 */
+  --sh-3: 0 24rpx 60rpx -8rpx rgba(20, 60, 50, 0.16);  /* modal 强调 */
+
+  /* 动效 */
+  --d-1: 100ms;            /* 按压反馈 */
+  --d-2: 220ms;            /* chip 切换、值变化 */
+  --d-3: 320ms;            /* 页面 / modal 进退 */
+  --d-4: 600ms;            /* 庆祝动画 */
+  --ease-std: cubic-bezier(0.2, 0.8, 0.3, 1);
+  --ease-out: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ===== LEGACY (页迁移完后删除) ======================= */
   --bg-soft: #f6fff9;
   --bg-mint: #e6faf2;
   --bg-card: rgba(255, 255, 255, 0.88);
@@ -356,5 +456,221 @@ button::after {
   text-align: center;
   color: var(--text-sub);
   font-size: 26rpx;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * v0.27.0 — Design system utility classes (Phase 2+ uses these).
+ *
+ * Mapped 1:1 from the Claude-Design handoff tokens.css. Naming
+ * matches the design exactly (.num, .micro, .caption, .bar, .card-v2,
+ * .chip-v2, .btn-*, .breathe, .fade-up, .page-pad) so when migrating
+ * a page WXML, the class names can be copied from screen-*.jsx
+ * verbatim.
+ *
+ * Existing pages do NOT use these yet — they're additive. As pages
+ * migrate, references will switch over and the legacy classes can
+ * eventually retire.
+ * ───────────────────────────────────────────────────────── */
+
+/* Number / tabular-nums — for any digit-heavy text */
+.num {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  font-family: "SF Pro Rounded", "PingFang SC", -apple-system, sans-serif;
+}
+
+/* Eyebrow micro-label — "今日已专注" type labels */
+.micro {
+  font-size: var(--fs-micro);
+  color: var(--c-text-2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  line-height: 1;
+}
+.is-dark .micro,
+.is-focus-mode .micro,
+.dark-surface .micro { color: var(--c-text-2-dark); }
+
+/* Body caption — secondary text */
+.caption {
+  font-size: var(--fs-caption);
+  color: var(--c-text-2);
+  line-height: 1.4;
+}
+.is-dark .caption,
+.is-focus-mode .caption,
+.dark-surface .caption { color: var(--c-text-2-dark); }
+
+/* Progress bar — 6rpx track + accent fill */
+.bar {
+  width: 100%;
+  height: 6rpx;
+  border-radius: var(--r-pill);
+  background: var(--c-stroke);
+  overflow: hidden;
+}
+.bar > .bar__fill {
+  display: block;
+  height: 100%;
+  background: var(--c-primary);
+  border-radius: var(--r-pill);
+  transition: width var(--d-3) var(--ease-std);
+}
+.is-dark .bar,
+.is-focus-mode .bar,
+.dark-surface .bar { background: var(--c-stroke-dark); }
+.is-dark .bar > .bar__fill,
+.is-focus-mode .bar > .bar__fill,
+.dark-surface .bar > .bar__fill { background: var(--c-accent); }
+
+/* Card v2 — minimal surface, 24rpx radius, sh-1 lift */
+.card-v2 {
+  background: var(--c-surface-light);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  padding: var(--s-3);
+}
+.is-dark .card-v2,
+.is-focus-mode .card-v2,
+.dark-surface .card-v2 {
+  background: var(--c-surface-dark);
+  box-shadow: none;
+  border: 1rpx solid var(--c-stroke-dark);
+}
+
+/* Chip v2 — pill with active state, replaces the v0.21 .tag-chip
+   for new code. Designed for single- or multi-select rows. Mix
+   emoji + CJK + digits ONLY by wrapping with <view class="chip-v2">
+   containing <text> children + explicit gap — see CLAUDE.md §1A. */
+.chip-v2 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  min-height: 56rpx;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--c-soft-mint);
+  color: var(--c-text-1);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  border: 0;
+  transition: background var(--d-2) var(--ease-std),
+              color var(--d-2) var(--ease-std),
+              transform var(--d-1) var(--ease-std);
+}
+.chip-v2:active { transform: scale(0.97); }
+.chip-v2.is-active {
+  background: var(--c-primary);
+  color: #fff;
+}
+.is-dark .chip-v2,
+.is-focus-mode .chip-v2,
+.dark-surface .chip-v2 {
+  background: var(--c-soft-mint-deep);
+  color: var(--c-text-1-dark);
+}
+.is-dark .chip-v2.is-active,
+.is-focus-mode .chip-v2.is-active,
+.dark-surface .chip-v2.is-active {
+  background: var(--c-accent);
+  color: #fff;
+}
+
+/* Button v2 — to be used by Phase 2+ pages. The legacy .cta-button
+   / .ghost-button / .danger-button stay for now; Phase 2 onwards
+   new buttons use .btn-v2 + .btn-v2--primary / --ghost / --danger.
+   Same WeChat <button>::after-override is applied below. */
+.btn-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  border: 0;
+  border-radius: var(--r-md);
+  padding: 0;
+  min-height: 88rpx;
+  height: 88rpx;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  transition: transform var(--d-1) var(--ease-std),
+              background var(--d-2) var(--ease-std),
+              opacity var(--d-2) var(--ease-std);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-v2::after { border: none !important; }
+.btn-v2:active { transform: scale(0.97); }
+.btn-v2[disabled] { opacity: 0.55; transform: none; }
+
+.btn-v2--primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+.btn-v2--primary:active { background: var(--c-primary-700); }
+.is-dark .btn-v2--primary,
+.is-focus-mode .btn-v2--primary,
+.dark-surface .btn-v2--primary {
+  background: var(--c-accent);
+}
+
+.btn-v2--ghost {
+  background: transparent;
+  color: var(--c-primary);
+  border: 2rpx solid var(--c-primary);
+}
+.is-dark .btn-v2--ghost,
+.is-focus-mode .btn-v2--ghost,
+.dark-surface .btn-v2--ghost {
+  color: var(--c-text-1-dark);
+  border-color: rgba(232, 239, 236, 0.35);
+}
+
+.btn-v2--danger {
+  background: transparent;
+  color: var(--c-warning);
+  border: 2rpx solid var(--c-warning);
+}
+
+/* Page padding helper (32rpx left/right per token §5) */
+.page-pad { padding-left: var(--s-4); padding-right: var(--s-4); }
+
+/* Breathing — focus mode timer */
+@keyframes design-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.86; transform: scale(0.985); }
+}
+.breathe { animation: design-breathe 4s ease-in-out infinite; }
+
+/* Soft fade-up entry (decorative, fires once) */
+@keyframes design-fade-up {
+  from { opacity: 0; transform: translateY(8rpx); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: design-fade-up var(--d-3) var(--ease-std) backwards; }
+
+/* Focus-mode atmospheric glow (centered halo at top of viewport) */
+.focus-halo {
+  position: absolute;
+  top: -120rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 960rpx;
+  height: 960rpx;
+  pointer-events: none;
+  background: radial-gradient(circle at center,
+    rgba(46, 169, 133, 0.16) 0%,
+    rgba(46, 169, 133, 0) 60%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .fade-up,
+  .bar > .bar__fill { animation: none !important; transition: none !important; }
 }
 
