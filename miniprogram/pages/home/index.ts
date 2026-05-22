@@ -19,7 +19,7 @@ import {
 } from "../../utils/audio";
 import { getSettings, type UserSettings } from "../../utils/settings";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
-import { formatDuration, getSessionActions } from "../../utils/view-models";
+import { formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
 
 /* ---------- Pomodoro constants ---------- */
 // SUBJECTS constant removed in v0.21.3 — the only home reference was
@@ -38,6 +38,13 @@ const POMODORO_DEFAULTS = {
   longBreakSec: 15 * 60,
   cyclesPerSet: 4
 } as const;
+
+// v0.29 — module-level flag so the cold-start quote modal fires
+// exactly ONCE per app launch. Page() runs on first instantiation,
+// resetting this to false. Tab switches and background→foreground
+// resumes preserve the Page instance, so the boolean stays true
+// after the first show.
+let quoteShownThisLaunch = false;
 // v0.21.3 — subject picker reverted off the home page (back to
 // v0.17 behavior). Users now pick a subject on the COMPLETE page,
 // after the session, when they actually know what they studied.
@@ -122,6 +129,10 @@ type HomePageData = {
     progressPercent: number;
   } | null;
   firstShowDone: boolean;
+  /** v0.29 — cold-start inspirational quote card. Populated once per
+   *  app launch (see module-level `quoteShownThisLaunch` flag) and
+   *  cleared on user tap. */
+  launchQuote: { en: string; zh: string } | null;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -188,7 +199,8 @@ Page<{}, HomePageData>({
     dailyChallenge: null,
     /** v0.21 — true once onShow has fired the first-load path,
      *  so subsequent tab-switches use the regular refresh path. */
-    firstShowDone: false
+    firstShowDone: false,
+    launchQuote: null
   },
 
   async onShow() {
@@ -217,6 +229,29 @@ Page<{}, HomePageData>({
     maybeRefillReminderCredits(new Date()).catch((error) => {
       console.warn("[home] reminder refill failed", error);
     });
+    // v0.29 — cold-start quote card. Fires exactly once per app
+    // launch via the module-level `quoteShownThisLaunch` flag (set
+    // to true here, reset to false only when the Page is
+    // reconstructed — which happens on cold-start). Tab switches +
+    // background→foreground resumes preserve the flag so this
+    // doesn't pester the user mid-day.
+    if (!quoteShownThisLaunch) {
+      quoteShownThisLaunch = true;
+      const now = new Date();
+      const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const quote = getDailyQuote(dateKey);
+      this.setData({ launchQuote: quote });
+    }
+  },
+
+  /** Tap-to-dismiss the cold-start quote card. */
+  onTapQuoteDismiss() {
+    this.setData({ launchQuote: null });
+  },
+
+  /** Stop propagation so taps on the card content don't dismiss. */
+  onTapQuoteContent(event: WechatMiniprogram.BaseEvent) {
+    event.stopPropagation?.();
   },
 
   // v0.21.3 — restorePickerFromStorage / onTapSubjectChip removed

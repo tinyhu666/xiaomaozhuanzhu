@@ -986,3 +986,125 @@
 
 /* .home-version removed in v0.13 — version label no longer rendered
    on the home page (still in 我的 footer for diagnostic purposes). */
+
+/* ─────────────────────────────────────────────────────────
+ * v0.29 — Cold-start quote card.
+ *
+ * Fires once per app launch on home onShow. Visual treatment:
+ * subdued mint-tinted full-screen overlay with a center card
+ * holding eyebrow + English line + Chinese line + tap-to-dismiss
+ * hint. Single tap anywhere closes it. No CTA button — design
+ * intent is "a beat of breath, not an interaction".
+ *
+ * Dark-mode override at the bottom flips the card surface +
+ * text colors. The overlay backdrop is kept the same neutral
+ * darkening either way (it works on both light + dark page bg).
+ * ───────────────────────────────────────────────────────── */
+@keyframes quote-card-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes quote-card-pop {
+  0%   { opacity: 0; transform: scale(0.94) translateY(20rpx); }
+  60%  { transform: scale(1.01) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.quote-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(20, 60, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 56rpx;
+  animation: quote-card-fade 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.quote-card {
+  width: 100%;
+  max-width: 600rpx;
+  padding: 56rpx 44rpx 40rpx;
+  border-radius: 32rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.4), transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(20, 60, 50, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 22rpx;
+  animation: quote-card-pop 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.quote-card__eyebrow {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  color: var(--mint-600);
+  padding: 6rpx 18rpx;
+  background: rgba(46, 169, 133, 0.12);
+  border-radius: 999rpx;
+}
+
+.quote-card__en {
+  display: block;
+  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
+  font-size: 36rpx;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.45;
+  color: #155946;
+  letter-spacing: 0.3rpx;
+}
+
+.quote-card__zh {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text-sub);
+  letter-spacing: 0.4rpx;
+  font-weight: 500;
+}
+
+.quote-card__hint {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.55;
+  letter-spacing: 1rpx;
+}
+
+/* Dark-mode overrides — card surface flips to dark, English line
+   becomes accent mint (#2EA985 reads on dark), Chinese line uses
+   the dark text-sub token. */
+@media (prefers-color-scheme: dark) {
+  .quote-card {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(46, 169, 133, 0.22), transparent 62%),
+      linear-gradient(180deg, #2A2F2D 0%, #1F2421 100%);
+    border-color: rgba(232, 239, 236, 0.08);
+    box-shadow:
+      inset 0 1rpx 0 rgba(255, 255, 255, 0.06),
+      0 24rpx 60rpx -8rpx rgba(0, 0, 0, 0.4);
+  }
+  .quote-card__eyebrow {
+    color: #4dc6a0;
+    background: rgba(46, 169, 133, 0.18);
+  }
+  .quote-card__en {
+    color: #4dc6a0;
+  }
+  .quote-card__zh {
+    color: #8FA59C;
+  }
+  .quote-card__hint {
+    color: #8FA59C;
+  }
+}

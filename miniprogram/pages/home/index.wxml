@@ -179,4 +179,20 @@
     </view>
   </view>
 
+  <!--
+    v0.29 — cold-start quote card. Fires exactly once per app launch
+    (the module-level `quoteShownThisLaunch` flag in index.ts). Tap
+    anywhere (backdrop or card) to dismiss. The card itself uses
+    `catchtap` so taps on the content stop propagation, but the
+    dismiss handler is on the card too so any tap closes — this is
+    a single-action surface, no other interactions.
+  -->
+  <view wx:if="{{launchQuote}}" class="quote-card-overlay" bindtap="onTapQuoteDismiss">
+    <view class="quote-card" catchtap="onTapQuoteDismiss">
+      <text class="quote-card__eyebrow">今日寄语</text>
+      <text class="quote-card__en">{{launchQuote.en}}</text>
+      <text class="quote-card__zh">— {{launchQuote.zh}}</text>
+      <text class="quote-card__hint">轻点继续</text>
+    </view>
+  </view>
 </view>
