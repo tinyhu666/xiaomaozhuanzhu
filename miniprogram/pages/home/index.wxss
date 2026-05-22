@@ -21,17 +21,31 @@
   padding: 0;
   margin: 0;
   z-index: 50;
-  background:
-    radial-gradient(circle at 50% 8%, rgba(143, 217, 190, 0.32), transparent 58%),
-    linear-gradient(180deg, #ffffff 0%, #ebf7f1 100%);
-  /* Centered single-card stack */
+  /* v0.28 — switched from light mint gradient to dark carbon per the
+     Claude-Design handoff. Focus mode is now genuinely sensory-different
+     from idle. The .focus-halo pseudo-element below adds the atmospheric
+     mint glow at the top of the viewport. */
+  background: var(--c-bg-dark);
+  color: var(--c-text-1-dark);
   justify-content: stretch;
-  /* v0.26 — entrance animation. Tapping「开始专注」kicks the page
-     into focus mode; this 0.32s fade + tiny scale-up gives it a
-     "world zooms in on the timer" feel, marking the transition as
-     a ritual rather than an instant flip. Disabled when reduced-
-     motion is preferred. */
-  animation: focus-mode-enter 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+  animation: focus-mode-enter var(--d-3) var(--ease-std);
+}
+
+/* Atmospheric halo at the top, fades into the carbon background.
+   pseudo-element so we don't touch wxml for this. */
+.home-page.is-focus-mode::before {
+  content: "";
+  position: absolute;
+  top: -200rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 960rpx;
+  height: 960rpx;
+  pointer-events: none;
+  background: radial-gradient(circle at center,
+    rgba(46, 169, 133, 0.18) 0%,
+    rgba(46, 169, 133, 0) 60%);
+  z-index: 0;
 }
 
 @keyframes focus-mode-enter {
@@ -48,41 +62,32 @@
 }
 
 .home-page.is-focus-mode > .timer-card {
-  /* The timer-card fills the entire focus-mode viewport. Border /
-     shadow stripped since we're already on a tinted page. The card's
-     internal flex layout (head row up top + clock centered + actions
-     at bottom) handles spacing.
-     v0.25.4 — bottom padding respects env(safe-area-inset-bottom).
-     v0.26.1 — horizontal padding tightened 56rpx → 28rpx because the
-     180rpx clock was overflowing 200rpx off-screen (user screenshot
-     showed "00:00:C" with last "0" half-cut). Less side gutter +
-     smaller font (next rule) brings it back to fit on 750rpx-design
-     screens. */
   flex: 1;
   height: 100vh;
   border-radius: 0;
   border: none;
   box-shadow: none;
   background: transparent;
+  /* v0.26.1: horizontal padding tightened 56→28 so "00:00:00" doesn't
+     overflow at 128rpx font. */
   padding: 100rpx 28rpx calc(56rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1; /* stack above ::before halo */
 }
 
 .home-page.is-focus-mode .timer-card__clock {
-  /* v0.26.1 — was 180rpx + letter-spacing 1rpx, which made "00:00:00"
-     about 870rpx wide on a 750rpx-design device — overflows the 694rpx
-     content area by ~180rpx (matches the user screenshot showing the
-     last digit half-cut). 128rpx + letter-spacing 0 brings the 8-char
-     string to ~615rpx — fits with comfortable margin even after
-     accounting for digit width variance. */
-  font-size: 128rpx;
+  /* v0.28 — light text on carbon (was dark mint gradient on white). */
+  font-size: var(--fs-display);
   letter-spacing: 0;
   margin-top: auto;
   margin-bottom: auto;
-  /* v0.23 — slow breathing glow. 4-second cycle (calm-breath cadence,
-     not anxious). Only animates when the session is running, not
-     paused — see the .timer-card__status.is-running guard below. */
+  color: var(--c-text-1-dark);
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: var(--c-text-1-dark);
   animation: focus-clock-breathe 4s ease-in-out infinite;
 }
 
@@ -105,22 +110,80 @@
   display: none;
 }
 
+/* v0.28 — focus mode meta row + status pill restyled for dark bg.
+   Text colors switch to the dark-mode tokens; the status pill loses
+   its solid mint background and becomes a thin caption. */
 .home-page.is-focus-mode .timer-card__meta {
-  /* In focus mode the meta row sits compact at the top, no values
-     compete with the clock for the eye. */
-  font-size: 22rpx;
+  font-size: var(--fs-caption);
+  color: var(--c-text-2-dark);
+}
+
+.home-page.is-focus-mode .timer-card__streak,
+.home-page.is-focus-mode .timer-card__meta text {
+  color: var(--c-text-2-dark);
+}
+
+.home-page.is-focus-mode .timer-card__status {
+  background: rgba(46, 169, 133, 0.18);
+  color: var(--c-accent);
+}
+
+.home-page.is-focus-mode .timer-card__status.is-running {
+  background: rgba(46, 169, 133, 0.28);
+}
+
+.home-page.is-focus-mode .timer-card__status.is-paused {
+  background: rgba(229, 158, 87, 0.18);
+  color: #f0b274;
+}
+
+.home-page.is-focus-mode .timer-card__status-dot {
+  background: var(--c-accent);
+}
+
+.home-page.is-focus-mode .timer-card__status-dot::after {
+  background: var(--c-accent);
+}
+
+.home-page.is-focus-mode .timer-card__pause-hint {
+  color: var(--c-text-2-dark);
 }
 
 .home-page.is-focus-mode .timer-card__actions {
-  /* Buttons bunched at the bottom; pause shrinks to a ghost so the
-     primary "结束" reads as the only obvious action. */
   margin-top: auto;
   padding-top: 40rpx;
 }
 
+/* v0.28 — buttons in focus mode swap to dark-mode treatment:
+   ghost gets a light-on-transparent border, primary uses the accent
+   mint (more readable on carbon than the dark primary). */
+.home-page.is-focus-mode .ghost-button {
+  color: var(--c-text-1-dark);
+  background: transparent;
+  border: 2rpx solid rgba(232, 239, 236, 0.32);
+  box-shadow: none;
+}
+
+.home-page.is-focus-mode .ghost-button:active {
+  background: rgba(232, 239, 236, 0.06);
+}
+
+.home-page.is-focus-mode .cta-button {
+  background: linear-gradient(180deg, var(--c-accent) 0%, var(--c-primary) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.18),
+    0 12rpx 28rpx rgba(46, 169, 133, 0.24);
+}
+
 .home-page.is-focus-mode .timer-card__cycles {
-  /* Pomodoro dots (legacy live sessions only) — kept small */
   justify-content: center;
+}
+
+.home-page.is-focus-mode .timer-card__cycle-dot {
+  background: var(--c-stroke-dark);
+}
+.home-page.is-focus-mode .timer-card__cycle-dot.is-done {
+  background: var(--c-accent);
 }
 
 /* Staggered fade-up entrance for the major sections so the page
