@@ -102,30 +102,11 @@
   opacity: 0.92;
 }
 
-/* Tiny corner chip — a subtle "you can edit this" hint that doesn't
-   cover the avatar image. Positioned outside the button so the
-   button still receives the tap; the chip is purely decorative. */
-.profile-hero__avatar-badge {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 38rpx;
-  height: 38rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
-  border: 2rpx solid #ffffff;
-  box-shadow: 0 2rpx 6rpx rgba(46, 169, 133, 0.32);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 3;
-}
-
-.profile-hero__avatar-badge-icon {
-  font-size: 18rpx;
-  line-height: 1;
-}
+/* v0.26.1 — the .profile-hero__avatar-badge corner chip was deleted.
+   It sat inside an `overflow:hidden + border-radius:50%` wrapper, so
+   the circular mask clipped the square badge into a triangular green
+   sliver that users read as an "unknown obstruction". The avatar's
+   full-area chooseAvatar button still owns the tap target. */
 
 .profile-hero__body {
   flex: 1;

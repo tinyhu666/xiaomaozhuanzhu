@@ -187,7 +187,13 @@ Page<{}, PosterPageData>({
   },
 
   async onSaveTap() {
-    if (!this.data.tempFilePath) return;
+    // v0.26.1 — guard against premature tap before canvas render
+    // finishes. Was silently returning, leaving the user wondering why
+    // nothing happened. Now we surface a hint so they know to wait.
+    if (!this.data.tempFilePath) {
+      wx.showToast({ title: "海报还在生成，请稍候", icon: "none", duration: 1500 });
+      return;
+    }
     try {
       await new Promise<void>((resolve, reject) => {
         wx.saveImageToPhotosAlbum({
@@ -198,16 +204,50 @@ Page<{}, PosterPageData>({
       });
       wx.showToast({ title: "已保存到相册", icon: "success" });
     } catch (error) {
-      const msg = String((error as { errMsg?: string }).errMsg ?? "");
-      if (msg.includes("auth deny") || msg.includes("authorize")) {
+      // v0.26.1 — was failing to detect auth issues on iOS because the
+      // errMsg format varies ("saveImageToPhotosAlbum:fail auth deny" /
+      // "saveImageToPhotosAlbum:fail:authorize no setting" /
+      // "saveImageToPhotosAlbum:fail authorize fail"). Broadened the
+      // matcher to catch any auth keyword. Also log the raw errMsg
+      // so we can diagnose future failures in the dev tools.
+      console.error("[poster] saveImageToPhotosAlbum failed", error);
+      const errMsg = String((error as { errMsg?: string }).errMsg ?? "");
+      const lower = errMsg.toLowerCase();
+      const isAuthIssue =
+        lower.includes("auth") ||
+        lower.includes("scope") ||
+        lower.includes("permission") ||
+        lower.includes("deny");
+      const isCancel = lower.includes("cancel") || lower.includes("cancelled");
+      if (isAuthIssue) {
         wx.showModal({
           title: "无法保存",
-          content: "请到「设置」中授权「保存图片到相册」后再试。",
+          content: "请在「设置」中授权「保存图片到相册」后再试。",
           confirmText: "去设置",
-          success: (res) => { if (res.confirm) wx.openSetting(); }
+          cancelText: "取消",
+          success: (res) => {
+            if (res.confirm) {
+              wx.openSetting({
+                success: (setting) => {
+                  // After returning from settings, if user granted, we
+                  // could auto-retry — but a fresh tap is simpler UX.
+                  if (setting.authSetting?.["scope.writePhotosAlbum"]) {
+                    wx.showToast({ title: "已授权，请再次点保存", icon: "none" });
+                  }
+                }
+              });
+            }
+          }
         });
-      } else if (!msg.includes("cancel")) {
-        wx.showToast({ title: "保存失败", icon: "none" });
+      } else if (!isCancel) {
+        // Surface the raw errMsg tail so the user can screenshot it
+        // for support, while still keeping the toast short.
+        const tail = errMsg.replace(/^saveImageToPhotosAlbum:fail\s*/i, "").slice(0, 24);
+        wx.showToast({
+          title: tail ? `保存失败：${tail}` : "保存失败",
+          icon: "none",
+          duration: 2500
+        });
       }
     }
   },

@@ -13,19 +13,21 @@
         mode="aspectFill"
       />
       <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
-      <!-- Full-area tap target stays for "tap anywhere on the avatar
-           to change". The visible affordance shrinks to a small 📷
-           chip in the bottom-right corner so it stops covering the
-           user's face on small avatars (v0.18.1 fix). -->
+      <!--
+        v0.26.1 — the 📷 corner badge was deleted. The avatar wrapper
+        has `border-radius: 50%; overflow: hidden`, which clipped the
+        square badge into a triangular green sliver that read as
+        "unidentified obstruction" (user feedback on the v0.26 build).
+        The full-area chooseAvatar button below is the only tap
+        target now; users naturally try tapping the avatar to change
+        it, so the visual affordance wasn't load-bearing.
+      -->
       <button
         class="profile-hero__avatar-btn"
         hover-class="none"
         open-type="chooseAvatar"
         bindchooseavatar="onChooseAvatar"
       ></button>
-      <view class="profile-hero__avatar-badge">
-        <text class="profile-hero__avatar-badge-icon">📷</text>
-      </view>
     </view>
     <view class="profile-hero__body">
       <input

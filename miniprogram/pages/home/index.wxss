@@ -52,32 +52,37 @@
      shadow stripped since we're already on a tinted page. The card's
      internal flex layout (head row up top + clock centered + actions
      at bottom) handles spacing.
-     v0.25.4 — bottom padding now respects env(safe-area-inset-bottom)
-     so the 暂停 / 结束 buttons clear the iPhone home indicator. The
-     custom tab bar is also hidden in focus mode (syncFocusMode →
-     getTabBar().setData({hidden: true})), so we don't have to reserve
-     space for it anymore. */
+     v0.25.4 — bottom padding respects env(safe-area-inset-bottom).
+     v0.26.1 — horizontal padding tightened 56rpx → 28rpx because the
+     180rpx clock was overflowing 200rpx off-screen (user screenshot
+     showed "00:00:C" with last "0" half-cut). Less side gutter +
+     smaller font (next rule) brings it back to fit on 750rpx-design
+     screens. */
   flex: 1;
   height: 100vh;
   border-radius: 0;
   border: none;
   box-shadow: none;
   background: transparent;
-  padding: 100rpx 56rpx calc(56rpx + env(safe-area-inset-bottom));
+  padding: 100rpx 28rpx calc(56rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }
 
 .home-page.is-focus-mode .timer-card__clock {
-  /* Hero clock grows from 96rpx to 180rpx — the single most important
-     piece of information on the screen during a session. */
-  font-size: 180rpx;
+  /* v0.26.1 — was 180rpx + letter-spacing 1rpx, which made "00:00:00"
+     about 870rpx wide on a 750rpx-design device — overflows the 694rpx
+     content area by ~180rpx (matches the user screenshot showing the
+     last digit half-cut). 128rpx + letter-spacing 0 brings the 8-char
+     string to ~615rpx — fits with comfortable margin even after
+     accounting for digit width variance. */
+  font-size: 128rpx;
+  letter-spacing: 0;
   margin-top: auto;
   margin-bottom: auto;
   /* v0.23 — slow breathing glow. 4-second cycle (calm-breath cadence,
      not anxious). Only animates when the session is running, not
-     paused — see the .timer-card__status.is-running guard below.
-     Pure opacity transform; CPU/GPU cost negligible. */
+     paused — see the .timer-card__status.is-running guard below. */
   animation: focus-clock-breathe 4s ease-in-out infinite;
 }
 

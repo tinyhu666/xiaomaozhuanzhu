@@ -59,6 +59,30 @@ center）。
 `display: block` 的文字默认左对齐。如果是欢呼/装饰性文案（带🎉/✨/✓
 等），通常应该 `text-align: center`。
 
+### D. 超大字号文字（≥ 100rpx）会不会溢出？
+
+任何 `font-size ≥ 100rpx` 的文字必须先估算容器宽度：
+
+```
+可用宽度 W = 父容器宽度 − 左右 padding
+预估文字宽度 ≈ 字符数 × 0.6em × font-size
+W 必须 ≥ 预估文字宽度
+```
+
+特别注意 tabular-nums 数字（每个字符宽度恒定 ~0.6em）。在 750rpx
+设计宽度上：
+- 8 字符 "00:00:00" + font 180rpx → 864rpx，溢出 ~120rpx
+- 8 字符 + font 128rpx → 614rpx，留 ~80rpx margin
+
+历史 bug：v0.26.0 focus mode 计时器溢出（已修，见 §5）。
+
+### E. 圆形 mask 容器内不要放方形角标
+
+`overflow: hidden + border-radius: 50%` 会把方形子元素裁成弧形碎片。
+头像角标这种 case，要么角标放到外层非 mask 容器，要么干脆不放。
+
+历史 bug：v0.26.0 头像绿色色块（已删除角标，见 §5）。
+
 ---
 
 ## 2. tab bar 相关改动
@@ -132,3 +156,6 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 | v0.25.0 | 「🎉 今日目标已达成」hint 左偏 | 块级元素未居中 | v0.25.3 fix |
 | v0.25.0 | 自定义 tab bar 4-列 grid 留空列 → 视觉左偏 | v0.22 删动态时漏改 `repeat(4, ...)` | `custom-tab-bar/index.wxss` `repeat(3, ...)` |
 | v0.25.3 | focus mode 全屏覆盖时自定义 tab bar 挡住「暂停/结束」 | focus mode 没主动隐藏 tab bar | `home/index.ts syncFocusMode` 通过 `getTabBar().setData({hidden})` 控制；`custom-tab-bar` 加 `is-hidden` 类 |
+| v0.26.0 | focus mode 计时器 "00:00:00" 横向溢出，最后一位被切 | font-size 180rpx + letter-spacing 1rpx + 56rpx 左右 padding 在 750rpx 设计宽度上超出 ~180rpx | 字号 180→128rpx、letter-spacing 0、padding 56→28rpx；新增 §1D 检查：超大文字必须先估算容器宽度（W ≥ N×0.6em） |
+| v0.26.0 | profile 头像有"未知绿色色块" | 38rpx 角标在 `overflow:hidden + border-radius:50%` 的圆形 mask 下被裁成三角形 | 直接删除角标，依靠 chooseAvatar 全区域 tap target；§1E：圆形 mask 内不要放方形角标 |
+| v0.26.0 | 学习日报「保存失败」误报 | iOS 端 `saveImageToPhotosAlbum` errMsg 格式多变，老的 auth 检测错过这些 case | 扩大 auth 关键词匹配（auth/scope/permission/deny），并在 toast 里显示截断 errMsg 方便排查 |
