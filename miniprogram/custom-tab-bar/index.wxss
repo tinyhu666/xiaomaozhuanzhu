@@ -52,3 +52,19 @@
   font-weight: 700;
   text-align: center;
 }
+
+/* v0.28.1 — dark mode: floating glass tab bar on dark bg. */
+@media (prefers-color-scheme: dark) {
+  .tab-shell {
+    background: rgba(42, 47, 45, 0.88);
+    box-shadow: 0 24rpx 56rpx rgba(0, 0, 0, 0.36);
+    border: 1rpx solid rgba(232, 239, 236, 0.06);
+  }
+  .tab-item {
+    color: #8FA59C;
+  }
+  .tab-item.is-active {
+    background: linear-gradient(135deg, rgba(46, 169, 133, 0.22) 0%, rgba(46, 169, 133, 0.32) 100%);
+    color: #4dc6a0;
+  }
+}

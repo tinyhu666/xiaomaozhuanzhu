@@ -671,3 +671,130 @@ button::after {
   .bar > .bar__fill { animation: none !important; transition: none !important; }
 }
 
+/* ─────────────────────────────────────────────────────────
+ * v0.28.1 — System dark mode follow-the-OS.
+ *
+ * WeChat reads `"darkmode": true` from app.json and fires
+ * `@media (prefers-color-scheme: dark)` in WXSS when the device is
+ * in dark mode. We REDEFINE the existing CSS custom properties
+ * (--text-main / --text-sub / --bg-card / --bg-soft / --mint-* /
+ * --line-soft + the new --c-* layer) to their dark equivalents.
+ * Because every page WXSS already references these tokens via
+ * `var(--text-main)` etc., the cascade flips automatically — no
+ * per-page WXSS changes needed for the bulk of the migration.
+ *
+ * Focus mode (.home-page.is-focus-mode) is INTENTIONALLY NOT
+ * affected — it's always dark regardless of system theme, by
+ * design (focus mode is a deliberate sensory shift, not a theme).
+ * The light-mode focus styles in pages/home/index.wxss explicitly
+ * use --c-bg-dark / --c-text-1-dark, which stay dark either way.
+ *
+ * Per-element bg/text hardcodes (where a page WXSS used #fff or
+ * specific hex instead of var(--text-main)) get flipped below via
+ * a small set of targeted overrides. Most cards inherit correctly.
+ * ───────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  /* Redefine legacy tokens — these are var-referenced from every
+     existing page WXSS, so the cascade does the heavy lifting. */
+  :root {
+    --bg-soft: #1A1F1C;
+    --bg-mint: #232927;
+    --bg-card: rgba(42, 47, 45, 0.92);
+    --text-main: #E8EFEC;
+    --text-sub: #8FA59C;
+    --line-soft: rgba(232, 239, 236, 0.10);
+    --danger: #ec7b7b;
+    --mint-100: #283832;
+    --mint-200: #285043;
+    --mint-300: #266957;
+    --mint-400: #28876D;
+    --mint-500: #2EA985;
+    --mint-600: #4dc6a0;
+  }
+
+  /* Page-level: flat dark bg, no gradient mesh. */
+  page {
+    background: var(--c-bg-dark);
+    color: var(--c-text-1-dark);
+  }
+
+  /* Cards with hardcoded white / near-white backgrounds.
+     Switch to the dark surface token. Border + shadow also flip
+     because shadows on dark feel wrong at normal opacities. */
+  .hero-card,
+  .surface-card,
+  .glass-card,
+  .stat-card,
+  .stat-tile,
+  .badges-hero,
+  .badge-tile,
+  .badges-guide,
+  .menu-list,
+  .settings-section,
+  .calendar-hero,
+  .calendar-board,
+  .day-panel,
+  .makeup-banner,
+  .profile-hero,
+  .exam-hero,
+  .subjects-card,
+  .goal-card,
+  .timer-card,
+  .insights-card,
+  .reminder-refill,
+  .session-item,
+  .reminder-row,
+  .audio-scene,
+  .settings-link-row,
+  .calendar-empty-month,
+  .public-hero,
+  .public-card,
+  .public-stat,
+  .public-state,
+  .recent-item,
+  .insights-card,
+  .menu-item {
+    background: var(--c-surface-dark) !important;
+    border-color: var(--c-stroke-dark) !important;
+    box-shadow: none !important;
+  }
+
+  /* Inputs / textarea / nickname input — keep readable on dark. */
+  .textarea-input,
+  .profile-hero__nickname,
+  input,
+  textarea {
+    color: var(--c-text-1-dark) !important;
+  }
+
+  /* Cards that have layered gradients in light mode — flatten
+     to surface-dark so the gradient stops don't show through. */
+  .hero-card,
+  .surface-card,
+  .exam-hero,
+  .timer-card,
+  .goal-card,
+  .subjects-card,
+  .insights-card,
+  .calendar-hero,
+  .calendar-board {
+    background: var(--c-surface-dark) !important;
+  }
+
+  /* Specific text elements with hardcoded dark green that need
+     to lighten on dark. */
+  .exam-hero__count-num,
+  .exam-hero__count-unit,
+  .exam-hero__subject,
+  .timer-card__clock,
+  .stat-tile__value,
+  .stat-card .stat-value,
+  .public-stat__value,
+  .badges-hero__title {
+    color: var(--c-accent) !important;
+  }
+
+  /* Subtitles / captions on dark bg keep using --text-sub which
+     we already redefined above. No per-class override needed. */
+}
+
