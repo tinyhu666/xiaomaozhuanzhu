@@ -72,8 +72,12 @@
 }
 
 .complete-hero__pomo-icon {
+  /* v0.30.2 — line-height unified with the label (was 1 vs 1.4),
+     because mismatched line-heights inside align-items:center caused
+     the 🍅 to sit a hair higher than the CJK label. Same logic as
+     ui-review-checklist §1A's vertical-align note. */
   font-size: 24rpx;
-  line-height: 1;
+  line-height: 1.4;
 }
 
 .complete-hero__pomo-text {
@@ -118,17 +122,29 @@
 }
 
 .complete-photo__remove {
+  /* v0.30.2 — was width/height 40rpx (≈20pt), well below the 44pt
+     tap-target floor and frequently missed. Enlarged the hit area to
+     64rpx (32pt) and pulled it half-outside the photo so the visible
+     disc still reads as a corner badge but the touch area is generous.
+     The inner disc remains visually compact via the inset background. */
   position: absolute;
-  top: 6rpx;
-  right: 6rpx;
-  width: 40rpx;
-  height: 40rpx;
+  top: -8rpx;
+  right: -8rpx;
+  width: 64rpx;
+  height: 64rpx;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  font-size: 28rpx;
-  line-height: 40rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  line-height: 64rpx;
   text-align: center;
+  /* Subtle ring so the disc doesn't blend into dark photos. */
+  box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.6);
+}
+
+.complete-photo__remove:active {
+  background: rgba(0, 0, 0, 0.75);
 }
 
 .complete-photo-add {
@@ -143,7 +159,10 @@
   justify-content: center;
   gap: 6rpx;
   color: var(--c-text-3);
-  transition: transform var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out);
+  /* v0.30.2 — was var(--d-fast) which is not a defined motion token in
+     app.wxss, killing the entire transition shorthand. The project's
+     press-feedback duration token is --d-1 (100ms). */
+  transition: transform var(--d-1) var(--ease-std), background var(--d-1) var(--ease-std);
 }
 
 .complete-photo-add:active {
@@ -241,6 +260,14 @@
   .complete-hero__unit {
     color: var(--c-text-2-dark);
   }
+  /* v0.30.2 — .micro defaults to --c-text-2 (#5E7D75) which on the
+     dark page bg sits at ~4.4:1, barely passing AA. Force the
+     dark-mode token for legibility. Same for any caption labels we
+     render directly on the page bg. */
+  .complete-hero__eyebrow,
+  .complete-section__label {
+    color: var(--c-text-2-dark);
+  }
   .complete-hero__pomo {
     background: rgba(255, 184, 107, 0.16);
     color: #f6c894;
@@ -251,6 +278,9 @@
   .complete-photo-add {
     border-color: rgba(255, 255, 255, 0.18);
     color: var(--c-text-2-dark);
+  }
+  .complete-photo__remove {
+    box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.4);
   }
   .complete-summary__input {
     color: var(--c-text-1-dark);

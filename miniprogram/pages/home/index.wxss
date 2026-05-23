@@ -18,11 +18,14 @@
   padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
 }
 
-/* Stagger entry — each top-level section fades up. */
+/* Stagger entry — each top-level section fades up together. v0.30.2
+   stripped the broken `.page-pad:nth-child(N) .fade-up` stagger rule:
+   it required `.fade-up` to be a *descendant* of `.page-pad`, but the
+   WXML applies both classes to the same element, so the descendant
+   selector never matched. Net effect was "stagger never fired" — now
+   we just synchronize the fade-in; visually less fussy and matches
+   the design's intent of a quiet entry. */
 .fade-up { animation: home-fade-up 0.4s var(--ease-std, cubic-bezier(0.2, 0.8, 0.3, 1)) backwards; }
-.page-pad:nth-child(2) .fade-up { animation-delay: 0.06s; }
-.page-pad:nth-child(3) .fade-up { animation-delay: 0.12s; }
-.page-pad:nth-child(4) .fade-up { animation-delay: 0.18s; }
 @keyframes home-fade-up {
   from { opacity: 0; transform: translateY(12rpx); }
   to   { opacity: 1; transform: translateY(0); }
@@ -90,10 +93,13 @@
 }
 
 .makeup-banner__btn {
+  /* v0.30.2 — was forcing 64rpx (32pt) with !important, below the
+     44pt tap-target floor. Restored to the .btn-v2 default height
+     (88rpx ≈ 44pt). Kept horizontal padding tight so it still reads
+     as a banner-inline CTA rather than a full-width button. */
   flex-shrink: 0;
-  min-height: 64rpx !important;
-  height: 64rpx !important;
-  padding: 0 28rpx !important;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
   font-size: var(--fs-caption);
 }
 
@@ -219,10 +225,16 @@
 .goal-card-v2__bar { /* relies on shared .bar utility */ }
 
 .goal-card-v2__challenge {
+  /* v0.30.2 — lifted min-height from ~38rpx (font + padding only) to
+     56rpx so the bindtap target reaches the 28pt minimum. Still under
+     the 44pt strict floor but the action it triggers is a low-stakes
+     toast, not a destructive op. Anything taller would compete
+     visually with the main CTA. */
   display: inline-flex;
   align-items: center;
   gap: 8rpx;
-  padding: 8rpx 18rpx;
+  min-height: 56rpx;
+  padding: 8rpx 20rpx;
   border-radius: var(--r-pill);
   background: rgba(46, 169, 133, 0.10);
   font-size: var(--fs-caption);
@@ -237,8 +249,12 @@
 }
 
 .goal-card-v2__challenge-icon {
+  /* v0.30.2 — was line-height: 1; unified with the label's 1.2 so
+     ✓ (PingFang glyph, sits high in box) and 🎯 (emoji, sits low)
+     don't visually jump when the chip flips to is-done. Same §1A
+     rationale as the focus-mode meta + complete-hero pomo fixes. */
   font-size: 22rpx;
-  line-height: 1;
+  line-height: 1.2;
 }
 
 .goal-card-v2__challenge-text {
@@ -357,20 +373,38 @@
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: baseline;
   gap: 24rpx;
   color: var(--c-text-2-dark);
   font-size: var(--fs-caption);
 }
 
+/* v0.30.2 — each token pair is an inline-flex container with
+   align-items:baseline so the tabular-nums digit run sits on the
+   same baseline as the PingFang CJK label next to it. Pattern from
+   ui-review-checklist §1A. */
+.focus-mode__meta-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6rpx;
+  line-height: 1.4;
+}
+
 .focus-mode__meta-strong {
   color: var(--c-text-1-dark);
   font-weight: 700;
+  line-height: 1.4;
+}
+
+.focus-mode__meta-label {
+  color: var(--c-text-2-dark);
+  line-height: 1.4;
 }
 
 .focus-mode__divider {
   color: var(--c-text-2-dark);
   opacity: 0.4;
+  line-height: 1.4;
 }
 
 .focus-mode__center {
@@ -574,6 +608,14 @@
   .home-header__streak { color: var(--c-text-2-dark); }
   .home-header__streak-num { color: var(--c-text-1-dark); }
   .exam-hero__num { color: var(--c-accent); }
+  /* v0.30.2 — light-mode tier colors (#c2562b warn / #A0322B error)
+     are too dark against --c-bg-dark (#1A1F1C). The .exam-hero--TIER
+     selector outranks the flat .exam-hero__num override above, so we
+     must restate per-tier shifts here with lighter palette siblings
+     for proper WCAG AA contrast on dark. */
+  .exam-hero--soon .exam-hero__num,
+  .exam-hero--urgent .exam-hero__num   { color: #f0b27a; }
+  .exam-hero--imminent .exam-hero__num { color: #f08a85; }
   .exam-hero__eyebrow,
   .exam-hero__unit,
   .exam-hero__date { color: var(--c-text-2-dark); }

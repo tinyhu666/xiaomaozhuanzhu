@@ -119,15 +119,25 @@
     <!-- Atmospheric halo behind the clock -->
     <view class="focus-mode__halo"></view>
 
-    <!-- Top meta row: today + streak -->
+    <!--
+      Top meta row: today + streak.
+      v0.30.2 — was a single <text class="caption"> with an embedded
+      num span + middle-dot + CJK, which caused baseline drift between
+      the tabular-nums digits and PingFang CJK on real devices. Now
+      each pair is its own inline-flex wrapper with align-items:
+      baseline and each token sits in its own <text>, per
+      ui-review-checklist §1A.
+    -->
     <view class="focus-mode__meta">
-      <text class="caption">
-        <text class="num focus-mode__meta-strong">{{todayMinutesText}}</text> · 今日
-      </text>
+      <view class="focus-mode__meta-pair">
+        <text class="num focus-mode__meta-strong">{{todayMinutesText}}</text>
+        <text class="focus-mode__meta-label">· 今日</text>
+      </view>
       <text class="focus-mode__divider">|</text>
-      <text class="caption">
-        <text class="num focus-mode__meta-strong">{{streakText}}</text> 连签
-      </text>
+      <view class="focus-mode__meta-pair">
+        <text class="num focus-mode__meta-strong">{{streakText}}</text>
+        <text class="focus-mode__meta-label">连签</text>
+      </view>
     </view>
 
     <!-- Central display: subject (optional) + clock + status -->

@@ -53,8 +53,11 @@
           <text class="complete-photo-add__icon">+</text>
           <text class="complete-photo-add__label">加一张</text>
         </view>
-        <!-- Trailing spacer so 1-photo + 1-add tile still keeps grid alignment -->
-        <view wx:if="{{photos.length === 0}}" class="complete-photo-spacer"></view>
+        <!-- v0.30.2 — Trailing spacer keeps the 3-col grid visually
+             complete when the user has 0 OR 1 photos. With only the
+             0-photos check the 1-photo+add-tile layout left column 3
+             empty without filler, which read as "broken row". -->
+        <view wx:if="{{photos.length < 2}}" class="complete-photo-spacer"></view>
       </view>
     </view>
 
