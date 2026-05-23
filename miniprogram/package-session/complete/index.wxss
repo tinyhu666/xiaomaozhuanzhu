@@ -1,35 +1,270 @@
-.page-shell {
-  padding: 28rpx 28rpx 56rpx;
-}
+/* v0.30 — full WXSS rewrite per docs/design-handoff/screen-complete.jsx.
+   The hero uses tokenized fs/colors directly (was the cause of the
+   "字体大小比例完全失调" the user flagged in v0.29.1).
 
-.photo-grid {
-  margin-top: 18rpx;
-}
+   Layout uses the new v2 utility classes from app.wxss:
+   .page-pad / .card-v2 / .chip-v2 / .btn-v2 / .micro / .caption / .num
+   — so this file only owns page-specific composition + the sticky
+   submit bar + the unlock-reveal overlay (preserved from v0.25).
+*/
 
-.textarea-input {
-  display: block;
-  margin-top: 4rpx;
-}
-
-.cta-button {
-  width: 100%;
+.complete-page {
+  min-height: 100vh;
+  background: var(--c-bg-light);
+  /* Leave space at the bottom equal to the sticky submit bar so the
+     last chip row + textarea aren't covered. */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 180rpx);
   box-sizing: border-box;
 }
 
-/* v0.21.3 — subject is back as a tag-chip selector here. The
-   shared `.tag-list` + `.tag-chip` styles (declared globally in
-   app.wxss) handle layout + active-state visuals, so this file
-   doesn't need any subject-specific selectors. */
+.complete-scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+/* -------- Hero (no card chrome, full-bleed text) -------- */
+
+.complete-hero {
+  padding-top: 28rpx;
+  padding-bottom: 36rpx;
+}
+
+.complete-hero__eyebrow {
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.complete-hero__row {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.complete-hero__num {
+  /* design: 48px ≈ 96rpx, weight 800, primary color, tight letter-spacing.
+     Bounded check (§1D): up to 4 digits × 0.6em × 96rpx = 230rpx — well
+     within page-pad (750rpx − 56rpx = ~694rpx). */
+  font-size: 96rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--c-primary);
+  letter-spacing: -2rpx;
+}
+
+.complete-hero__unit {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--c-text-2);
+}
+
+.complete-hero__pomo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 18rpx;
+  padding: 6rpx 18rpx;
+  background: rgba(255, 184, 107, 0.18);
+  color: #b3551a;
+  border-radius: 999rpx;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.complete-hero__pomo-icon {
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.complete-hero__pomo-text {
+  /* No emoji baseline drift — emoji is in its own <text> per §1A. */
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+
+/* -------- Section (label + content) -------- */
+
+.complete-section {
+  padding-top: 0;
+  padding-bottom: 36rpx;
+}
+
+.complete-section__label {
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* -------- Photos grid (3-col) -------- */
+
+.complete-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+}
+
+.complete-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: var(--c-soft-mint);
+}
+
+.complete-photo__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.complete-photo__remove {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 28rpx;
+  line-height: 40rpx;
+  text-align: center;
+}
+
+.complete-photo-add {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 20rpx;
+  border: 2rpx dashed var(--c-stroke);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  color: var(--c-text-3);
+  transition: transform var(--d-fast) var(--ease-out), background var(--d-fast) var(--ease-out);
+}
+
+.complete-photo-add:active {
+  transform: scale(0.97);
+  background: var(--c-soft-mint);
+}
+
+.complete-photo-add__icon {
+  font-size: 36rpx;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.complete-photo-add__label {
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
+.complete-photo-spacer {
+  /* Reserve a 3rd cell when the user has 0 photos so the add tile
+     sits in column 1 and the grid doesn't collapse to a giant centered
+     tile. */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+/* -------- Summary card (textarea + counter) -------- */
+
+.complete-summary {
+  padding: 18rpx 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.complete-summary__input {
+  display: block;
+  width: 100%;
+  min-height: 88rpx;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  color: var(--c-text-1);
+  box-sizing: border-box;
+}
+
+.complete-summary__counter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* -------- Chip row -------- */
+
+.complete-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+/* -------- Sticky submit bar -------- */
+
+.complete-bottom-spacer {
+  height: 20rpx;
+}
+
+.complete-submit {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx 28rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  background: linear-gradient(to top, var(--c-bg-light) 60%, rgba(243, 250, 246, 0));
+  z-index: 50;
+  pointer-events: none;
+}
+
+.complete-submit__btn {
+  width: 100%;
+  pointer-events: auto;
+}
+
+/* -------- Dark mode: complete page surfaces -------- */
+
+@media (prefers-color-scheme: dark) {
+  .complete-page {
+    background: var(--c-bg-dark);
+  }
+  .complete-hero__num {
+    /* In dark mode the deep --c-primary disappears; --c-accent (mint)
+       is the project's designated dark-mode primary substitute. */
+    color: var(--c-accent);
+  }
+  .complete-hero__unit {
+    color: var(--c-text-2-dark);
+  }
+  .complete-hero__pomo {
+    background: rgba(255, 184, 107, 0.16);
+    color: #f6c894;
+  }
+  .complete-photo {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .complete-photo-add {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--c-text-2-dark);
+  }
+  .complete-summary__input {
+    color: var(--c-text-1-dark);
+  }
+  .complete-submit {
+    background: linear-gradient(to top, var(--c-bg-dark) 60%, rgba(15, 26, 23, 0));
+  }
+}
 
 /* ============================================================
-   v0.25 — Achievement-unlock overlay. Replaces the v0.18-v0.24
-   per-session cat-reveal modal (which fired on every submit and
-   felt repetitive). Now this only appears when the just-completed
-   session actually crossed an achievement threshold (server sets
-   `newlyUnlockedBadge` on the response). Renders the breed's SVG,
-   name, unlock condition, and rarity. Visual treatment leans
-   harder on the rarity tier than the old cat-reveal because each
-   appearance here is genuinely earned.
+   v0.25 — Achievement-unlock overlay (preserved verbatim).
+   This block was already aligned with the new design language
+   (rarity-tiered card with halo + animations) and the user has
+   not flagged any issue with it. Don't touch.
    ============================================================ */
 @keyframes unlock-reveal-fade {
   from { opacity: 0; }
@@ -138,7 +373,7 @@
   font-size: 22rpx;
   font-weight: 800;
   letter-spacing: 2rpx;
-  color: var(--mint-600);
+  color: var(--c-primary);
   margin-bottom: 14rpx;
   z-index: 1;
 }
@@ -176,7 +411,7 @@
 .unlock-reveal__name {
   font-size: 38rpx;
   font-weight: 800;
-  color: var(--text-main);
+  color: var(--c-text-1);
   letter-spacing: 0.4rpx;
   margin-top: 12rpx;
 }
@@ -191,7 +426,7 @@
   z-index: 1;
 }
 
-.unlock-reveal__rarity--common    { background: rgba(94, 125, 117, 0.16); color: var(--text-main); }
+.unlock-reveal__rarity--common    { background: rgba(94, 125, 117, 0.16); color: var(--c-text-1); }
 .unlock-reveal__rarity--rare      { background: rgba(74, 110, 217, 0.18); color: #3a4a92; }
 .unlock-reveal__rarity--epic      { background: rgba(229, 123, 43, 0.2); color: #7a3f0a; }
 .unlock-reveal__rarity--legendary { background: rgba(240, 169, 59, 0.3); color: #6b4108; }
@@ -199,7 +434,7 @@
 .unlock-reveal__cond {
   margin-top: 14rpx;
   font-size: 24rpx;
-  color: var(--text-sub);
+  color: var(--c-text-2);
   letter-spacing: 0.3rpx;
   text-align: center;
   line-height: 1.4;
@@ -227,7 +462,7 @@
 .unlock-reveal__ghost {
   background: rgba(255, 255, 255, 0.6);
   border: 1rpx solid rgba(46, 169, 133, 0.22);
-  color: var(--mint-600);
+  color: var(--c-primary);
 }
 
 .unlock-reveal__primary {

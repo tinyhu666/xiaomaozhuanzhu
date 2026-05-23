@@ -1,82 +1,129 @@
-<view class="page-shell">
-  <view class="hero-card">
-    <view class="badge">结束学习</view>
-    <view class="title" style="margin-top: 18rpx;">这次专注了 {{durationText}}</view>
-    <view wx:if="{{pomodoroBadgeText}}" class="badge" style="margin-top: 14rpx; background: rgba(229, 122, 50, 0.12); color: #b3551a;">{{pomodoroBadgeText}}</view>
-    <view class="subtitle">想记的就填几个字 / 拍一张照片，不想填直接提交也行。</view>
-  </view>
+<!--
+  v0.30 — full structural rewrite per docs/design-handoff/screen-complete.jsx.
+  Previous version was the v0.21.3 hero-card / surface-card layout still
+  on the old token names (--mint-600 / --text-main). Result on device:
+  the hero "这次专注了 52 分钟" rendered with the wrong font scale because
+  .title used a generic size while the design wants a huge dedicated
+  number + tiny unit.
 
-  <view class="surface-card" style="margin-top: 24rpx;">
-    <view class="field-label">学习照片（可选，最多 3 张）</view>
-    <view class="photo-grid">
-      <view wx:for="{{photos}}" wx:key="objectKey" class="photo-item">
-        <image
-          src="{{item.localPath}}"
-          mode="aspectFill"
-          data-index="{{index}}"
-          bindtap="previewPhoto"
+  Structure:
+  - hero (no card chrome): micro label → big number + 分钟 + pomodoro chip
+  - photo grid (3-col): existing photos + add tile (dashed) + spacer
+  - summary section: micro label + .card-v2 with textarea + counter
+  - subject chips (.chip-v2 single-select)
+  - tag chips (.chip-v2 multi-select)
+  - sticky bottom submit bar (gradient fade so content scrolls under it)
+  - unlock-reveal overlay preserved verbatim (it was redesigned in v0.25
+    already and the user hasn't flagged it; keep it stable).
+
+  Submit handler + all chip toggle handlers preserved — no TS changes
+  beyond exposing `durationMinutes` (number) for the hero.
+-->
+<view class="complete-page">
+  <view class="complete-scroll">
+
+    <!-- Hero: this session — big number, small unit, optional pomodoro chip -->
+    <view class="page-pad fade-up complete-hero">
+      <text class="complete-hero__eyebrow micro">这次专注了</text>
+      <view class="complete-hero__row">
+        <text class="complete-hero__num num">{{durationMinutes}}</text>
+        <text class="complete-hero__unit">分钟</text>
+      </view>
+      <view wx:if="{{pomodoroBadgeText}}" class="complete-hero__pomo">
+        <text class="complete-hero__pomo-icon">🍅</text>
+        <text class="complete-hero__pomo-text">完成 {{pomodoroCycles}} 个番茄</text>
+      </view>
+    </view>
+
+    <!-- Photo grid: micro label + 3-col grid with dashed add tile -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">照片 · 可选 0–3 张</text>
+      <view class="complete-photos">
+        <view wx:for="{{photos}}" wx:key="objectKey" class="complete-photo">
+          <image
+            class="complete-photo__img"
+            src="{{item.localPath}}"
+            mode="aspectFill"
+            data-index="{{index}}"
+            bindtap="previewPhoto"
+          />
+          <view class="complete-photo__remove" data-index="{{index}}" catchtap="removePhoto">×</view>
+        </view>
+        <view wx:if="{{photos.length < 3}}" class="complete-photo-add" bindtap="choosePhotos">
+          <text class="complete-photo-add__icon">+</text>
+          <text class="complete-photo-add__label">加一张</text>
+        </view>
+        <!-- Trailing spacer so 1-photo + 1-add tile still keeps grid alignment -->
+        <view wx:if="{{photos.length === 0}}" class="complete-photo-spacer"></view>
+      </view>
+    </view>
+
+    <!-- One-line summary: micro label + card with textarea + counter -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">一句话总结 · 可选</text>
+      <view class="card-v2 complete-summary">
+        <textarea
+          class="complete-summary__input"
+          maxlength="80"
+          placeholder="今天主要学了什么？哪里更顺了？"
+          value="{{summary}}"
+          bindinput="handleSummaryInput"
+          auto-height
         />
-        <view class="photo-remove" data-index="{{index}}" catchtap="removePhoto">×</view>
-      </view>
-      <view wx:if="{{photos.length < 3}}" class="photo-picker" bindtap="choosePhotos">
-        <view>上传照片</view>
+        <view class="complete-summary__counter">
+          <text class="caption num">{{summary.length}} / 80</text>
+        </view>
       </view>
     </view>
+
+    <!-- Subject: single-select chips -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">科目</text>
+      <view class="complete-chips">
+        <view
+          wx:for="{{subjectChips}}"
+          wx:key="value"
+          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="toggleSubject"
+        >{{item.value}}</view>
+      </view>
+    </view>
+
+    <!-- Tags: multi-select chips -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">标签</text>
+      <view class="complete-chips">
+        <view
+          wx:for="{{tagChips}}"
+          wx:key="value"
+          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="toggleTag"
+        >{{item.value}}</view>
+      </view>
+    </view>
+
+    <!-- Spacer so sticky submit bar doesn't cover the last chip row -->
+    <view class="complete-bottom-spacer"></view>
   </view>
 
-  <view class="surface-card" style="margin-top: 20rpx;">
-    <view class="field-label">一句话总结（可选）</view>
-    <textarea
-      class="textarea-input"
-      maxlength="80"
-      placeholder="今天主要学了什么？哪里更顺了？"
-      value="{{summary}}"
-      bindinput="handleSummaryInput"
-    />
+  <!-- Sticky bottom: gradient fade + full-width primary button -->
+  <view class="complete-submit">
+    <button
+      class="btn-v2 btn-v2--primary complete-submit__btn"
+      loading="{{submitting}}"
+      disabled="{{submitting}}"
+      bindtap="submit"
+    >完成打卡</button>
   </view>
 
   <!--
-    v0.21.3 — restored subject chip picker. Single-select: tapping a
-    chip selects it; tapping the active chip clears the selection.
-    Picking here (after the session, not before start) avoids the
-    URL-encoding round-trip that broke submits in v0.21.2.
-  -->
-  <view class="surface-card" style="margin-top: 20rpx;">
-    <view class="field-label">可选科目</view>
-    <view class="tag-list">
-      <view
-        wx:for="{{subjectChips}}"
-        wx:key="value"
-        class="tag-chip {{item.selected ? 'is-active' : ''}}"
-        data-value="{{item.value}}"
-        bindtap="toggleSubject"
-      >{{item.value}}</view>
-    </view>
-
-    <view class="field-label" style="margin-top: 24rpx;">标签</view>
-    <view class="tag-list">
-      <view
-        wx:for="{{tagChips}}"
-        wx:key="value"
-        class="tag-chip {{item.selected ? 'is-active' : ''}}"
-        data-value="{{item.value}}"
-        bindtap="toggleTag"
-      >{{item.value}}</view>
-    </view>
-  </view>
-
-  <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
-
-  <!--
-    v0.25 — Achievement unlock overlay. Replaces the per-session
-    cat-reveal modal that used to fire after every submit (it felt
-    repetitive: 100 sessions = 100 nearly-identical "你又收获了一只
-    小猫" pops). Now this only renders when the just-completed
-    session actually crossed an achievement threshold — i.e. the
-    server set `newlyUnlockedBadge` on the response. Card content
-    leans on the achievement's real metadata: breed SVG, name,
-    unlock condition, rarity. Big "解锁" eyebrow makes the
-    achievement framing unmistakable.
+    v0.25 — Achievement unlock overlay. Preserved from v0.25/v0.26
+    verbatim; only the wrapping container class changed (.complete-page
+    instead of .page-shell). The unlock-reveal__* tree is internally
+    self-contained and was the only part of this page already aligned
+    with the new design language.
   -->
   <view wx:if="{{unlockedBadge}}" class="unlock-reveal" bindtap="onTapUnlockDismiss">
     <view class="unlock-reveal__card unlock-reveal__card--{{unlockedBadge.rarity}}" catchtap="onTapUnlockContent">

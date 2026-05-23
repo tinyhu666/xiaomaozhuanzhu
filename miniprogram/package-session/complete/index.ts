@@ -24,7 +24,10 @@ type ChipView = {
 
 type CompletePageData = {
   sessionId: string;
+  /** v0.30 — kept for fallback; new UI uses durationMinutes + unit. */
   durationText: string;
+  /** v0.30 — raw minute count rendered as the hero big number. */
+  durationMinutes: number;
   summary: string;
   /** v0.21.3 — restored single-select subject chip row. */
   subjectChips: ChipView[];
@@ -52,6 +55,7 @@ Page<{}, CompletePageData>({
   data: {
     sessionId: "",
     durationText: "0 分钟",
+    durationMinutes: 0,
     summary: "",
     subjectChips: makeChips(SUBJECTS),
     tagChips: makeChips(TAGS),
@@ -72,9 +76,11 @@ Page<{}, CompletePageData>({
     // installed client passes subject=null on start (v0.21.3+), so
     // the URL never carries a subject. Subject is always chosen on
     // this page via the chip row.
+    const safeMinutes = Number.isFinite(minutes) ? Math.max(0, Math.round(minutes)) : 0;
     this.setData({
       sessionId: String(query.sessionId ?? ""),
-      durationText: `${minutes} 分钟`,
+      durationText: `${safeMinutes} 分钟`,
+      durationMinutes: safeMinutes,
       subjectChips: SUBJECTS.map((value) => ({ value, selected: false })),
       pomodoroCycles: cycles,
       pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
