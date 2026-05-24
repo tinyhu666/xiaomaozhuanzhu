@@ -49,7 +49,12 @@
     <!-- Subject (primary): single-select chips. Bigger label, bigger
          chips than the rest of the page. -->
     <view class="page-pad complete-section complete-section--primary">
-      <text class="complete-section__label">选科目</text>
+      <!-- v0.31.1 — keep .micro on the label even on the primary
+           section so the four labels stay structurally identical;
+           the --primary modifier overrides only font-size/weight/color/
+           letter-spacing. Without .micro here, deleting the modifier
+           later would leave this label unstyled. -->
+      <text class="complete-section__label micro">选科目</text>
       <view class="complete-chips">
         <view
           wx:for="{{subjectChips}}"
@@ -146,7 +151,13 @@
       <view wx:if="{{unlockedBadge.rarity === 'legendary'}}" class="unlock-reveal__crown">👑</view>
       <view wx:elif="{{unlockedBadge.rarity === 'epic'}}" class="unlock-reveal__star">🌟</view>
 
-      <text class="unlock-reveal__eyebrow">🎉 成就解锁</text>
+      <!-- v0.31.1 — was `<text>🎉 成就解锁</text>` (single node mixing
+           emoji + CJK). Same §1A baseline-drift class we keep fixing
+           elsewhere. Wrapped in inline-flex w/ split children. -->
+      <view class="unlock-reveal__eyebrow">
+        <text class="unlock-reveal__eyebrow-icon">🎉</text>
+        <text class="unlock-reveal__eyebrow-label">成就解锁</text>
+      </view>
       <image
         wx:if="{{unlockedBadge.imageUrl}}"
         class="unlock-reveal__cat-img"

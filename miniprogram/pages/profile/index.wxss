@@ -120,12 +120,19 @@
 }
 
 .profile-hero__nickname {
+  /* v0.31.1 — pinned height + line-height so the WeChat <input>
+     vertical center is deterministic. Without these, the input's
+     line-box height varies between iOS/Android, causing the input
+     to render slightly above/below the avatar's center on real
+     devices. 56rpx ≈ 40rpx font × 1.4 line-height. */
   font-size: var(--fs-t1);
   font-weight: 800;
   color: var(--c-text-1);
   letter-spacing: -0.4rpx;
   background: transparent;
-  padding: 2rpx 0;
+  padding: 0;
+  height: 56rpx;
+  line-height: 56rpx;
 }
 
 .profile-hero__hint {

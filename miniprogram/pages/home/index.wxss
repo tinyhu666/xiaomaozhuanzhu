@@ -253,7 +253,7 @@
      ✓ (PingFang glyph, sits high in box) and 🎯 (emoji, sits low)
      don't visually jump when the chip flips to is-done. Same §1A
      rationale as the focus-mode meta + complete-hero pomo fixes. */
-  font-size: 22rpx;
+  font-size: var(--fs-caption);
   line-height: 1.2;
 }
 
@@ -328,7 +328,7 @@
 }
 
 .subjects-card-v2__row-value {
-  font-size: 22rpx;
+  font-size: var(--fs-caption);
   font-weight: 600;
   color: var(--c-text-2);
 }

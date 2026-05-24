@@ -106,11 +106,19 @@
    themselves get a slightly taller pad so they sit at a visual tier
    above the optional tag row underneath. */
 .complete-section--primary .complete-section__label {
+  /* v0.31.1 — override every .micro property explicitly. The label
+     now keeps the .micro class (for symmetry with the other 3 sections)
+     so we need to fully override font-size/weight/color/letter-spacing
+     AND text-transform/line-height. .micro's text-transform:uppercase
+     is a no-op on CJK but we set `none` defensively in case the label
+     copy ever contains Latin. */
   font-size: var(--fs-body);
   font-weight: 700;
   color: var(--c-text-1);
   letter-spacing: -0.2rpx;
   margin-bottom: 18rpx;
+  text-transform: none;
+  line-height: 1.4;
 }
 
 .complete-section--primary .chip-v2 {
@@ -181,9 +189,6 @@
   justify-content: center;
   gap: 6rpx;
   color: var(--c-text-3);
-  /* v0.30.2 — was var(--d-fast) which is not a defined motion token in
-     app.wxss, killing the entire transition shorthand. The project's
-     press-feedback duration token is --d-1 (100ms). */
   transition: transform var(--d-1) var(--ease-std), background var(--d-1) var(--ease-std);
 }
 
@@ -199,7 +204,7 @@
 }
 
 .complete-photo-add__label {
-  font-size: 22rpx;
+  font-size: var(--fs-caption);
   line-height: 1.4;
 }
 
@@ -426,13 +431,27 @@
 .unlock-reveal__card--epic .unlock-reveal__halo      { background: rgba(229, 123, 43, 0.28); }
 .unlock-reveal__card--legendary .unlock-reveal__halo { background: rgba(240, 169, 59, 0.36); }
 
+/* v0.31.1 — Eyebrow now wraps two split <text> children (emoji + CJK)
+   per §1A. inline-flex + align-items:baseline keeps the 🎉 and the
+   "成就解锁" on a unified baseline; unified line-height stops them
+   from drifting on devices where emoji metrics differ from PingFang. */
 .unlock-reveal__eyebrow {
-  font-size: 22rpx;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8rpx;
   font-weight: 800;
   letter-spacing: 2rpx;
   color: var(--c-primary);
   margin-bottom: 14rpx;
   z-index: 1;
+  line-height: 1.4;
+}
+
+.unlock-reveal__eyebrow-icon,
+.unlock-reveal__eyebrow-label {
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  color: inherit;
 }
 
 .unlock-reveal__cat-img {
@@ -476,7 +495,7 @@
 .unlock-reveal__rarity {
   padding: 6rpx 18rpx;
   border-radius: 999rpx;
-  font-size: 22rpx;
+  font-size: var(--fs-caption);
   font-weight: 800;
   letter-spacing: 0.6rpx;
   margin-top: 4rpx;
