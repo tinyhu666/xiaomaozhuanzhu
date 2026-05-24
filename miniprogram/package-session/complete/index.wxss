@@ -98,6 +98,28 @@
   margin-bottom: 16rpx;
 }
 
+/* v0.31 — Primary section modifier. Used on the subject row, which
+   was moved to the top of the form because subject is the most
+   load-bearing field on this page (drives the home six-科 grid,
+   weekly recap, calendar day detail). The label is body-sized rather
+   than micro-sized so it actually reads as a heading, and the chips
+   themselves get a slightly taller pad so they sit at a visual tier
+   above the optional tag row underneath. */
+.complete-section--primary .complete-section__label {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  color: var(--c-text-1);
+  letter-spacing: -0.2rpx;
+  margin-bottom: 18rpx;
+}
+
+.complete-section--primary .chip-v2 {
+  padding-top: 14rpx;
+  padding-bottom: 14rpx;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
 /* -------- Photos grid (3-col) -------- */
 
 .complete-photos {
@@ -267,6 +289,11 @@
   .complete-hero__eyebrow,
   .complete-section__label {
     color: var(--c-text-2-dark);
+  }
+  /* v0.31 — primary section label is body-sized, so it gets the
+     stronger --c-text-1-dark for legibility, not the secondary token. */
+  .complete-section--primary .complete-section__label {
+    color: var(--c-text-1-dark);
   }
   .complete-hero__pomo {
     background: rgba(255, 184, 107, 0.16);

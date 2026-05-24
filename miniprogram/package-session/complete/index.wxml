@@ -35,6 +35,64 @@
       </view>
     </view>
 
+    <!--
+      v0.31 — section order rewritten so the user sees the most
+      load-bearing fields FIRST. Subject drives the six-subject grid,
+      weekly recap, and calendar day detail — it's the one piece of
+      info worth recording even when everything else is skipped.
+      Tags second (multi-select, same input idiom). Summary + photos
+      drop to the bottom because they're occasional add-ons, not the
+      core record. The submit button works with NO fields filled —
+      everything stays optional, this is purely visual priority.
+    -->
+
+    <!-- Subject (primary): single-select chips. Bigger label, bigger
+         chips than the rest of the page. -->
+    <view class="page-pad complete-section complete-section--primary">
+      <text class="complete-section__label">选科目</text>
+      <view class="complete-chips">
+        <view
+          wx:for="{{subjectChips}}"
+          wx:key="value"
+          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="toggleSubject"
+        >{{item.value}}</view>
+      </view>
+    </view>
+
+    <!-- Tags: multi-select chips -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">标签 · 可选</text>
+      <view class="complete-chips">
+        <view
+          wx:for="{{tagChips}}"
+          wx:key="value"
+          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="toggleTag"
+        >{{item.value}}</view>
+      </view>
+    </view>
+
+    <!-- One-line summary: micro label + card with textarea + counter -->
+    <view class="page-pad complete-section">
+      <text class="complete-section__label micro">一句话总结 · 可选</text>
+      <view class="card-v2 complete-summary">
+        <textarea
+          class="complete-summary__input"
+          maxlength="80"
+          placeholder="今天主要学了什么？哪里更顺了？"
+          value="{{summary}}"
+          bindinput="handleSummaryInput"
+          auto-height
+        />
+        <view class="complete-summary__counter">
+          <text class="caption num">{{summary.length}} / 80</text>
+        </view>
+      </view>
+    </view>
+
     <!-- Photo grid: micro label + 3-col grid with dashed add tile -->
     <view class="page-pad complete-section">
       <text class="complete-section__label micro">照片 · 可选 0–3 张</text>
@@ -58,52 +116,6 @@
              0-photos check the 1-photo+add-tile layout left column 3
              empty without filler, which read as "broken row". -->
         <view wx:if="{{photos.length < 2}}" class="complete-photo-spacer"></view>
-      </view>
-    </view>
-
-    <!-- One-line summary: micro label + card with textarea + counter -->
-    <view class="page-pad complete-section">
-      <text class="complete-section__label micro">一句话总结 · 可选</text>
-      <view class="card-v2 complete-summary">
-        <textarea
-          class="complete-summary__input"
-          maxlength="80"
-          placeholder="今天主要学了什么？哪里更顺了？"
-          value="{{summary}}"
-          bindinput="handleSummaryInput"
-          auto-height
-        />
-        <view class="complete-summary__counter">
-          <text class="caption num">{{summary.length}} / 80</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- Subject: single-select chips -->
-    <view class="page-pad complete-section">
-      <text class="complete-section__label micro">科目</text>
-      <view class="complete-chips">
-        <view
-          wx:for="{{subjectChips}}"
-          wx:key="value"
-          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
-          data-value="{{item.value}}"
-          bindtap="toggleSubject"
-        >{{item.value}}</view>
-      </view>
-    </view>
-
-    <!-- Tags: multi-select chips -->
-    <view class="page-pad complete-section">
-      <text class="complete-section__label micro">标签</text>
-      <view class="complete-chips">
-        <view
-          wx:for="{{tagChips}}"
-          wx:key="value"
-          class="chip-v2 {{item.selected ? 'is-active' : ''}}"
-          data-value="{{item.value}}"
-          bindtap="toggleTag"
-        >{{item.value}}</view>
       </view>
     </view>
 

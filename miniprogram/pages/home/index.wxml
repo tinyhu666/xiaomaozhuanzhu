@@ -182,16 +182,4 @@
     </view>
   </view>
 
-  <!--
-    Cold-start quote overlay. Placed last so the z-index stack reads
-    correctly. Gated on `launchQuote` — fires once per app launch.
-  -->
-  <view wx:if="{{launchQuote}}" class="quote-card-overlay" bindtap="onTapQuoteDismiss">
-    <view class="quote-card" catchtap="onTapQuoteDismiss">
-      <text class="quote-card__eyebrow">今日寄语</text>
-      <text class="quote-card__en">{{launchQuote.en}}</text>
-      <text class="quote-card__zh">— {{launchQuote.zh}}</text>
-      <text class="quote-card__hint">轻点继续</text>
-    </view>
-  </view>
 </view>
