@@ -1,7 +1,7 @@
 {
   "name": "cpa-study-checkin",
   "private": true,
-  "version": "0.30.2",
+  "version": "0.30.3",
   "workspaces": [
     "server"
   ],

@@ -1,27 +1,48 @@
+/* v0.30.3 — full WXSS rewrite per docs/design-handoff/screen-calendar.jsx.
+   Previous version had ornate gradient cards + 96rpx tall cells with a
+   per-cell minute label. The handoff calls for flatter surfaces, denser
+   heat cells (day number top-right, no minute label), and dark-mode
+   coverage that mirrors the existing palette tokens.
+
+   WXML untouched — the per-cell minute label is hidden via display:none
+   so we don't need to remove the binding (still drives day-panel data).
+*/
+
 .calendar-page {
+  /* .page-shell already provides 28rpx side padding +
+     calc(200rpx + safe-area-inset-bottom) bottom clearance; we just
+     add vertical rhythm between blocks. */
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 28rpx;
+  background: transparent;
 }
 
 @keyframes calendar-fade-up {
-  from { opacity: 0; transform: translateY(14rpx); }
+  from { opacity: 0; transform: translateY(12rpx); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .calendar-page > view {
-  animation: calendar-fade-up 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation: calendar-fade-up 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
 .calendar-page > view:nth-child(1) { animation-delay: 0.04s; }
-.calendar-page > view:nth-child(2) { animation-delay: 0.1s; }
+.calendar-page > view:nth-child(2) { animation-delay: 0.10s; }
 .calendar-page > view:nth-child(3) { animation-delay: 0.16s; }
+.calendar-page > view:nth-child(4) { animation-delay: 0.22s; }
 
+/* ============================================================
+   Hero — month nav + title. Design: 36×36px round nav buttons
+   (soft-mint bg, primary glyph), centered title with a meta line
+   underneath. v0.30.3 flattened from the gradient pills.
+   ============================================================ */
 .calendar-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 20rpx;
+  padding: 4rpx 4rpx 0;
 }
 
 .calendar-hero__center {
@@ -36,105 +57,104 @@
 }
 
 .calendar-hero__title {
-  font-size: 36rpx;
+  font-size: var(--fs-t1);
   font-weight: 800;
-  letter-spacing: 0.4rpx;
+  color: var(--c-text-1);
+  letter-spacing: -0.4rpx;
   font-feature-settings: "tnum" 1;
+  line-height: 1.2;
 }
 
 .calendar-hero__meta {
-  margin-top: 6rpx;
-  color: var(--text-sub);
-  font-size: 22rpx;
-  letter-spacing: 0.3rpx;
+  margin-top: 4rpx;
+  color: var(--c-text-2);
+  font-size: var(--fs-caption);
+  letter-spacing: 0;
   font-feature-settings: "tnum" 1;
 }
 
 .calendar-hero__nav {
+  /* ≥ 44pt tap target. Soft-mint disc per design.
+     v0.30.3 — sized for a single chevron glyph (‹ ›) rather than the
+     prior "上月"/"下月" text label. Larger font (40rpx) makes the
+     chevron read at the same size as standard nav arrows in iOS. */
   flex: 0 0 auto;
-  padding: 0 24rpx;
-  height: 58rpx;
-  line-height: 58rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(245, 252, 248, 0.94) 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.18);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 4rpx 12rpx rgba(46, 169, 133, 0.06);
-  color: var(--mint-600);
-  font-size: 24rpx;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: var(--c-soft-mint);
+  color: var(--c-primary);
+  font-size: 40rpx;
   font-weight: 600;
-  letter-spacing: 0.4rpx;
+  letter-spacing: 0;
   text-align: center;
+  line-height: 72rpx;
   white-space: nowrap;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition: transform var(--d-1) var(--ease-std), background var(--d-1) var(--ease-std);
 }
 
 .calendar-hero__nav--hover {
-  background: rgba(46, 169, 133, 0.16);
+  background: var(--c-primary);
+  color: #fff;
   transform: scale(0.97);
 }
 
-.calendar-board,
-.day-panel {
+/* ============================================================
+   Board — weekday header + 7-col grid + horizontal legend, all
+   on a flat .card-v2 surface (no gradient chrome).
+   ============================================================ */
+.calendar-board {
   position: relative;
-  padding: 32rpx;
-  border-radius: 28rpx;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.12);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 1rpx 2rpx rgba(20, 60, 50, 0.03),
-    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
+  padding: 24rpx 18rpx 18rpx;
+  border-radius: var(--r-lg);
+  background: var(--c-surface-light);
+  border: 1rpx solid var(--c-stroke);
 }
 
 .calendar-board__weekdays {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12rpx;
-  color: var(--text-sub);
+  gap: 8rpx;
+  color: var(--c-text-2);
   font-size: 22rpx;
+  font-weight: 600;
   text-align: center;
+  letter-spacing: 0;
+  margin-bottom: 10rpx;
 }
 
 .calendar-board__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12rpx;
-  margin-top: 18rpx;
+  gap: 8rpx;
 }
 
+/* Cell — denser than before (80rpx vs 96rpx) so 6 rows fit without
+   pushing the day-panel off-screen. Day number sits top-right. */
 .calendar-board__cell {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 96rpx;
-  padding: 8rpx 4rpx;
-  border-radius: 20rpx;
-  background: #f0f6f3;
-  border: 2rpx solid #d8e8e0;
+  height: 80rpx;
+  border-radius: 12rpx;
+  background: var(--c-soft-mint);
+  border: 2rpx solid transparent;
   box-sizing: border-box;
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+  padding: 6rpx 10rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  transition: transform var(--d-1) var(--ease-std), border-color var(--d-2) var(--ease-std);
 }
 
 .calendar-board__cell:active {
-  transform: scale(0.94);
+  transform: scale(0.96);
 }
 
 .calendar-board__cell.is-faded {
-  opacity: 0.32;
+  opacity: 0.35;
 }
 
 .calendar-board__cell.is-selected {
-  outline: 4rpx solid rgba(46, 169, 133, 0.32);
-}
-
-.calendar-board__cell.is-today {
-  border-color: var(--mint-600);
+  border-color: var(--c-primary);
   border-width: 3rpx;
 }
 
@@ -142,288 +162,244 @@
   font-weight: 800;
 }
 
-/* Subtle vertical gradient on each heat level so cells look "filled
-   in" rather than flat-colored — gives the heat-map a designed feel. */
-.calendar-board__cell.level-1 {
-  background: linear-gradient(180deg, #c2ead2 0%, #a4dcc0 100%);
-  border-color: #8fd1ad;
+/* Today marker — a small dot at the bottom-center of the cell. */
+.calendar-board__cell.is-today::after {
+  content: "";
+  position: absolute;
+  bottom: 8rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--c-primary);
 }
 
-.calendar-board__cell.level-2 {
-  background: linear-gradient(180deg, #80d3a4 0%, #5fc491 100%);
-  border-color: #4eb27e;
-}
-
-.calendar-board__cell.level-3 {
-  background: linear-gradient(180deg, #3fb693 0%, #228168 100%);
-  border-color: #228168;
-}
-
-.calendar-board__cell.level-4 {
-  background: linear-gradient(180deg, #258266 0%, #135a43 100%);
-  border-color: #135a43;
-}
-
-.calendar-board__cell.level-5 {
-  background: linear-gradient(180deg, #115239 0%, #073323 100%);
-  border-color: #073323;
-}
+/* Heat levels — solid colors per design (gradient chrome dropped).
+   level-0 stays at soft-mint (set above by the base .calendar-board__cell).
+   Level 3+ flips text to white for contrast; the today-dot also flips. */
+.calendar-board__cell.level-1 { background: #BFE3D2; }
+.calendar-board__cell.level-2 { background: #7DCFA8; }
+.calendar-board__cell.level-3 { background: #3FB392; }
+.calendar-board__cell.level-4 { background: #1F8767; }
+.calendar-board__cell.level-5 { background: #0E5A45; }
 
 .calendar-board__cell.level-3 .calendar-board__day,
-.calendar-board__cell.level-3 .calendar-board__minutes,
 .calendar-board__cell.level-4 .calendar-board__day,
-.calendar-board__cell.level-4 .calendar-board__minutes,
-.calendar-board__cell.level-5 .calendar-board__day,
-.calendar-board__cell.level-5 .calendar-board__minutes {
-  color: #ffffff;
+.calendar-board__cell.level-5 .calendar-board__day {
+  color: #fff;
+}
+
+.calendar-board__cell.is-today.level-3::after,
+.calendar-board__cell.is-today.level-4::after,
+.calendar-board__cell.is-today.level-5::after {
+  background: #fff;
 }
 
 .calendar-board__day {
-  font-size: 26rpx;
-  font-weight: 700;
+  font-size: 22rpx;
+  font-weight: 600;
   line-height: 1;
+  color: var(--c-text-1);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
 }
 
+/* v0.30.3 — per-cell minute label hidden. The day-panel below shows
+   per-day totals when a date is selected, which is the same info but
+   only when the user is looking for it. Hiding here keeps the heat
+   map clean per the design. */
 .calendar-board__minutes {
-  margin-top: 4rpx;
-  font-size: 18rpx;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--text-sub);
-  opacity: 0.85;
+  display: none;
 }
 
+/* Legend — single horizontal strip. */
 .calendar-board__legend {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14rpx;
-  margin-top: 24rpx;
-  flex-wrap: wrap;
-}
-
-/* v0.23 — horizontal compact legend: "少 □ □ □ ▣ ▣ ▣ 多" in one row.
-   Drops the per-tier text label since the gradient already reads
-   intuitively (most heat-map UIs use this pattern, à la GitHub). */
-.calendar-board__legend--horizontal {
-  gap: 8rpx;
-  margin-top: 18rpx;
+  gap: 10rpx;
+  margin-top: 22rpx;
   flex-wrap: nowrap;
 }
 
-.calendar-board__legend--horizontal .calendar-board__legend-swatch {
-  width: 24rpx;
-  height: 24rpx;
+.calendar-board__legend--horizontal {
+  gap: 8rpx;
+  margin-top: 22rpx;
+  flex-wrap: nowrap;
 }
 
 .calendar-board__legend-label {
-  font-size: 18rpx;
-  color: var(--text-sub);
-  letter-spacing: 0.3rpx;
+  font-size: 20rpx;
+  color: var(--c-text-2);
+  letter-spacing: 0;
   line-height: 1;
   margin: 0 6rpx;
-  opacity: 0.7;
-}
-
-.calendar-board__legend-row {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
 }
 
 .calendar-board__legend-swatch {
-  width: 32rpx;
-  height: 32rpx;
-  border-radius: 6rpx;
-  border: 2rpx solid rgba(46, 169, 133, 0.18);
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 5rpx;
   box-sizing: border-box;
 }
 
-.calendar-board__legend-swatch.level-0 {
-  background: #f0f6f3;
-  border-color: #d8e8e0;
-}
+.calendar-board__legend-swatch.level-0 { background: var(--c-soft-mint); }
+.calendar-board__legend-swatch.level-1 { background: #BFE3D2; }
+.calendar-board__legend-swatch.level-2 { background: #7DCFA8; }
+.calendar-board__legend-swatch.level-3 { background: #3FB392; }
+.calendar-board__legend-swatch.level-4 { background: #1F8767; }
+.calendar-board__legend-swatch.level-5 { background: #0E5A45; }
 
-.calendar-board__legend-swatch.level-1 {
-  background: #b3e3c7;
-  border-color: #8fd1ad;
-}
-
-.calendar-board__legend-swatch.level-2 {
-  background: #6fc99a;
-  border-color: #4eb27e;
-}
-
-.calendar-board__legend-swatch.level-3 {
-  background: #2ea985;
-  border-color: #228168;
-}
-
-.calendar-board__legend-swatch.level-4 {
-  background: #1a7558;
-  border-color: #135a43;
-}
-
-.calendar-board__legend-swatch.level-5 {
-  background: #0a4631;
-  border-color: #073323;
-}
-
-.calendar-board__legend-text {
-  font-size: 20rpx;
-  color: var(--text-sub);
-  line-height: 1;
+/* ============================================================
+   Day panel — selected day's sessions. Flat .card-v2 surface,
+   minimal chrome. Each session is a sub-card row.
+   ============================================================ */
+.day-panel {
+  padding: 28rpx 24rpx 24rpx;
+  border-radius: var(--r-lg);
+  background: var(--c-surface-light);
+  border: 1rpx solid var(--c-stroke);
 }
 
 .day-panel__header {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16rpx;
 }
 
-.day-panel__date,
-.day-panel__meta,
-.day-panel__total {
+.day-panel__date {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: var(--c-text-1);
+  letter-spacing: -0.3rpx;
+  font-feature-settings: "tnum" 1;
   display: block;
 }
 
-.day-panel__date {
-  font-size: 34rpx;
-  font-weight: 800;
-  letter-spacing: 0.4rpx;
-  font-feature-settings: "tnum" 1;
-}
-
 .day-panel__meta {
-  margin-top: 8rpx;
-  color: var(--text-sub);
-  font-size: 22rpx;
-  letter-spacing: 0.3rpx;
+  display: block;
+  margin-top: 4rpx;
+  color: var(--c-text-2);
+  font-size: var(--fs-caption);
+  letter-spacing: 0;
 }
 
 .day-panel__total {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 800;
-  color: var(--mint-600);
+  color: var(--c-primary);
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.3rpx;
+  letter-spacing: 0;
 }
 
 .day-panel__sessions {
   display: flex;
   flex-direction: column;
-  gap: 18rpx;
-  margin-top: 24rpx;
+  gap: 14rpx;
+  margin-top: 22rpx;
 }
 
 .session-item {
+  /* Soft-mint pad rather than gradient chrome. Cleaner; the heat-tile
+     accent already gives the page rhythm, the session items shouldn't
+     compete. */
   position: relative;
-  padding: 24rpx 22rpx 22rpx 30rpx;
-  border-radius: 22rpx;
-  background:
-    linear-gradient(180deg, rgba(46, 169, 133, 0.06) 0%, rgba(46, 169, 133, 0.03) 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.1);
-  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.5);
-}
-
-/* Slim left rail with subtle gradient. */
-.session-item::before {
-  content: "";
-  position: absolute;
-  left: 14rpx;
-  top: 26rpx;
-  bottom: 26rpx;
-  width: 4rpx;
-  border-radius: 999rpx;
-  background: linear-gradient(180deg, var(--mint-400) 0%, var(--mint-500) 100%);
-  opacity: 0.7;
+  padding: 18rpx 20rpx;
+  border-radius: 16rpx;
+  background: var(--c-soft-mint);
 }
 
 .session-item__top {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 16rpx;
 }
 
 .session-item__subject {
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: 700;
-  letter-spacing: 0.4rpx;
+  color: var(--c-text-1);
+  letter-spacing: 0;
 }
 
 .session-item__duration {
-  font-size: 24rpx;
-  font-weight: 800;
-  color: var(--mint-600);
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--c-primary);
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.3rpx;
 }
 
 .session-item__summary {
   display: block;
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   font-size: 24rpx;
-  line-height: 1.7;
-  color: var(--text-main);
-  letter-spacing: 0.3rpx;
-  opacity: 0.86;
+  line-height: 1.55;
+  color: var(--c-text-1);
+  letter-spacing: 0;
 }
 
 .session-item__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10rpx;
-  margin-top: 14rpx;
+  gap: 8rpx;
+  margin-top: 12rpx;
 }
 
 .session-item__tag {
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba(46, 169, 133, 0.08);
-  color: var(--mint-600);
+  padding: 4rpx 12rpx;
+  border-radius: var(--r-pill);
+  background: rgba(46, 169, 133, 0.14);
+  color: var(--c-primary);
   font-size: 20rpx;
-  font-weight: 500;
-  letter-spacing: 0.3rpx;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
 }
 
 .session-item__photos {
   white-space: nowrap;
-  margin-top: 18rpx;
+  margin-top: 14rpx;
 }
 
 .session-item__photo {
   display: inline-block;
-  width: 148rpx;
-  height: 148rpx;
-  margin-right: 10rpx;
-  border-radius: 16rpx;
-  background: rgba(46, 169, 133, 0.06);
-  transition: transform 0.18s ease;
+  width: 132rpx;
+  height: 132rpx;
+  margin-right: 8rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.5);
+  transition: transform var(--d-1) var(--ease-std);
 }
 
 .session-item__photo:active {
   transform: scale(0.97);
 }
 
-/* v0.26 — empty-month hint card. Sits between the hero and the heat
-   grid when the month has no recorded sessions. Soft mint background
-   so it doesn't shout; sits compact in one stack. */
+.empty-state {
+  margin-top: 18rpx;
+  padding: 32rpx 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--c-text-2);
+}
+
+/* ============================================================
+   Empty-month hint — flat panel, no gradient.
+   ============================================================ */
 .calendar-empty-month {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  gap: 4rpx;
   padding: 22rpx 28rpx;
-  border-radius: 22rpx;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.18), transparent 60%),
-    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.08);
-  margin-bottom: 12rpx;
+  border-radius: var(--r-md);
+  background: var(--c-soft-mint);
+  margin-bottom: 4rpx;
 }
 
 .calendar-empty-month__icon {
@@ -435,13 +411,74 @@
 .calendar-empty-month__text {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--text-main);
-  letter-spacing: 0.3rpx;
+  color: var(--c-text-1);
+  letter-spacing: 0;
 }
 
 .calendar-empty-month__sub {
   font-size: 22rpx;
-  color: var(--text-sub);
-  opacity: 0.8;
-  letter-spacing: 0.2rpx;
+  color: var(--c-text-2);
+  letter-spacing: 0;
+}
+
+/* ============================================================
+   Dark mode — page bg flips to --c-bg-dark; surfaces switch to
+   --c-surface-dark with darker stroke. Heat-level colors stay
+   the same since they're calibrated for both themes (greens
+   read well on light + dark).
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  .calendar-page {
+    background: var(--c-bg-dark);
+  }
+  .calendar-hero__title { color: var(--c-text-1-dark); }
+  .calendar-hero__meta { color: var(--c-text-2-dark); }
+  .calendar-hero__nav {
+    background: var(--c-soft-mint-deep);
+    color: var(--c-accent);
+  }
+  .calendar-board,
+  .day-panel {
+    background: var(--c-surface-dark);
+    border-color: var(--c-stroke-dark);
+  }
+  .calendar-board__weekdays { color: var(--c-text-2-dark); }
+  .calendar-board__cell {
+    background: var(--c-soft-mint-deep);
+  }
+  .calendar-board__cell.is-selected {
+    border-color: var(--c-accent);
+  }
+  .calendar-board__cell.is-today::after {
+    background: var(--c-accent);
+  }
+  .calendar-board__day { color: var(--c-text-1-dark); }
+  /* Level-3+ stays at white for contrast (already light). */
+  .calendar-board__legend-label { color: var(--c-text-2-dark); }
+  .calendar-board__legend-swatch.level-0 { background: var(--c-soft-mint-deep); }
+
+  .day-panel__date { color: var(--c-text-1-dark); }
+  .day-panel__meta { color: var(--c-text-2-dark); }
+  .day-panel__total { color: var(--c-accent); }
+
+  .session-item {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .session-item__subject { color: var(--c-text-1-dark); }
+  .session-item__duration { color: var(--c-accent); }
+  .session-item__summary { color: var(--c-text-1-dark); }
+  .session-item__tag {
+    background: rgba(46, 169, 133, 0.22);
+    color: var(--c-accent);
+  }
+  .session-item__photo {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .empty-state { color: var(--c-text-2-dark); }
+
+  .calendar-empty-month {
+    background: var(--c-soft-mint-deep);
+  }
+  .calendar-empty-month__text { color: var(--c-text-1-dark); }
+  .calendar-empty-month__sub { color: var(--c-text-2-dark); }
 }
