@@ -144,8 +144,16 @@
     <view class="focus-mode__center">
       <text wx:if="{{activeSession.subject}}" class="focus-mode__subject micro">{{activeSession.subject}}</text>
       <text class="focus-mode__clock num {{activeSession.status === 'paused' ? 'is-paused' : 'is-running'}}">{{timerText}}</text>
+      <!--
+        v0.31.2 — status caption simplified to just "已暂停" when paused.
+        Previously appended pause-duration ("· 3 分钟") which read like
+        the focus duration; semantically inverted and confusing.
+        The big clock above already shows the cumulative focus time
+        (frozen on pause), so the duration the user actually cares
+        about is right there at hero size.
+      -->
       <text class="focus-mode__status caption">
-        {{activeSession.status === 'paused' ? '已暂停' + (pausedMinutes > 0 ? ' · ' + pausedMinutes + ' 分钟' : '') : (activeSession.mode === 'pomodoro' ? pomodoroPhaseLabel : '专注中')}}
+        {{activeSession.status === 'paused' ? '已暂停' : (activeSession.mode === 'pomodoro' ? pomodoroPhaseLabel : '专注中')}}
       </text>
       <!-- Pomodoro dots — legacy session display -->
       <view wx:if="{{activeSession.mode === 'pomodoro'}}" class="focus-mode__cycles">

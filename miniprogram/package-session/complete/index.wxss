@@ -351,6 +351,141 @@
   100% { transform: scale(1.6); opacity: 0; }
 }
 
+/* ============================================================
+   v0.31.2 — Non-unlock success recap overlay. Visually quieter
+   than the unlock-reveal card (lower z-index, no rarity halo, no
+   bouncing animation, no action buttons). It's a brief
+   "yes, your 45 minutes is recorded" beat — present for 2.5s
+   then auto-nav, or tap-dismiss for immediate nav. The unlock
+   overlay takes precedence in markup order if both could fire,
+   but in practice they're mutually exclusive.
+   ============================================================ */
+@keyframes recap-overlay-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes recap-card-pop {
+  0%   { opacity: 0; transform: scale(0.92) translateY(18rpx); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes recap-check-in {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.recap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(20, 60, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 56rpx;
+  animation: recap-overlay-fade 0.22s var(--ease-std);
+}
+
+.recap-card {
+  width: 100%;
+  max-width: 520rpx;
+  padding: 48rpx 36rpx 36rpx;
+  border-radius: var(--r-xl);
+  background: var(--c-surface-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 24rpx 60rpx -8rpx rgba(46, 169, 133, 0.28);
+  animation: recap-card-pop 0.32s var(--ease-std);
+}
+
+.recap-card__check {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 56rpx;
+  line-height: 96rpx;
+  text-align: center;
+  margin-bottom: 8rpx;
+  animation: recap-check-in 0.42s var(--ease-std) 0.05s backwards;
+}
+
+.recap-card__eyebrow {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--c-text-2);
+  letter-spacing: 0.4rpx;
+}
+
+.recap-card__row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-top: 4rpx;
+}
+
+.recap-card__num {
+  /* Mirrors the complete-hero number scale so this reads as
+     "the same number you saw 0.5s ago, now confirmed". */
+  font-size: 96rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--c-primary);
+  letter-spacing: -2rpx;
+}
+
+.recap-card__unit {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--c-text-2);
+}
+
+.recap-card__subject {
+  margin-top: 6rpx;
+  padding: 8rpx 22rpx;
+  border-radius: var(--r-pill);
+  background: rgba(46, 169, 133, 0.12);
+}
+
+.recap-card__subject-label {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--c-primary);
+  letter-spacing: 0;
+}
+
+.recap-card__hint {
+  margin-top: 14rpx;
+  font-size: 20rpx;
+  color: var(--c-text-3);
+  letter-spacing: 0.8rpx;
+}
+
+/* Dark mode — same surface flip as the rest of the complete page. */
+@media (prefers-color-scheme: dark) {
+  .recap-card {
+    background: var(--c-surface-dark);
+    border: 1rpx solid var(--c-stroke-dark);
+    box-shadow: none;
+  }
+  .recap-card__check {
+    background: var(--c-accent);
+  }
+  .recap-card__eyebrow { color: var(--c-text-2-dark); }
+  .recap-card__num { color: var(--c-accent); }
+  .recap-card__unit { color: var(--c-text-2-dark); }
+  .recap-card__subject {
+    background: rgba(46, 169, 133, 0.22);
+  }
+  .recap-card__subject-label { color: var(--c-accent); }
+  .recap-card__hint { color: var(--c-text-2-dark); opacity: 0.6; }
+}
+
 .unlock-reveal {
   position: fixed;
   inset: 0;
