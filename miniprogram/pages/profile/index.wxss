@@ -304,68 +304,6 @@
 }
 
 /* ============================================================
-   Dark mode overrides for the upper page sections (modals below
-   keep their own gradient surfaces; legacy --text-main / --text-sub
-   tokens are already redefined in app.wxss's dark @media block).
-   ============================================================ */
-@media (prefers-color-scheme: dark) {
-  .profile-page {
-    background: var(--c-bg-dark);
-  }
-  .profile-hero__avatar-wrap {
-    background: var(--c-soft-mint-deep);
-  }
-  .profile-hero__avatar-placeholder {
-    color: var(--c-accent);
-  }
-  .profile-hero__nickname {
-    color: var(--c-text-1-dark);
-  }
-  .profile-hero__hint {
-    color: var(--c-text-2-dark);
-  }
-  .stat-tile {
-    background: var(--c-surface-dark);
-    border-color: var(--c-stroke-dark);
-  }
-  .stat-tile__label {
-    color: var(--c-text-2-dark);
-  }
-  .stat-tile__value {
-    color: var(--c-accent);
-  }
-  .stat-tile__unit {
-    color: var(--c-text-2-dark);
-  }
-  .stat-tile__caption {
-    color: var(--c-text-2-dark);
-  }
-  .menu-list {
-    background: var(--c-surface-dark);
-    border-color: var(--c-stroke-dark);
-  }
-  .menu-item {
-    border-top-color: var(--c-stroke-dark);
-  }
-  .menu-item:active {
-    background: var(--c-soft-mint-deep);
-  }
-  .menu-item__icon {
-    background: var(--c-soft-mint-deep);
-    color: var(--c-accent);
-  }
-  .menu-item__title {
-    color: var(--c-text-1-dark);
-  }
-  .menu-item__hint {
-    color: var(--c-text-2-dark);
-  }
-  .menu-item__chevron {
-    color: var(--c-text-2-dark);
-  }
-}
-
-/* ============================================================
    v0.18 — Monthly summary modal. Fires once per calendar month
    on the first visit to 我的 after the month rolls over. The card
    sits above a translucent backdrop; tap anywhere outside the

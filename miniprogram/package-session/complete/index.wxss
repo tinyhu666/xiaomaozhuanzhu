@@ -273,54 +273,6 @@
   pointer-events: auto;
 }
 
-/* -------- Dark mode: complete page surfaces -------- */
-
-@media (prefers-color-scheme: dark) {
-  .complete-page {
-    background: var(--c-bg-dark);
-  }
-  .complete-hero__num {
-    /* In dark mode the deep --c-primary disappears; --c-accent (mint)
-       is the project's designated dark-mode primary substitute. */
-    color: var(--c-accent);
-  }
-  .complete-hero__unit {
-    color: var(--c-text-2-dark);
-  }
-  /* v0.30.2 — .micro defaults to --c-text-2 (#5E7D75) which on the
-     dark page bg sits at ~4.4:1, barely passing AA. Force the
-     dark-mode token for legibility. Same for any caption labels we
-     render directly on the page bg. */
-  .complete-hero__eyebrow,
-  .complete-section__label {
-    color: var(--c-text-2-dark);
-  }
-  /* v0.31 — primary section label is body-sized, so it gets the
-     stronger --c-text-1-dark for legibility, not the secondary token. */
-  .complete-section--primary .complete-section__label {
-    color: var(--c-text-1-dark);
-  }
-  .complete-hero__pomo {
-    background: rgba(255, 184, 107, 0.16);
-    color: #f6c894;
-  }
-  .complete-photo {
-    background: rgba(255, 255, 255, 0.05);
-  }
-  .complete-photo-add {
-    border-color: rgba(255, 255, 255, 0.18);
-    color: var(--c-text-2-dark);
-  }
-  .complete-photo__remove {
-    box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.4);
-  }
-  .complete-summary__input {
-    color: var(--c-text-1-dark);
-  }
-  .complete-submit {
-    background: linear-gradient(to top, var(--c-bg-dark) 60%, rgba(15, 26, 23, 0));
-  }
-}
 
 /* ============================================================
    v0.25 — Achievement-unlock overlay (preserved verbatim).
@@ -464,26 +416,6 @@
   font-size: 20rpx;
   color: var(--c-text-3);
   letter-spacing: 0.8rpx;
-}
-
-/* Dark mode — same surface flip as the rest of the complete page. */
-@media (prefers-color-scheme: dark) {
-  .recap-card {
-    background: var(--c-surface-dark);
-    border: 1rpx solid var(--c-stroke-dark);
-    box-shadow: none;
-  }
-  .recap-card__check {
-    background: var(--c-accent);
-  }
-  .recap-card__eyebrow { color: var(--c-text-2-dark); }
-  .recap-card__num { color: var(--c-accent); }
-  .recap-card__unit { color: var(--c-text-2-dark); }
-  .recap-card__subject {
-    background: rgba(46, 169, 133, 0.22);
-  }
-  .recap-card__subject-label { color: var(--c-accent); }
-  .recap-card__hint { color: var(--c-text-2-dark); opacity: 0.6; }
 }
 
 .unlock-reveal {
