@@ -523,9 +523,16 @@ button::after {
 
 /* Card v2 — minimal surface, 24rpx radius, sh-1 lift */
 .card-v2 {
+  /* v0.31.4 — added visible 1rpx border + stronger shadow because
+     the previous ultra-subtle 4%-opacity shadow on a white-card /
+     near-white-page combo rendered as completely invisible chrome
+     on real iOS devices. User screenshots showed all cards as
+     floating text with zero container affordance. Border + 8% shadow
+     guarantees visibility regardless of page bg. */
   background: var(--c-surface-light);
   border-radius: var(--r-lg);
-  box-shadow: var(--sh-1);
+  border: 1rpx solid var(--c-stroke);
+  box-shadow: 0 4rpx 16rpx rgba(20, 60, 50, 0.06);
   padding: var(--s-3);
 }
 .is-dark .card-v2,
@@ -606,10 +613,18 @@ button::after {
 .btn-v2[disabled] { opacity: 0.55; transform: none; }
 
 .btn-v2--primary {
-  background: var(--c-primary);
-  color: #fff;
+  /* v0.31.4 — explicit hex + !important on bg so nothing — page
+     stylesheet, WeChat theme adjustment, or user-stylesheet — can
+     cancel the primary disc. Same for color. The button was the
+     single most-broken element in v0.31.3 (rendering invisible). */
+  background: #155946 !important;
+  background-color: #155946 !important;
+  color: #fff !important;
 }
-.btn-v2--primary:active { background: var(--c-primary-700); }
+.btn-v2--primary:active {
+  background: #0e4434 !important;
+  background-color: #0e4434 !important;
+}
 .is-dark .btn-v2--primary,
 .is-focus-mode .btn-v2--primary,
 .dark-surface .btn-v2--primary {

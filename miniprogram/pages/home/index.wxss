@@ -337,11 +337,18 @@
    FOCUS MODE — always-dark, full viewport
    ============================================================ */
 .focus-mode {
+  /* v0.31.4 — explicit hex + !important because v0.31.3 device test
+     showed focus mode rendering with light bg + dark text (inverted
+     from the design). Suspected WeChat iOS theme adjustment was
+     overriding the var(--c-bg-dark) reference. Using literal hex
+     bypasses any var-substitution shenanigans; !important forecloses
+     cascade overrides. */
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: var(--c-bg-dark);
-  color: var(--c-text-1-dark);
+  background: #1A1F1C !important;
+  background-color: #1A1F1C !important;
+  color: #E8EFEC !important;
   display: flex;
   flex-direction: column;
   animation: focus-mode-enter 0.32s var(--ease-std, cubic-bezier(0.2, 0.8, 0.3, 1));
@@ -423,9 +430,12 @@
 }
 
 .focus-mode__clock {
+  /* v0.31.4 — explicit hex + !important; the clock was rendering as
+     dark text on light bg in user's screenshot, opposite of design.
+     Same reasoning as .focus-mode bg override. */
   font-size: 128rpx;
   font-weight: 800;
-  color: var(--c-text-1-dark);
+  color: #E8EFEC !important;
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
