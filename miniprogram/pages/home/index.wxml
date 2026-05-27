@@ -1,188 +1,110 @@
-<!--
-  v0.30 — full structural rewrite to match the Claude-Design handoff
-  (docs/design-handoff/screen-home.jsx). Previous versions did only
-  palette swaps; this one rebuilds the layout itself.
-
-  Two top-level branches: idle (when activeSession is null) and
-  focus mode (when activeSession is non-null). Same WXML file but
-  the two blocks are visually disjoint per design intent.
-  All existing event handlers + data bindings are preserved verbatim
-  so the TS / store layer doesn't need any changes.
--->
-<view class="home-page {{activeSession ? 'is-focus-mode' : ''}}">
+<view class="page-shell home-page {{activeSession ? 'is-focus-mode' : ''}}">
+  <!--
+    v0.22 — full-screen focus view. When a session is live, the page
+    drops all idle clutter (exam hero, makeup banner, goal+challenge
+    card, six-subject grid) and lets the timer-card fill the viewport.
+    The custom tabbar + makeup CTA + the rest of the dashboard come
+    back the moment the session ends. Side-effects (wx.hideTabBar,
+    setKeepScreenOn) are driven from applyActiveSession in index.ts,
+    not the wxml — see syncFocusMode().
+  -->
+  <view wx:if="{{makeup && !activeSession}}" class="makeup-banner">
+    <view class="makeup-banner__text">
+      <text class="makeup-banner__title">昨天没打卡，今天还能补回来</text>
+      <text class="makeup-banner__sub">补签后连签可恢复到 {{makeup.streakIfRecovered}} 天，每 7 天可用一次</text>
+    </view>
+    <button class="cta-button makeup-banner__btn" loading="{{makeupLoading}}" disabled="{{makeupLoading}}" bindtap="handleMakeup">补签</button>
+  </view>
 
   <!--
-    ============ IDLE STATE ============
-    Header → exam hero (no card) → timer card → goal card → 6-科 grid.
-    Total visible blocks ≤ 4 per design rules.
+    Exam countdown — v0.18.1 upgraded from a slim "contextual" pill
+    back into a proper hero card. User feedback in v0.18 was that
+    the pill was too easy to skim past; the countdown is the single
+    most motivating piece of data on the page. The big number on the
+    right + urgency-tinted background reads at a glance from the
+    home screen lock.
   -->
-  <block wx:if="{{!activeSession}}">
-    <!-- Header bar: app title + streak chip -->
-    <view class="home-header page-pad">
-      <text class="home-header__title">小猫专注</text>
-      <view wx:if="{{streakDays > 0}}" class="home-header__streak">
-        <text class="home-header__flame">🔥</text>
-        <text class="home-header__streak-num num">{{streakText}}</text>
-      </view>
+  <view wx:if="{{nextExam && !activeSession}}" class="exam-hero exam-hero--{{nextExam.urgency}}">
+    <view class="exam-hero__body">
+      <text class="exam-hero__eyebrow">距下一科考试</text>
+      <text class="exam-hero__subject">{{nextExam.subject}} · {{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
+      <text class="exam-hero__motivation">{{nextExam.motivation}}</text>
     </view>
-
-    <!-- Makeup nudge: only when server flags a recoverable streak. -->
-    <view wx:if="{{makeup}}" class="makeup-banner page-pad fade-up">
-      <view class="makeup-banner__text">
-        <text class="makeup-banner__title">昨天没打卡，今天可以补</text>
-        <text class="makeup-banner__sub caption">补签后连签恢复到 {{makeup.streakIfRecovered}} 天，每 7 天可用一次</text>
-      </view>
-      <button class="btn-v2 btn-v2--primary makeup-banner__btn" loading="{{makeupLoading}}" disabled="{{makeupLoading}}" bindtap="handleMakeup">补签</button>
+    <view class="exam-hero__count">
+      <text class="exam-hero__count-num">{{nextExam.daysRemaining}}</text>
+      <text class="exam-hero__count-unit">天</text>
     </view>
-
-    <!-- Exam countdown — full-bleed text, no card chrome. -->
-    <view wx:if="{{nextExam}}" class="exam-hero page-pad fade-up exam-hero--{{nextExam.urgency}}">
-      <text class="exam-hero__eyebrow micro">下一科 · {{nextExam.subject}}</text>
-      <view class="exam-hero__row">
-        <text class="exam-hero__num num">{{nextExam.daysRemaining}}</text>
-        <text class="exam-hero__unit">天</text>
-      </view>
-      <text class="exam-hero__date caption">距 {{nextExam.dateLabel}}{{nextExam.fallback ? '（参考）' : ''}}</text>
-    </view>
-
-    <!-- Timer card — idle.
-         Big number = today's cumulative (todayMinutesText), per design.
-         Caption is a generic motivation line; CTA opens focus mode. -->
-    <view class="page-pad fade-up">
-      <view class="timer-card-v2 card-v2">
-        <text class="timer-card-v2__eyebrow micro">今日已专注</text>
-        <text class="timer-card-v2__big num">{{todayMinutesText}}</text>
-        <text class="timer-card-v2__caption caption">{{goalReached ? '今日目标已达成' : '点下方按钮开始下一段专注'}}</text>
-        <button
-          class="btn-v2 btn-v2--primary timer-card-v2__cta"
-          bindtap="handleStart"
-          loading="{{actionLoading}}"
-          disabled="{{actionLoading}}"
-        >{{actionLoading ? (actionLoadingLabel || '正在开始…') : '开始专注'}}</button>
-      </view>
-    </view>
-
-    <!-- Today goal card — title + value, progress bar, optional challenge. -->
-    <view class="page-pad fade-up">
-      <view class="goal-card-v2 card-v2">
-        <view class="goal-card-v2__head">
-          <text class="goal-card-v2__title">今日目标</text>
-          <text class="goal-card-v2__value num {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
-        </view>
-        <view class="bar goal-card-v2__bar">
-          <view class="bar__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
-        </view>
-        <view wx:if="{{dailyChallenge}}" class="goal-card-v2__challenge {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
-          <text class="goal-card-v2__challenge-icon">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
-          <text class="goal-card-v2__challenge-text">挑战 {{dailyChallenge.targetMinutes}} 分</text>
-          <text wx:if="{{dailyChallenge.completed}}" class="goal-card-v2__challenge-done caption">已完成</text>
-        </view>
-        <view wx:if="{{weeklyGoal.visible}}" class="goal-card-v2__weekly">
-          <text class="caption">本周 {{weeklyGoal.text}}</text>
-          <view class="bar goal-card-v2__weekly-bar">
-            <view class="bar__fill {{weeklyGoal.reached ? 'is-reached' : ''}}" style="width: {{weeklyGoal.progress}}%"></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- Six-subject grid — 2×3 mini bars. -->
-    <view wx:if="{{subjectsCard.visible}}" class="page-pad fade-up">
-      <view class="subjects-card-v2" bindtap="openSubjectsPage">
-        <view class="subjects-card-v2__head">
-          <text class="subjects-card-v2__title">六科进度</text>
-          <text class="subjects-card-v2__hint caption">查看 ›</text>
-        </view>
-        <view class="subjects-card-v2__grid card-v2">
-          <view wx:for="{{subjectsCard.items}}" wx:key="subject" class="subjects-card-v2__row">
-            <view class="subjects-card-v2__row-head">
-              <text class="subjects-card-v2__row-name">{{item.subject}}</text>
-              <text class="subjects-card-v2__row-value num caption">{{item.valueText}}</text>
-            </view>
-            <view class="bar">
-              <view class="bar__fill {{item.reached ? 'is-reached' : ''}}" style="width: {{item.percent}}%"></view>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </block>
+  </view>
 
   <!--
-    ============ FOCUS MODE ============
-    Full viewport: meta row → centered Display clock → bottom buttons.
-    Always dark (regardless of system theme) by design — it's a
-    deliberate sensory shift, not a theme.
+    v0.21.3 — pre-start subject picker removed. Subject is now chosen
+    on the complete page (post-session), matching v0.17 behavior. The
+    short-lived v0.18.1 "pick before start" flow caused the v0.21.2
+    submit outage when Chinese subject names round-tripped through
+    wx.navigateTo's query string and weren't decoded server-side.
+    Free timer is still the only startable mode; pomodoro state-machine
+    code stays for legacy in-flight sessions started before v0.18.1.
   -->
-  <view wx:if="{{activeSession}}" class="focus-mode">
 
-    <!-- Atmospheric halo behind the clock -->
-    <view class="focus-mode__halo"></view>
-
-    <!--
-      Top meta row: today + streak.
-      v0.30.2 — was a single <text class="caption"> with an embedded
-      num span + middle-dot + CJK, which caused baseline drift between
-      the tabular-nums digits and PingFang CJK on real devices. Now
-      each pair is its own inline-flex wrapper with align-items:
-      baseline and each token sits in its own <text>, per
-      ui-review-checklist §1A.
-    -->
-    <view class="focus-mode__meta">
-      <view class="focus-mode__meta-pair">
-        <text class="num focus-mode__meta-strong">{{todayMinutesText}}</text>
-        <text class="focus-mode__meta-label">· 今日</text>
+  <view class="timer-card {{activeSession ? 'is-active' : ''}} {{activeSession && activeSession.mode === 'pomodoro' ? 'is-pomodoro' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">
+    <view class="timer-card__head">
+      <view class="timer-card__status-wrap">
+        <view class="timer-card__status {{activeSession && activeSession.status === 'running' ? 'is-running' : ''}} {{activeSession && activeSession.status === 'paused' ? 'is-paused' : ''}}">
+          <view wx:if="{{activeSession && activeSession.status === 'running'}}" class="timer-card__status-dot"></view>
+          <text class="timer-card__status-text">{{activeSession ? (activeSession.status === 'paused' ? '已暂停' : (activeSession.mode === 'pomodoro' ? pomodoroPhaseLabel : '专注中')) : '准备开始'}}</text>
+        </view>
+        <text wx:if="{{activeSession && activeSession.status === 'paused' && pausedMinutes > 0}}" class="timer-card__pause-hint">已暂停 {{pausedMinutes}} 分钟</text>
       </view>
-      <text class="focus-mode__divider">|</text>
-      <view class="focus-mode__meta-pair">
-        <text class="num focus-mode__meta-strong">{{streakText}}</text>
-        <text class="focus-mode__meta-label">连签</text>
+      <view class="timer-card__meta">
+        <text wx:if="{{activeSession && activeSession.subject}}" class="timer-card__subject-pill">{{activeSession.subject}}</text>
+        <text wx:if="{{audioBadge.visible}}" class="timer-card__audio-pill">{{audioBadge.emoji}} {{audioBadge.label}}</text>
+        <text>今日 {{todayMinutesText}}</text>
+        <text class="timer-card__streak">
+          <text wx:if="{{streakDays >= 3}}" class="timer-card__flame">🔥</text>
+          <text>连续 {{streakText}}</text>
+        </text>
       </view>
     </view>
 
-    <!-- Central display: subject (optional) + clock + status -->
-    <view class="focus-mode__center">
-      <text wx:if="{{activeSession.subject}}" class="focus-mode__subject micro">{{activeSession.subject}}</text>
-      <text class="focus-mode__clock num {{activeSession.status === 'paused' ? 'is-paused' : 'is-running'}}">{{timerText}}</text>
-      <!--
-        v0.31.2 — status caption simplified to just "已暂停" when paused.
-        Previously appended pause-duration ("· 3 分钟") which read like
-        the focus duration; semantically inverted and confusing.
-        The big clock above already shows the cumulative focus time
-        (frozen on pause), so the duration the user actually cares
-        about is right there at hero size.
-      -->
-      <text class="focus-mode__status caption">
-        {{activeSession.status === 'paused' ? '已暂停' : (activeSession.mode === 'pomodoro' ? pomodoroPhaseLabel : '专注中')}}
-      </text>
-      <!-- Pomodoro dots — legacy session display -->
-      <view wx:if="{{activeSession.mode === 'pomodoro'}}" class="focus-mode__cycles">
-        <view
-          wx:for="{{pomodoroCycleDots}}"
-          wx:key="index"
-          class="focus-mode__cycle-dot {{item.done ? 'is-done' : ''}}"
-        ></view>
-      </view>
+    <text class="timer-card__clock">{{timerText}}</text>
+
+    <!-- Pomodoro cycle dots — only shown when running a pomodoro. -->
+    <view wx:if="{{activeSession && activeSession.mode === 'pomodoro'}}" class="timer-card__cycles">
+      <view
+        wx:for="{{pomodoroCycleDots}}"
+        wx:key="index"
+        class="timer-card__cycle-dot {{item.done ? 'is-done' : ''}}"
+      ></view>
+      <text wx:if="{{pomodoroCyclesCompleted > 4}}" class="timer-card__cycle-extra">+{{pomodoroCyclesCompleted - 4}}</text>
     </view>
 
-    <!-- Bottom actions: pause/resume (ghost) + end (primary accent) -->
-    <view class="focus-mode__actions">
+    <text wx:if="{{showEmptyHint}}" class="timer-card__hint">点击下方按钮开始专注</text>
+
+    <button
+      wx:if="{{actions[0] === 'start'}}"
+      class="cta-button timer-card__primary"
+      bindtap="handleStart"
+      loading="{{actionLoading}}"
+      disabled="{{actionLoading}}"
+    >{{actionLoading ? (actionLoadingLabel || '正在开始…') : '开始专注'}}</button>
+
+    <view wx:else class="timer-card__actions">
       <button
         wx:if="{{actions[0] === 'pause'}}"
-        class="btn-v2 btn-v2--ghost focus-mode__btn"
+        class="ghost-button timer-card__secondary"
         bindtap="handlePause"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
       >{{actionLoading ? (actionLoadingLabel || '正在暂停…') : '暂停'}}</button>
       <button
         wx:if="{{actions[0] === 'resume'}}"
-        class="btn-v2 btn-v2--ghost focus-mode__btn"
+        class="ghost-button timer-card__secondary"
         bindtap="handleResume"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
       >{{actionLoading ? (actionLoadingLabel || '正在继续…') : '继续'}}</button>
       <button
-        class="btn-v2 btn-v2--primary focus-mode__btn focus-mode__btn--end"
+        class="cta-button timer-card__secondary"
         bindtap="handleComplete"
         loading="{{actionLoading}}"
         disabled="{{actionLoading}}"
@@ -190,4 +112,87 @@
     </view>
   </view>
 
+  <!--
+    v0.18.1 — compact 六科进度 card surfaced to home. The user gets
+    a glance at "where am I across all 6 subjects" without leaving
+    the focus screen. Mini bar per subject (label · minutes/target ·
+    progress), tap to open the full subjects page for detailed edits.
+    Hidden when no subject has any minutes yet (the empty grid is
+    just noise on a brand-new account).
+  -->
+  <view wx:if="{{subjectsCard.visible && !activeSession}}" class="subjects-card" bindtap="openSubjectsPage">
+    <view class="subjects-card__head">
+      <text class="subjects-card__title">六科进度</text>
+      <text class="subjects-card__hint">{{subjectsCard.hint}} ›</text>
+    </view>
+    <view class="subjects-card__grid">
+      <view wx:for="{{subjectsCard.items}}" wx:key="subject" class="subjects-card__row">
+        <text class="subjects-card__row-label">{{item.subject}}</text>
+        <view class="subjects-card__row-track">
+          <view class="subjects-card__row-fill {{item.reached ? 'is-reached' : ''}}" style="width: {{item.percent}}%;"></view>
+        </view>
+        <text class="subjects-card__row-value">{{item.valueText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!--
+    v0.22 — Goal card consolidation. The standalone "daily challenge"
+    chip was promoted into a quiet inline label next to the target
+    value ("今日 30/90 · 挑战 60") so the user reads one row instead
+    of two. The "在「我的 · 学习设置」里可以改" subtitle was dropped —
+    most users don't need that pointer on every page open. Card is
+    hidden entirely during an active session (focus mode).
+  -->
+  <view wx:if="{{!activeSession}}" class="goal-card">
+    <view class="goal-card__head">
+      <view class="goal-card__title-wrap">
+        <text class="goal-card__title">今日目标</text>
+        <!--
+          v0.25.2 — switched from a single <text> to <view> wrapping
+          explicit <text> children. Mixing emoji + Chinese + digits in
+          one <text> caused subtle baseline drift inside the pill (the
+          🎯 sits taller than the Chinese characters), making the
+          content read as left-leaning. inline-flex + align-items:center
+          + explicit gap centers the children regardless of glyph height.
+        -->
+        <view wx:if="{{dailyChallenge}}" class="goal-card__challenge-inline {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
+          <text class="goal-card__challenge-inline-icon">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
+          <text class="goal-card__challenge-inline-text">挑战 {{dailyChallenge.targetMinutes}} 分</text>
+        </view>
+      </view>
+      <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
+    </view>
+    <view class="goal-card__track">
+      <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
+    </view>
+    <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成</text>
+
+    <view wx:if="{{weeklyGoal.visible}}" class="goal-card__weekly">
+      <view class="goal-card__weekly-row">
+        <text class="goal-card__weekly-label">本周</text>
+        <text class="goal-card__weekly-value {{weeklyGoal.reached ? 'is-reached' : ''}}">{{weeklyGoal.text}}</text>
+      </view>
+      <view class="goal-card__weekly-track">
+        <view class="goal-card__weekly-fill {{weeklyGoal.reached ? 'is-reached' : ''}}" style="width: {{weeklyGoal.progress}}%"></view>
+      </view>
+    </view>
+  </view>
+
+  <!--
+    v0.29 — cold-start quote card. Fires exactly once per app launch
+    (the module-level `quoteShownThisLaunch` flag in index.ts). Tap
+    anywhere (backdrop or card) to dismiss. The card itself uses
+    `catchtap` so taps on the content stop propagation, but the
+    dismiss handler is on the card too so any tap closes — this is
+    a single-action surface, no other interactions.
+  -->
+  <view wx:if="{{launchQuote}}" class="quote-card-overlay" bindtap="onTapQuoteDismiss">
+    <view class="quote-card" catchtap="onTapQuoteDismiss">
+      <text class="quote-card__eyebrow">今日寄语</text>
+      <text class="quote-card__en">{{launchQuote.en}}</text>
+      <text class="quote-card__zh">— {{launchQuote.zh}}</text>
+      <text class="quote-card__hint">轻点继续</text>
+    </view>
+  </view>
 </view>

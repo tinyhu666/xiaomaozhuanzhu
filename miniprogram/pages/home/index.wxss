@@ -1,383 +1,42 @@
-/* ──────────────────────────────────────────────────────────────────
- * v0.30 — home page styles, full rewrite per Claude-Design handoff
- * (docs/design-handoff/screen-home.jsx). Two top-level sections:
- *   1. IDLE  — header / exam hero (no card) / timer card / goal
- *              card / 6-科 grid
- *   2. FOCUS — full-viewport dark layout with centered Display
- *              clock + bottom buttons
- *
- * Tokens (--c-* / --fs-* / --r-* / --sh-* / --d-* / --ease-*) live
- * in app.wxss; this file only uses them. Legacy class names
- * (.timer-card, .exam-hero, .goal-card, .subjects-card) were
- * RENAMED to *-v2 / *-card-v2 so any stale CSS lurking elsewhere
- * doesn't bleed in. Old class definitions stripped wholesale.
- * ────────────────────────────────────────────────────────────────── */
-
 .home-page {
-  /* v0.31.7 — match the working 二级 page structure (.subjects-page):
-     flex column + a real vertical gap between sections. The home page
-     previously stacked sections with no gap, so the timer/goal/six-科
-     cards rendered cramped/merged — the "一级页面 broken vs 二级页面
-     normal" the user flagged. The 二级 pages all use this flex+gap
-     pattern. The focus-mode child is position:fixed so it's out of
-     flow and unaffected by the gap. */
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
-  padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
-}
-
-/* Stagger entry — each top-level section fades up together. v0.30.2
-   stripped the broken `.page-pad:nth-child(N) .fade-up` stagger rule:
-   it required `.fade-up` to be a *descendant* of `.page-pad`, but the
-   WXML applies both classes to the same element, so the descendant
-   selector never matched. Net effect was "stagger never fired" — now
-   we just synchronize the fade-in; visually less fussy and matches
-   the design's intent of a quiet entry. */
-.fade-up { animation: home-fade-up 0.4s var(--ease-std, cubic-bezier(0.2, 0.8, 0.3, 1)) backwards; }
-@keyframes home-fade-up {
-  from { opacity: 0; transform: translateY(12rpx); }
-  to   { opacity: 1; transform: translateY(0); }
+  /* v0.21: tightened from 24rpx — same number of cards but less air
+     between them lets more fit in a viewport without scroll. */
+  gap: 18rpx;
+  transition: padding 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 /* ============================================================
-   HEADER (idle only)
+   v0.22 — Focus mode. When `is-focus-mode` is on, the page-shell
+   collapses to a single tall card filling the viewport: the timer
+   becomes the page. Other sections (exam-hero, makeup, goal-card,
+   subjects-card) are already wx:if'd off, so this just stretches
+   what remains. Tabbar is hidden via wx.hideTabBar from TS so the
+   bottom region is the user's button bar, not a 4-icon dock.
    ============================================================ */
-.home-header {
-  /* v0.31.7 — dropped padding-bottom: 32rpx; the .home-page flex gap
-     (24rpx) now owns inter-section spacing. Keeping both double-spaced
-     the header. */
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-top: 8rpx;
-}
-
-.home-header__title {
-  font-size: var(--fs-t1);
-  font-weight: 800;
-  color: #1F2624;
-  letter-spacing: -0.6rpx;
-}
-
-.home-header__streak {
-  display: inline-flex;
-  align-items: center;
-  gap: 6rpx;
-  font-size: var(--fs-caption);
-  color: #5E7D75;
-}
-
-.home-header__flame {
-  font-size: 24rpx;
-  line-height: 1;
-}
-
-.home-header__streak-num {
-  font-weight: 700;
-  color: #1F2624;
-}
-
-/* ============================================================
-   MAKEUP banner (conditional)
-   ============================================================ */
-.makeup-banner {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding-top: 0;
-  padding-bottom: 24rpx;
-}
-
-.makeup-banner__text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-  min-width: 0;
-}
-
-.makeup-banner__title {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: #1F2624;
-}
-
-.makeup-banner__btn {
-  /* v0.30.2 — was forcing 64rpx (32pt) with !important, below the
-     44pt tap-target floor. Restored to the .btn-v2 default height
-     (88rpx ≈ 44pt). Kept horizontal padding tight so it still reads
-     as a banner-inline CTA rather than a full-width button. */
-  flex-shrink: 0;
-  padding-left: 32rpx;
-  padding-right: 32rpx;
-  font-size: var(--fs-caption);
-}
-
-/* ============================================================
-   EXAM HERO — full-bleed, no card chrome
-   ============================================================ */
-.exam-hero {
-  padding-bottom: 40rpx;
-}
-
-.exam-hero__eyebrow {
-  display: block;
-  margin-bottom: 8rpx;
-  color: #5E7D75;
-}
-
-.exam-hero__row {
-  display: flex;
-  align-items: baseline;
-  gap: 12rpx;
-}
-
-.exam-hero__num {
-  font-size: var(--fs-hero);
-  font-weight: 800;
-  color: #155946;
-  line-height: 1;
-  letter-spacing: -0.5rpx;
-}
-
-.exam-hero__unit {
-  font-size: var(--fs-body);
-  font-weight: 600;
-  color: #5E7D75;
-}
-
-.exam-hero__date {
-  display: block;
-  margin-top: 6rpx;
-  color: #5E7D75;
-}
-
-/* Urgency tiers — keep palette gentle; design uses primary text on
-   bg, no card backgrounds tinted per tier. We just shift the num
-   color for soon/urgent/imminent. */
-.exam-hero--soon .exam-hero__num     { color: #c2562b; }
-.exam-hero--urgent .exam-hero__num   { color: #c2562b; }
-.exam-hero--imminent .exam-hero__num { color: #A0322B; }
-
-/* ============================================================
-   TIMER CARD v2 (idle)
-   ============================================================ */
-.timer-card-v2 {
-  padding: 56rpx 40rpx 44rpx;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.timer-card-v2__eyebrow {
-  display: block;
-  color: #5E7D75;
-}
-
-.timer-card-v2__big {
-  display: block;
-  font-size: 96rpx;
-  font-weight: 800;
-  color: #1F2624;
-  line-height: 1;
-  letter-spacing: -2rpx;
-}
-
-.timer-card-v2__caption {
-  display: block;
-  color: #5E7D75;
-  margin-bottom: 16rpx;
-}
-
-.timer-card-v2__cta {
-  width: 100%;
-  min-height: 96rpx;
-  height: 96rpx;
-  font-size: var(--fs-body);
-}
-
-/* ============================================================
-   GOAL CARD v2
-   ============================================================ */
-.goal-card-v2 {
-  padding: 32rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.goal-card-v2__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16rpx;
-}
-
-.goal-card-v2__title {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: #1F2624;
-}
-
-.goal-card-v2__value {
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: #5E7D75;
-}
-
-.goal-card-v2__value.is-reached {
-  color: #155946;
-  font-weight: 800;
-}
-
-.goal-card-v2__bar { /* relies on shared .bar utility */ }
-
-.goal-card-v2__challenge {
-  /* v0.30.2 — lifted min-height from ~38rpx (font + padding only) to
-     56rpx so the bindtap target reaches the 28pt minimum. Still under
-     the 44pt strict floor but the action it triggers is a low-stakes
-     toast, not a destructive op. Anything taller would compete
-     visually with the main CTA. */
-  display: inline-flex;
-  align-items: center;
-  gap: 8rpx;
-  min-height: 56rpx;
-  padding: 8rpx 20rpx;
-  border-radius: var(--r-pill);
-  background: rgba(46, 169, 133, 0.10);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: #155946;
-  align-self: flex-start;
-}
-
-.goal-card-v2__challenge.is-done {
-  background: #155946;
-  color: #fff;
-}
-
-.goal-card-v2__challenge-icon {
-  /* v0.30.2 — was line-height: 1; unified with the label's 1.2 so
-     ✓ (PingFang glyph, sits high in box) and 🎯 (emoji, sits low)
-     don't visually jump when the chip flips to is-done. Same §1A
-     rationale as the focus-mode meta + complete-hero pomo fixes. */
-  font-size: var(--fs-caption);
-  line-height: 1.2;
-}
-
-.goal-card-v2__challenge-text {
-  line-height: 1.2;
-}
-
-.goal-card-v2__challenge-done {
-  color: rgba(255, 255, 255, 0.8) !important;
-  margin-left: 4rpx;
-}
-
-.goal-card-v2__weekly {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  margin-top: 4rpx;
-}
-
-.goal-card-v2__weekly-bar { height: 4rpx; }
-
-/* ============================================================
-   SIX-SUBJECT GRID v2 (2 columns × 3 rows)
-   ============================================================ */
-.subjects-card-v2 {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.subjects-card-v2__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.subjects-card-v2__title {
-  font-size: var(--fs-body);
-  font-weight: 700;
-  color: #1F2624;
-}
-
-.subjects-card-v2__hint {
-  color: #5E7D75;
-}
-
-.subjects-card-v2__grid {
-  padding: 32rpx;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  row-gap: 28rpx;
-  column-gap: 40rpx;
-}
-
-.subjects-card-v2__row {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  min-width: 0;
-}
-
-.subjects-card-v2__row-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.subjects-card-v2__row-name {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #1F2624;
-}
-
-.subjects-card-v2__row-value {
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: #5E7D75;
-}
-
-/* ============================================================
-   FOCUS MODE — always-dark, full viewport
-   ============================================================ */
-.focus-mode {
-  /* v0.31.4 — explicit hex + !important because v0.31.3 device test
-     showed focus mode rendering with light bg + dark text (inverted
-     from the design). Suspected WeChat iOS theme adjustment was
-     overriding the #1A1F1C reference. Using literal hex
-     bypasses any var-substitution shenanigans; !important forecloses
-     cascade overrides. */
+.home-page.is-focus-mode {
   position: fixed;
   inset: 0;
+  padding: 0;
+  margin: 0;
   z-index: 50;
-  background: #1A1F1C !important;
-  background-color: #1A1F1C !important;
-  color: #E8EFEC !important;
-  display: flex;
-  flex-direction: column;
-  animation: focus-mode-enter 0.32s var(--ease-std, cubic-bezier(0.2, 0.8, 0.3, 1));
-  padding-top: 88rpx;
-  padding-bottom: calc(72rpx + env(safe-area-inset-bottom));
-  padding-left: 32rpx;
-  padding-right: 32rpx;
+  /* v0.28 — switched from light mint gradient to dark carbon per the
+     Claude-Design handoff. Focus mode is now genuinely sensory-different
+     from idle. The .focus-halo pseudo-element below adds the atmospheric
+     mint glow at the top of the viewport. */
+  background: var(--c-bg-dark);
+  color: var(--c-text-1-dark);
+  justify-content: stretch;
+  animation: focus-mode-enter var(--d-3) var(--ease-std);
 }
 
-@keyframes focus-mode-enter {
-  0%   { opacity: 0; transform: scale(0.96); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-.focus-mode__halo {
+/* Atmospheric halo at the top, fades into the carbon background.
+   pseudo-element so we don't touch wxml for this. */
+.home-page.is-focus-mode::before {
+  content: "";
   position: absolute;
-  top: -240rpx;
+  top: -200rpx;
   left: 50%;
   transform: translateX(-50%);
   width: 960rpx;
@@ -386,148 +45,1066 @@
   background: radial-gradient(circle at center,
     rgba(46, 169, 133, 0.18) 0%,
     rgba(46, 169, 133, 0) 60%);
+  z-index: 0;
 }
 
-.focus-mode__meta {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 24rpx;
-  color: #8FA59C;
-  font-size: var(--fs-caption);
+@keyframes focus-mode-enter {
+  0%   { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
-/* v0.30.2 — each token pair is an inline-flex container with
-   align-items:baseline so the tabular-nums digit run sits on the
-   same baseline as the PingFang CJK label next to it. Pattern from
-   ui-review-checklist §1A. */
-.focus-mode__meta-pair {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6rpx;
-  line-height: 1.4;
+/* Respect user accessibility preference — no animation when they
+   asked for none at the OS level. */
+@media (prefers-reduced-motion: reduce) {
+  .home-page.is-focus-mode {
+    animation: none;
+  }
 }
 
-.focus-mode__meta-strong {
-  color: #E8EFEC;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-.focus-mode__meta-label {
-  color: #8FA59C;
-  line-height: 1.4;
-}
-
-.focus-mode__divider {
-  color: #8FA59C;
-  opacity: 0.4;
-  line-height: 1.4;
-}
-
-.focus-mode__center {
-  position: relative;
+.home-page.is-focus-mode > .timer-card {
   flex: 1;
+  height: 100vh;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  /* v0.26.1: horizontal padding tightened 56→28 so "00:00:00" doesn't
+     overflow at 128rpx font. */
+  padding: 100rpx 28rpx calc(56rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24rpx;
+  position: relative;
+  z-index: 1; /* stack above ::before halo */
 }
 
-.focus-mode__subject {
-  color: #2EA985;
-  letter-spacing: 0.5rpx;
-}
-
-.focus-mode__clock {
-  /* v0.31.4 — explicit hex + !important; the clock was rendering as
-     dark text on light bg in user's screenshot, opposite of design.
-     Same reasoning as .focus-mode bg override. */
-  font-size: 128rpx;
-  font-weight: 800;
-  color: #E8EFEC !important;
-  line-height: 1;
+.home-page.is-focus-mode .timer-card__clock {
+  /* v0.28 — light text on carbon (was dark mint gradient on white). */
+  font-size: var(--fs-display);
   letter-spacing: 0;
-  white-space: nowrap;
-}
-
-.focus-mode__clock.is-running {
+  margin-top: auto;
+  margin-bottom: auto;
+  color: var(--c-text-1-dark);
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  -webkit-text-fill-color: var(--c-text-1-dark);
   animation: focus-clock-breathe 4s ease-in-out infinite;
 }
 
-.focus-mode__clock.is-paused {
-  opacity: 0.55;
+/* Stop the breathing animation when the session is paused so the
+   stillness reads as "you stepped away." `.timer-card.is-paused`
+   is bound from the wxml — see the class string in the template.
+   (We can't use CSS :has() because WeChat's CSS engine doesn't
+   support it reliably across older base library versions.) */
+.home-page.is-focus-mode .timer-card.is-paused .timer-card__clock {
+  animation: none;
+  opacity: 0.7;
 }
 
 @keyframes focus-clock-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.85; transform: scale(0.985); }
+  50%      { opacity: 0.86; transform: scale(0.985); }
 }
 
-.focus-mode__status {
-  color: #8FA59C;
+.home-page.is-focus-mode .timer-card__hint {
+  display: none;
 }
 
-.focus-mode__cycles {
-  display: flex;
-  gap: 12rpx;
-  margin-top: 12rpx;
+/* v0.28 — focus mode meta row + status pill restyled for dark bg.
+   Text colors switch to the dark-mode tokens; the status pill loses
+   its solid mint background and becomes a thin caption. */
+.home-page.is-focus-mode .timer-card__meta {
+  font-size: var(--fs-caption);
+  color: var(--c-text-2-dark);
 }
 
-.focus-mode__cycle-dot {
-  width: 18rpx;
-  height: 18rpx;
-  border-radius: 50%;
-  background: #2E3633;
+.home-page.is-focus-mode .timer-card__streak,
+.home-page.is-focus-mode .timer-card__meta text {
+  color: var(--c-text-2-dark);
 }
 
-.focus-mode__cycle-dot.is-done {
-  background: #2EA985;
+.home-page.is-focus-mode .timer-card__status {
+  background: rgba(46, 169, 133, 0.18);
+  color: var(--c-accent);
 }
 
-.focus-mode__actions {
-  position: relative;
-  display: flex;
-  gap: 16rpx;
+.home-page.is-focus-mode .timer-card__status.is-running {
+  background: rgba(46, 169, 133, 0.28);
 }
 
-.focus-mode__btn {
-  flex: 1;
-  min-height: 104rpx;
-  height: 104rpx;
-  font-size: var(--fs-body);
+.home-page.is-focus-mode .timer-card__status.is-paused {
+  background: rgba(229, 158, 87, 0.18);
+  color: #f0b274;
 }
 
-/* Focus-mode buttons: ghost has light border, end-button uses
-   accent (brighter than --c-primary, reads on the dark bg). */
-.focus-mode .btn-v2--ghost {
-  color: #E8EFEC;
+.home-page.is-focus-mode .timer-card__status-dot {
+  background: var(--c-accent);
+}
+
+.home-page.is-focus-mode .timer-card__status-dot::after {
+  background: var(--c-accent);
+}
+
+.home-page.is-focus-mode .timer-card__pause-hint {
+  color: var(--c-text-2-dark);
+}
+
+.home-page.is-focus-mode .timer-card__actions {
+  margin-top: auto;
+  padding-top: 40rpx;
+}
+
+/* v0.28 — buttons in focus mode swap to dark-mode treatment:
+   ghost gets a light-on-transparent border, primary uses the accent
+   mint (more readable on carbon than the dark primary). */
+.home-page.is-focus-mode .ghost-button {
+  color: var(--c-text-1-dark);
   background: transparent;
   border: 2rpx solid rgba(232, 239, 236, 0.32);
+  box-shadow: none;
 }
 
-.focus-mode .btn-v2--ghost:active {
+.home-page.is-focus-mode .ghost-button:active {
   background: rgba(232, 239, 236, 0.06);
 }
 
-.focus-mode .btn-v2--primary {
-  background: #2EA985;
+.home-page.is-focus-mode .cta-button {
+  background: linear-gradient(180deg, var(--c-accent) 0%, var(--c-primary) 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.18),
+    0 12rpx 28rpx rgba(46, 169, 133, 0.24);
+}
+
+.home-page.is-focus-mode .timer-card__cycles {
+  justify-content: center;
+}
+
+.home-page.is-focus-mode .timer-card__cycle-dot {
+  background: var(--c-stroke-dark);
+}
+.home-page.is-focus-mode .timer-card__cycle-dot.is-done {
+  background: var(--c-accent);
+}
+
+/* Staggered fade-up entrance for the major sections so the page
+   composes itself top-down rather than appearing all at once.
+   `backwards` keeps each child invisible during its delay window. */
+@keyframes home-fade-up {
+  from { opacity: 0; transform: translateY(14rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.home-page > view {
+  animation: home-fade-up 0.45s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+/* v0.21 density: tightened stagger so the page composes faster
+   (0.04→0.02 first, then 0.05 increments instead of 0.06). */
+.home-page > view:nth-child(1) { animation-delay: 0.02s; }
+.home-page > view:nth-child(2) { animation-delay: 0.07s; }
+.home-page > view:nth-child(3) { animation-delay: 0.12s; }
+.home-page > view:nth-child(4) { animation-delay: 0.17s; }
+.home-page > view:nth-child(5) { animation-delay: 0.22s; }
+.home-page > view:nth-child(6) { animation-delay: 0.27s; }
+
+/* v0.21.3 — .picker-card / .picker-chip styles removed along with the
+   home-page subject picker. Subject is now chosen on the complete
+   page (post-session). The `.timer-card__subject-pill` below is
+   still used to surface the picked subject on a running session's
+   meta row when present on the server record. */
+
+/* Subject pill that appears in timer card meta when running. */
+.timer-card__subject-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  color: var(--mint-600);
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
+  margin-right: 8rpx;
+}
+
+/* Sibling pill showing the active ambient scene (e.g. "🌧️ 雨声").
+   Same shape as the subject pill but blue palette so the two
+   coexist visually without competing. */
+.timer-card__audio-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(74, 110, 217, 0.1);
+  color: #4a6ed9;
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
+  margin-right: 8rpx;
+}
+
+/* Pomodoro cycle dots — sit just below the clock. */
+.timer-card__cycles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.timer-card__cycle-dot {
+  width: 22rpx;
+  height: 22rpx;
+  border-radius: 50%;
+  background: rgba(46, 169, 133, 0.16);
+  transition: all 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.timer-card__cycle-dot.is-done {
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 2rpx 8rpx rgba(46, 169, 133, 0.3);
+  transform: scale(1.1);
+}
+
+.timer-card__cycle-extra {
+  margin-left: 6rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--mint-600);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Pomodoro mode overlay: subtle tomato hue so the active state is
+   visually distinct from the free-timer mode. */
+.timer-card.is-pomodoro {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 159, 90, 0.16), transparent 45%),
+    radial-gradient(circle at 0% 100%, rgba(94, 195, 157, 0.12), transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border-color: rgba(229, 122, 50, 0.18);
+}
+
+/* ============================================================
+   Exam-hero — prominent countdown card. v0.18.1 upgrade from
+   the v0.13 slim-pill. Big number on the right, subject + date
+   on the left, motivation line at the bottom. Four urgency
+   tiers still drive the palette + a gentle pulse on the day
+   badge for ≤30 days.
+   ============================================================ */
+.exam-hero {
+  display: flex;
+  align-items: center;
+  /* v0.21 density: 24→18 / 28×30→22×24 */
+  gap: 18rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.22), transparent 45%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 12rpx 32rpx -6rpx rgba(46, 169, 133, 0.14);
+}
+
+.exam-hero__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.exam-hero__eyebrow {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 1.5rpx;
+  color: #1d6f59;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.exam-hero__subject {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.exam-hero__motivation {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.exam-hero__count {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
+  /* v0.21 density: 18×24→14×20 */
+  padding: 14rpx 20rpx;
+  border-radius: 24rpx;
+  background:
+    linear-gradient(135deg, rgba(99, 203, 168, 0.18) 0%, rgba(46, 169, 133, 0.22) 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.28);
+}
+
+.exam-hero__count-num {
+  /* v0.21 density: 84→72 — still readable as the hero number */
+  font-size: 72rpx;
+  font-weight: 800;
+  color: #155946;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4rpx;
+  line-height: 0.95;
+}
+
+.exam-hero__count-unit {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1d6f59;
+  letter-spacing: 0.6rpx;
+}
+
+/* Urgency tiers — calm (default mint), soon (≤90, amber),
+   urgent (≤30, orange + pulse), imminent (≤7, red + faster pulse). */
+.exam-hero--soon {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 138, 0.28), transparent 50%),
+    linear-gradient(180deg, #fff8ec 0%, #ffefcf 100%);
+  border-color: rgba(229, 158, 87, 0.32);
+}
+.exam-hero--soon .exam-hero__eyebrow { color: #8a4d10; }
+.exam-hero--soon .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 207, 138, 0.32) 0%, rgba(229, 158, 87, 0.32) 100%);
+  border-color: rgba(229, 158, 87, 0.4);
+}
+.exam-hero--soon .exam-hero__count-num,
+.exam-hero--soon .exam-hero__count-unit { color: #7a3f0a; }
+
+.exam-hero--urgent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 168, 107, 0.32), transparent 50%),
+    linear-gradient(180deg, #fff3ea 0%, #ffe2cc 100%);
+  border-color: rgba(229, 122, 50, 0.32);
+}
+.exam-hero--urgent .exam-hero__eyebrow { color: #7a330a; }
+.exam-hero--urgent .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 168, 107, 0.34) 0%, rgba(229, 122, 50, 0.32) 100%);
+  border-color: rgba(229, 122, 50, 0.4);
+  animation: exam-hero-pulse 2.4s ease-in-out infinite;
+}
+.exam-hero--urgent .exam-hero__count-num,
+.exam-hero--urgent .exam-hero__count-unit { color: #6b2906; }
+
+.exam-hero--imminent {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 156, 156, 0.36), transparent 50%),
+    linear-gradient(180deg, #fff0f0 0%, #ffd9d9 100%);
+  border-color: rgba(217, 80, 80, 0.36);
+}
+.exam-hero--imminent .exam-hero__eyebrow { color: #7a1a1a; }
+.exam-hero--imminent .exam-hero__count {
+  background: linear-gradient(135deg, rgba(255, 156, 156, 0.34) 0%, rgba(217, 80, 80, 0.32) 100%);
+  border-color: rgba(217, 80, 80, 0.42);
+  animation: exam-hero-pulse 1.6s ease-in-out infinite;
+}
+.exam-hero--imminent .exam-hero__count-num,
+.exam-hero--imminent .exam-hero__count-unit { color: #6b0e0e; }
+
+@keyframes exam-hero-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+/* (Quote card + weekly-review removed in v0.9.3 — home is now
+   focused on the immediate question "should I start a session now?".
+   Heat map / weekly aggregates live in the dedicated tabs.) */
+
+/* Timer is the hero card on this page: more elevation, gentle mesh
+   gradient surface, and an ambient glow when a session is running.
+   Three shadow layers (inset highlight + small crisp + large soft)
+   give the card real "weight" that distinguishes it from secondary
+   cards below. */
+.timer-card {
+  position: relative;
+  /* v0.21 density: 40×36→32×30 */
+  padding: 32rpx 30rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(143, 217, 190, 0.28), transparent 48%),
+    radial-gradient(circle at 6% 92%, rgba(94, 195, 157, 0.16), transparent 44%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.04),
+    0 24rpx 48rpx -8rpx rgba(46, 169, 133, 0.16);
+  overflow: hidden;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+/* Active-session ambient: card edge lights up subtly, ring of mint
+   glow extends 8rpx beyond the border like a soft halo. */
+.timer-card.is-active {
+  border-color: rgba(46, 169, 133, 0.28);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.04),
+    0 24rpx 48rpx -8rpx rgba(46, 169, 133, 0.22),
+    0 0 0 8rpx rgba(46, 169, 133, 0.04);
+}
+
+.timer-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.timer-card__status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8rpx;
+}
+
+/* Status pill: tinted background + optional pulsing dot. The dot is
+   a separate element so we can animate just the dot, not the text. */
+.timer-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.08);
+  color: var(--mint-600);
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.6rpx;
+  transition: background 0.3s ease;
+}
+
+.timer-card__status.is-running {
+  background: rgba(46, 169, 133, 0.14);
+}
+
+.timer-card__status.is-paused {
+  background: rgba(229, 158, 87, 0.12);
+  color: #c2782b;
+}
+
+/* Pulsing dot for "专注中". Two concentric rings: inner is the solid
+   indicator, outer is a fading halo that breathes. */
+.timer-card__status-dot {
+  position: relative;
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--mint-500);
+  flex-shrink: 0;
+}
+
+.timer-card__status-dot::after {
+  content: "";
+  position: absolute;
+  inset: -6rpx;
+  border-radius: 50%;
+  background: var(--mint-500);
+  opacity: 0.4;
+  animation: pulse-ring 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  80%, 100% { transform: scale(1.6); opacity: 0; }
+}
+
+.timer-card__status-text {
+  display: inline-block;
+}
+
+.timer-card__pause-hint {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.timer-card__streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+/* Subtle flame flicker — scale + rotation jitter under 3% so it
+   reads as "alive" without yelling for attention. */
+.timer-card__flame {
+  display: inline-block;
+  font-size: 22rpx;
+  transform-origin: 50% 80%;
+  animation: flame-flicker 1.6s ease-in-out infinite;
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.04) rotate(-3deg); }
+  50% { transform: scale(0.98) rotate(2deg); }
+  75% { transform: scale(1.02) rotate(-1deg); }
+}
+
+.timer-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6rpx;
+  color: var(--text-sub);
+  font-size: 22rpx;
+  font-weight: 500;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.3rpx;
+}
+
+/* Big timer: subtle vertical gradient gives it a "carved" / metallic
+   look without being loud. Solid color fallback so the number stays
+   readable on renderers that ignore -webkit-background-clip. */
+.timer-card__clock {
+  display: block;
+  /* v0.21 density: 52→36 / 108→96 — still the page hero, but tighter */
+  margin-top: 36rpx;
+  font-size: 96rpx;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 1rpx;
+  text-align: center;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  color: #155946;
+  background: linear-gradient(180deg, #1a624f 0%, #0f4836 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.timer-card__hint {
+  display: block;
+  /* v0.21 density: 18→14 */
+  margin-top: 14rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.5rpx;
+  opacity: 0.85;
+}
+
+.timer-card__primary {
+  /* v0.21 density: 38→26 */
+  margin-top: 26rpx;
+}
+
+.timer-card__actions {
+  display: flex;
+  gap: 14rpx;
+  /* v0.21 density: 36→26 */
+  margin-top: 26rpx;
+}
+
+.timer-card__secondary {
+  flex: 1;
+}
+
+.timer-card__primary {
+  width: 100%;
+}
+
+/* ============================================================
+   v0.18.1 — compact six-subject progress card on home. Six rows of
+   "subject · bar · minutes / target". Tap anywhere on the card to
+   open the dedicated 六科进度 page.
+   ============================================================ */
+.subjects-card {
+  /* v0.21 density: 24×28×22→18×24×18 */
+  padding: 18rpx 24rpx 18rpx;
+  border-radius: 22rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.16), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.75),
+    0 8rpx 22rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+.subjects-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  /* v0.21 density: 14→10 */
+  margin-bottom: 10rpx;
+}
+
+.subjects-card__title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.subjects-card__hint {
+  font-size: 22rpx;
+  color: var(--mint-600);
+  letter-spacing: 0.2rpx;
+  font-weight: 600;
+}
+
+.subjects-card__grid {
+  display: flex;
+  flex-direction: column;
+  /* v0.21 density: 10→8 */
+  gap: 8rpx;
+}
+
+.subjects-card__row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.subjects-card__row-label {
+  flex-shrink: 0;
+  width: 80rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.subjects-card__row-track {
+  flex: 1;
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  overflow: hidden;
+  box-shadow: inset 0 1rpx 2rpx rgba(20, 60, 50, 0.04);
+}
+
+.subjects-card__row-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8aa6f0 0%, #4a6ed9 100%);
+  border-radius: 999rpx;
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.subjects-card__row-fill.is-reached {
+  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
+}
+
+.subjects-card__row-value {
+  flex-shrink: 0;
+  min-width: 140rpx;
+  text-align: right;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: var(--text-sub);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+}
+
+.subjects-card:active {
+  transform: scale(0.998);
+  transition: transform 0.16s ease;
+}
+
+.goal-card {
+  position: relative;
+  /* v0.21 density: 32→24 top / 32→26 horizontal / 30→22 bottom */
+  padding: 24rpx 26rpx 22rpx;
+  border-radius: 24rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 1rpx 2rpx rgba(20, 60, 50, 0.03),
+    0 12rpx 32rpx -4rpx rgba(46, 169, 133, 0.08);
+}
+
+/* v0.22 — daily challenge collapsed into an inline subtitle on
+   goal-card. The earlier dedicated chip + progress track ate a full
+   row on home; in practice users glance at the goal bar and the
+   "挑战 60分" number is enough information to know whether they've
+   cleared the soft floor. Done state turns mint, otherwise a quiet
+   sub-text styling that doesn't compete with the goal value.
+   The big chip + sub progress track block was deleted. */
+/* v0.25.2 — the pill switched from inline-block <text> to
+   inline-flex <view>. Mixing emoji (🎯 / ✓) with Chinese ("挑战") and
+   digits in a single <text> caused baseline misalignment because
+   emoji glyphs sit taller than CJK characters. inline-flex with
+   align-items:center makes the layout glyph-height-agnostic, and a
+   small gap separates icon from text instead of relying on a raw
+   space character in the template. Vertical padding bumped from
+   2rpx to 4rpx so the pill has visible breathing room. */
+.goal-card__challenge-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  margin-left: 10rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: var(--mint-600);
+  background: rgba(46, 169, 133, 0.1);
+  letter-spacing: 0.3rpx;
+  font-feature-settings: "tnum" 1;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.goal-card__challenge-inline-icon {
+  font-size: 20rpx;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.goal-card__challenge-inline-text {
+  line-height: 1.4;
+}
+
+.goal-card__challenge-inline.is-done {
   color: #fff;
+  background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
 }
 
-.focus-mode .btn-v2--primary:active {
-  background: #155946;
+.goal-card__challenge-inline:active {
+  opacity: 0.85;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fade-up,
-  .focus-mode,
-  .focus-mode__clock.is-running { animation: none !important; }
+/* v0.22 note: the dedicated challenge chip (.goal-card__challenge,
+   its head/emoji/label/target/track/fill children) was removed when
+   the challenge collapsed into the inline pill above. Search the git
+   history at tag v0.21.x for the previous styling. */
+
+.goal-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
-/* v0.31 — cold-start quote overlay styles fully removed (the modal
-   itself was deleted from home/index.ts + .wxml because every-launch
-   dismiss-tap was daily friction for an app whose value prop is
-   "reduce friction to focus"). */
+.goal-card__title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.goal-card__title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.4rpx;
+}
+
+.goal-card__sub {
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.goal-card__value {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3rpx;
+}
+
+.goal-card__value.is-reached {
+  color: var(--mint-600);
+}
+
+.goal-card__track {
+  position: relative;
+  /* v0.21 density: 22→16 / 14→12 */
+  margin-top: 16rpx;
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.08);
+  overflow: hidden;
+  box-shadow: inset 0 1rpx 2rpx rgba(20, 60, 50, 0.06);
+}
+
+/* Subtle gradient fill + inset top highlight gives the bar
+   "carved" depth without being shiny. */
+.goal-card__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, #4dbe96 0%, #228168 100%);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.32);
+  transform-origin: left center;
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: progress-grow 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes progress-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.goal-card__fill.is-reached {
+  background: linear-gradient(180deg, #2ea985 0%, #155946 100%);
+}
+
+.goal-card__hint {
+  display: block;
+  /* v0.21 density: 14→10 */
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: var(--mint-600);
+  font-weight: 600;
+  /* v0.25.3 — text-align:center added after the button-text audit.
+     The hint reads "🎉 今日目标已达成"; with an emoji leading the
+     line and the underlying progress bar centered, left-aligning
+     made the celebration line look misplaced. */
+  text-align: center;
+}
+
+/* Weekly progress row — sits under the daily bar in the same card.
+   Visually quieter (thinner track, smaller text) so the daily metric
+   stays the primary focus. */
+.goal-card__weekly {
+  /* v0.21 density: 18→14 / 16→12 */
+  margin-top: 14rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx dashed rgba(46, 169, 133, 0.16);
+}
+
+.goal-card__weekly-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.goal-card__weekly-label {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+}
+
+.goal-card__weekly-value {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2rpx;
+}
+
+.goal-card__weekly-value.is-reached {
+  color: var(--mint-600);
+}
+
+.goal-card__weekly-track {
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(46, 169, 133, 0.1);
+  overflow: hidden;
+}
+
+.goal-card__weekly-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8aa6f0 0%, #4a6ed9 100%);
+  border-radius: 999rpx;
+  transition: width 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.goal-card__weekly-fill.is-reached {
+  background: linear-gradient(90deg, #63cba8 0%, #2ea985 100%);
+}
+
+.makeup-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 22rpx 24rpx;
+  border-radius: 24rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 207, 138, 0.22), transparent 40%),
+    linear-gradient(180deg, rgba(255, 244, 224, 0.94) 0%, rgba(255, 233, 198, 0.92) 100%);
+  border: 1rpx solid rgba(229, 158, 87, 0.26);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 12rpx 32rpx -4rpx rgba(229, 158, 87, 0.16);
+}
+
+.makeup-banner__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.makeup-banner__title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #6b3f15;
+}
+
+.makeup-banner__sub {
+  font-size: 22rpx;
+  color: #8a5a2b;
+  line-height: 1.5;
+}
+
+.makeup-banner__btn {
+  flex-shrink: 0;
+  min-height: 68rpx;
+  height: 68rpx;
+  padding: 0 26rpx;
+  font-size: 24rpx;
+  background: linear-gradient(180deg, #ec9a36 0%, #d97a23 100%);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.32),
+    0 10rpx 22rpx rgba(229, 137, 50, 0.28);
+}
+
+/* .home-version removed in v0.13 — version label no longer rendered
+   on the home page (still in 我的 footer for diagnostic purposes). */
+
+/* ─────────────────────────────────────────────────────────
+ * v0.29 — Cold-start quote card.
+ *
+ * Fires once per app launch on home onShow. Visual treatment:
+ * subdued mint-tinted full-screen overlay with a center card
+ * holding eyebrow + English line + Chinese line + tap-to-dismiss
+ * hint. Single tap anywhere closes it. No CTA button — design
+ * intent is "a beat of breath, not an interaction".
+ *
+ * Dark-mode override at the bottom flips the card surface +
+ * text colors. The overlay backdrop is kept the same neutral
+ * darkening either way (it works on both light + dark page bg).
+ * ───────────────────────────────────────────────────────── */
+@keyframes quote-card-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes quote-card-pop {
+  0%   { opacity: 0; transform: scale(0.94) translateY(20rpx); }
+  60%  { transform: scale(1.01) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.quote-card-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(20, 60, 50, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 56rpx;
+  animation: quote-card-fade 0.32s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.quote-card {
+  width: 100%;
+  max-width: 600rpx;
+  padding: 56rpx 44rpx 40rpx;
+  border-radius: 32rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(143, 217, 190, 0.4), transparent 62%),
+    linear-gradient(180deg, #ffffff 0%, #f6fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.85),
+    0 24rpx 60rpx -8rpx rgba(20, 60, 50, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 22rpx;
+  animation: quote-card-pop 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.quote-card__eyebrow {
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  color: var(--mint-600);
+  padding: 6rpx 18rpx;
+  background: rgba(46, 169, 133, 0.12);
+  border-radius: 999rpx;
+}
+
+.quote-card__en {
+  display: block;
+  font-family: Georgia, "Times New Roman", "PingFang SC", serif;
+  font-size: 36rpx;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.45;
+  color: #155946;
+  letter-spacing: 0.3rpx;
+}
+
+.quote-card__zh {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--text-sub);
+  letter-spacing: 0.4rpx;
+  font-weight: 500;
+}
+
+.quote-card__hint {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  opacity: 0.55;
+  letter-spacing: 1rpx;
+}
+
+/* Dark-mode overrides — card surface flips to dark, English line
+   becomes accent mint (#2EA985 reads on dark), Chinese line uses
+   the dark text-sub token. */
+@media (prefers-color-scheme: dark) {
+  .quote-card {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(46, 169, 133, 0.22), transparent 62%),
+      linear-gradient(180deg, #2A2F2D 0%, #1F2421 100%);
+    border-color: rgba(232, 239, 236, 0.08);
+    box-shadow:
+      inset 0 1rpx 0 rgba(255, 255, 255, 0.06),
+      0 24rpx 60rpx -8rpx rgba(0, 0, 0, 0.4);
+  }
+  .quote-card__eyebrow {
+    color: #4dc6a0;
+    background: rgba(46, 169, 133, 0.18);
+  }
+  .quote-card__en {
+    color: #4dc6a0;
+  }
+  .quote-card__zh {
+    color: #8FA59C;
+  }
+  .quote-card__hint {
+    color: #8FA59C;
+  }
+}

@@ -19,12 +19,7 @@ import {
 } from "../../utils/audio";
 import { getSettings, type UserSettings } from "../../utils/settings";
 import { formatStopwatch, getElapsedMs } from "../../utils/timer";
-// v0.31 — getDailyQuote import dropped: the cold-start quote modal
-// (added in v0.29) was a daily-friction surface — every app launch
-// required a tap to dismiss. For a focus app that's noise. The
-// function itself stays in view-models.ts (still used by the
-// daily-report poster), just not from home.
-import { formatDuration, getSessionActions } from "../../utils/view-models";
+import { formatDuration, getDailyQuote, getSessionActions } from "../../utils/view-models";
 
 /* ---------- Pomodoro constants ---------- */
 // SUBJECTS constant removed in v0.21.3 — the only home reference was
@@ -44,6 +39,12 @@ const POMODORO_DEFAULTS = {
   cyclesPerSet: 4
 } as const;
 
+// v0.29 — module-level flag so the cold-start quote modal fires
+// exactly ONCE per app launch. Page() runs on first instantiation,
+// resetting this to false. Tab switches and background→foreground
+// resumes preserve the Page instance, so the boolean stays true
+// after the first show.
+let quoteShownThisLaunch = false;
 // v0.21.3 — subject picker reverted off the home page (back to
 // v0.17 behavior). Users now pick a subject on the COMPLETE page,
 // after the session, when they actually know what they studied.
@@ -128,6 +129,10 @@ type HomePageData = {
     progressPercent: number;
   } | null;
   firstShowDone: boolean;
+  /** v0.29 — cold-start inspirational quote card. Populated once per
+   *  app launch (see module-level `quoteShownThisLaunch` flag) and
+   *  cleared on user tap. */
+  launchQuote: { en: string; zh: string } | null;
 };
 
 const DAILY_TARGET_MINUTES = 90;
@@ -194,7 +199,8 @@ Page<{}, HomePageData>({
     dailyChallenge: null,
     /** v0.21 — true once onShow has fired the first-load path,
      *  so subsequent tab-switches use the regular refresh path. */
-    firstShowDone: false
+    firstShowDone: false,
+    launchQuote: null
   },
 
   async onShow() {
@@ -229,6 +235,16 @@ Page<{}, HomePageData>({
     // Firing here directly raced the server roundtrip: this.data
     // .activeSession is null at onShow time, so the quote popped
     // even when the user was actually mid-session.
+  },
+
+  /** Tap-to-dismiss the cold-start quote card. */
+  onTapQuoteDismiss() {
+    this.setData({ launchQuote: null });
+  },
+
+  /** Stop propagation so taps on the card content don't dismiss. */
+  onTapQuoteContent(event: WechatMiniprogram.BaseEvent) {
+    event.stopPropagation?.();
   },
 
   // v0.21.3 — restorePickerFromStorage / onTapSubjectChip removed
@@ -561,7 +577,20 @@ Page<{}, HomePageData>({
     });
     this.refreshEmptyHint();
     this.syncTimer(session);
-    // v0.31 — cold-start quote modal removed (every-launch dismiss tap was daily friction).
+    // v0.29.1 — cold-start quote card. Fires on the FIRST
+    // applyActiveSession call per launch (which happens after the
+    // /home server roundtrip resolves the actual session state), so
+    // we know whether the user is mid-session and skip the modal if
+    // they are. quoteShownThisLaunch is a module-level boolean that
+    // resets only on Page() reconstruction (= miniprogram cold-start).
+    if (!quoteShownThisLaunch) {
+      quoteShownThisLaunch = true;
+      if (!session) {
+        const today = new Date();
+        const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        this.setData({ launchQuote: getDailyQuote(dateKey) });
+      }
+    }
   },
 
   /**

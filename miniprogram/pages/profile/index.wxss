@@ -1,59 +1,57 @@
-/* v0.30.3 — full WXSS rewrite of the upper page (hero / stat grid /
-   menu / version) per docs/design-handoff/screen-profile.jsx. Modal
-   sections at the bottom of this file are preserved (the user has
-   not flagged them and they use a coherent visual language for
-   their once-per-period moment). */
-
 .profile-page {
-  /* v0.30.3 — .page-shell (from app.wxss) already provides
-     28rpx side padding and `calc(200rpx + env(safe-area-inset-bottom))`
-     bottom clearance for the custom tab bar. Don't redeclare padding
-     here or we lose the bottom safe-area space and the version line
-     gets clipped behind the tab bar. */
   display: flex;
   flex-direction: column;
-  gap: 28rpx;
-  background: transparent;
-  min-height: 100vh;
-  box-sizing: border-box;
+  gap: 22rpx;
 }
 
+/* Staggered fade-up — each child card slides up by 14rpx and fades
+   in. Cubic-bezier matches the rest of the app's standard curve. */
 @keyframes profile-fade-up {
-  from { opacity: 0; transform: translateY(12rpx); }
+  from { opacity: 0; transform: translateY(14rpx); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .profile-page > view,
 .profile-page > .profile-version {
-  animation: profile-fade-up 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation: profile-fade-up 0.42s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
 .profile-page > view:nth-child(1) { animation-delay: 0.04s; }
-.profile-page > view:nth-child(2) { animation-delay: 0.10s; }
+.profile-page > view:nth-child(2) { animation-delay: 0.1s; }
 .profile-page > view:nth-child(3) { animation-delay: 0.16s; }
-.profile-page > .profile-version { animation-delay: 0.22s; }
+.profile-page > view:nth-child(4) { animation-delay: 0.22s; }
+.profile-page > view:nth-child(5) { animation-delay: 0.28s; }
+.profile-page > view:nth-child(6) { animation-delay: 0.34s; }
+.profile-page > .profile-version { animation-delay: 0.4s; }
 
 /* ============================================================
-   Hero — avatar + nickname. Flat layout (no card chrome) per design:
-   the page bg already provides the surface; chrome here would compete
-   with the stat tiles below.
+   Hero — avatar + nickname.
    ============================================================ */
 .profile-hero {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  padding: 16rpx 4rpx 8rpx;
+  gap: 26rpx;
+  padding: 30rpx 32rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.2), transparent 38%),
+    linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.8),
+    0 10rpx 28rpx -6rpx rgba(46, 169, 133, 0.08);
 }
 
 .profile-hero__avatar-wrap {
   position: relative;
-  width: 112rpx;
-  height: 112rpx;
+  width: 124rpx;
+  height: 124rpx;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  background: #ECF5F0;
+  background: linear-gradient(135deg, #c2ead2 0%, #6fc99a 100%);
+  box-shadow: 0 6rpx 18rpx rgba(46, 169, 133, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,9 +65,8 @@
 }
 
 .profile-hero__avatar-placeholder {
-  font-size: 52rpx;
+  font-size: 60rpx;
   line-height: 1;
-  color: #155946;
 }
 
 /* Invisible full-area tap target (open-type=chooseAvatar). v0.18.1
@@ -120,179 +117,239 @@
 }
 
 .profile-hero__nickname {
-  /* v0.31.1 — pinned height + line-height so the WeChat <input>
-     vertical center is deterministic. Without these, the input's
-     line-box height varies between iOS/Android, causing the input
-     to render slightly above/below the avatar's center on real
-     devices. 56rpx ≈ 40rpx font × 1.4 line-height. */
-  font-size: var(--fs-t1);
-  font-weight: 800;
-  color: #1F2624;
-  letter-spacing: -0.4rpx;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
   background: transparent;
-  padding: 0;
-  height: 56rpx;
-  line-height: 56rpx;
+  padding: 4rpx 0;
 }
 
 .profile-hero__hint {
-  font-size: var(--fs-caption);
-  color: #5E7D75;
-  letter-spacing: 0.2rpx;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
+  opacity: 0.78;
 }
 
 /* ============================================================
-   Stat grid — 2×2. v0.30.3 simplified per design: dropped the
-   "tone" left-accent strips (mint/blue/amber/rose) — they made each
-   tile shout for attention; the design wants a calm primary-color
-   number doing the work. All tiles now use the shared .card-v2
-   surface from app.wxss.
+   Stat grid — 2×2. Each tile carries label / big value / optional
+   caption. A 6rpx colored left strip differentiates the four
+   "tone" themes (mint / blue / amber / rose).
    ============================================================ */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  gap: 14rpx;
 }
 
 .stat-tile {
-  /* Inherits .card-v2 visual treatment from app.wxss via class match;
-     we add the tighter padding + the value-row baseline alignment. */
-  background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.20), transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, #f4faf7 100%);
-  border-radius: var(--r-lg);
-  border: 1rpx solid rgba(46, 169, 133, 0.18);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.10);
-  padding: 22rpx 24rpx;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
-  min-width: 0;
+  gap: 8rpx;
+  padding: 22rpx 22rpx 20rpx 26rpx;
+  border-radius: 22rpx;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.05);
+  overflow: hidden;
 }
 
-/* Stale tone-strip pseudo: blank background so any lingering
-   .stat-tile--mint/blue/amber/rose classes in legacy view-model output
-   render without the accent bar. */
-.stat-tile::before { content: none; }
-.stat-tile--mint::before,
-.stat-tile--blue::before,
-.stat-tile--amber::before,
-.stat-tile--rose::before { background: transparent; }
+.stat-tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4rpx;
+}
+
+.stat-tile--mint::before  { background: linear-gradient(180deg, #5fc491 0%, #2ea985 100%); }
+.stat-tile--blue::before  { background: linear-gradient(180deg, #8aa6f0 0%, #4a6ed9 100%); }
+.stat-tile--amber::before { background: linear-gradient(180deg, #ffb86b 0%, #e57b2b 100%); }
+.stat-tile--rose::before  { background: linear-gradient(180deg, #f3a0a0 0%, #d96e6e 100%); }
 
 .stat-tile__label {
-  font-size: var(--fs-caption);
-  color: #5E7D75;
-  letter-spacing: 0.2rpx;
+  font-size: 22rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.3rpx;
 }
 
 .stat-tile__value {
-  font-size: 48rpx;
+  font-size: 40rpx;
   font-weight: 800;
-  color: #155946;
+  color: var(--text-main);
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5rpx;
+  letter-spacing: 0.3rpx;
   line-height: 1;
-  /* baseline alignment with the unit suffix */
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6rpx;
 }
 
 .stat-tile__unit {
-  font-size: var(--fs-caption);
+  font-size: 22rpx;
   font-weight: 600;
-  margin-left: 0;
-  color: #5E7D75;
-  letter-spacing: 0;
-}
-
-.stat-tile__caption {
-  font-size: 20rpx;
-  color: #98ABA4;
+  margin-left: 4rpx;
+  color: var(--text-sub);
   letter-spacing: 0.2rpx;
 }
 
-/* v0.30.3 — .insights-card and .profile-quote styles fully removed.
-   .insights-card was an unused subtree left over from v0.23's pattern-
-   chart deletion (the WXML block was deleted, but the WXSS stayed
-   because removing it last cycle felt risky). The new profile design
-   doesn't have an insights surface at all, so this is dead code we can
-   finally drop. */
+.stat-tile__caption {
+  font-size: 18rpx;
+  color: var(--text-sub);
+  opacity: 0.7;
+  letter-spacing: 0.2rpx;
+}
 
 /* ============================================================
-   Menu list — single .card-v2 surface containing 4 rows separated
-   by hairline strokes. v0.30.3 dropped the per-item slide-in stagger
-   animation (it competed with the page-level fade) and the gradient
-   card chrome (replaced with a clean .card-v2 surface).
+   Insights — single-line head + 24-bar sparkline. Bars use a
+   stagger-grow animation (controlled by inline animation-delay
+   on each .insights-card__bar so first-render feels alive).
    ============================================================ */
-.menu-list {
+.insights-card {
+  position: relative;
+  padding: 22rpx 26rpx 20rpx;
+  border-radius: 22rpx;
   background:
-    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.20), transparent 40%),
-    linear-gradient(180deg, #ffffff 0%, #f4faf7 100%);
-  border: 1rpx solid rgba(46, 169, 133, 0.18);
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.14), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
   box-shadow:
     inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
-    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.10);
-  border-radius: var(--r-lg);
+    0 6rpx 20rpx -4rpx rgba(46, 169, 133, 0.06);
+}
+
+.insights-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.insights-card__title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
+}
+
+.insights-card__peak {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--mint-600);
+  letter-spacing: 0.2rpx;
+  font-feature-settings: "tnum" 1;
+}
+
+.insights-card__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4rpx;
+  height: 96rpx;
+  padding: 0 2rpx;
+}
+
+@keyframes insights-bar-grow {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+.insights-card__bar {
+  flex: 1;
+  min-height: 3rpx;
+  border-radius: 3rpx 3rpx 0 0;
+  background: rgba(46, 169, 133, 0.2);
+  transform-origin: bottom;
+  animation: insights-bar-grow 0.52s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+}
+
+.insights-card__bar.is-peak {
+  background: linear-gradient(180deg, #63cba8 0%, #2ea985 100%);
+  box-shadow: 0 2rpx 10rpx rgba(46, 169, 133, 0.3);
+}
+
+/* v0.26.1 — .profile-quote* styles removed alongside the wxml block
+   in v0.23. The quote content lives in the v0.29 cold-start modal
+   now (pages/home/index.wxss .quote-card class). */
+
+/* ============================================================
+   Menu list — staggered fade-in for each item gives a sense of
+   "page is composing itself" without being noisy.
+   ============================================================ */
+.menu-list {
+  border-radius: 26rpx;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.08);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 22rpx -4rpx rgba(46, 169, 133, 0.06);
   overflow: hidden;
+}
+
+@keyframes menu-item-slide {
+  from { opacity: 0; transform: translateX(-12rpx); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  padding: 24rpx 28rpx;
-  border-top: 1rpx solid #E3EBE7;
-  transition: background var(--d-1) var(--ease-std);
-  min-height: 96rpx;
-  box-sizing: border-box;
+  gap: 18rpx;
+  padding: 22rpx 26rpx;
+  border-top: 1rpx solid rgba(46, 169, 133, 0.06);
+  transition: background 0.18s ease;
+  animation: menu-item-slide 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
 .menu-item:first-child { border-top: none; }
+.menu-item:nth-child(1) { animation-delay: 0.42s; }
+.menu-item:nth-child(2) { animation-delay: 0.48s; }
+.menu-item:nth-child(3) { animation-delay: 0.54s; }
+.menu-item:nth-child(4) { animation-delay: 0.6s; }
+.menu-item:nth-child(5) { animation-delay: 0.66s; }
+.menu-item:nth-child(6) { animation-delay: 0.72s; }
 
 .menu-item:active {
-  background: #ECF5F0;
+  background: rgba(46, 169, 133, 0.06);
 }
 
 .menu-item__icon {
-  /* Soft mint square per design (32×32 px ≈ 64rpx). The icon glyph is
-     a single emoji, so the square sits comfortably above the 88rpx
-     touch row without dominating. */
-  width: 64rpx;
-  height: 64rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 16rpx;
-  background: #ECF5F0;
+  background: rgba(46, 169, 133, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  line-height: 1;
+  font-size: 28rpx;
   flex-shrink: 0;
-  color: #155946;
 }
 
 .menu-item__body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2rpx;
+  gap: 3rpx;
   min-width: 0;
 }
 
 .menu-item__title {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 700;
-  color: #1F2624;
-  letter-spacing: 0;
+  color: var(--text-main);
+  letter-spacing: 0.3rpx;
 }
 
 .menu-item__hint {
-  font-size: var(--fs-caption);
-  color: #5E7D75;
-  letter-spacing: 0;
+  font-size: 20rpx;
+  color: var(--text-sub);
+  letter-spacing: 0.2rpx;
+  opacity: 0.75;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,17 +357,17 @@
 
 .menu-item__chevron {
   font-size: 32rpx;
-  color: #98ABA4;
-  line-height: 1;
+  color: var(--text-sub);
+  opacity: 0.45;
 }
 
 .profile-version {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 8rpx;
   text-align: center;
-  font-size: 20rpx;
-  color: #98ABA4;
-  letter-spacing: 0.5rpx;
+  font-size: 18rpx;
+  color: rgba(94, 125, 117, 0.5);
+  letter-spacing: 1rpx;
 }
 
 /* ============================================================

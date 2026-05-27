@@ -1,14 +1,11 @@
 <view class="page-shell calendar-page">
   <view class="calendar-hero">
-    <!-- v0.30.3 — text "上月"/"下月" replaced with Unicode chevrons
-         (‹ ›) to fit the round 72rpx disc. aria-label preserves the
-         semantic meaning. -->
-    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handlePrevMonth" aria-label="上一个月">‹</view>
+    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handlePrevMonth">上月</view>
     <view class="calendar-hero__center">
       <text class="calendar-hero__title">{{monthTitle}}</text>
       <text class="calendar-hero__meta">本月 {{monthTotalText}}</text>
     </view>
-    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handleNextMonth" aria-label="下一个月">›</view>
+    <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handleNextMonth">下月</view>
   </view>
 
   <!--
