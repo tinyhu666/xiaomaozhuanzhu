@@ -45,12 +45,6 @@ type CompletePageData = {
    *  which felt repetitive: every session triggered it.) */
   unlockedBadge: Badge | null;
   unlockedBadgeRarityLabel: string;
-  /** v0.31.2 — non-unlock success recap. Set after a clean submit
-   *  with no newly-unlocked achievement; shows a small confirmation
-   *  card for ~2.5s before auto-navigating home. The prior 1.2s toast
-   *  felt too light for a 45-min commitment — users wanted "did it
-   *  count?" reassurance. Tap-to-dismiss navigates immediately. */
-  recap: { minutes: number; subject: string | null } | null;
 };
 
 function makeChips(values: string[]): ChipView[] {
@@ -70,14 +64,8 @@ Page<{}, CompletePageData>({
     pomodoroCycles: 0,
     pomodoroBadgeText: "",
     unlockedBadge: null,
-    unlockedBadgeRarityLabel: "",
-    recap: null
+    unlockedBadgeRarityLabel: ""
   },
-
-  /** v0.31.2 — recap auto-nav timer handle (number on miniprogram).
-   *  Stored so onTapRecapDismiss can clear it before manually nav'ing,
-   *  avoiding a duplicate switchTab call. */
-  _recapTimer: undefined as number | undefined,
 
   onLoad(query) {
     const minutes = Number(query.minutes ?? 0);
@@ -231,22 +219,13 @@ Page<{}, CompletePageData>({
           unlockedBadgeRarityLabel: rarityLabelMap[unlocked.rarity ?? "common"] ?? "普通"
         });
       } else {
-        // v0.31.2 — was: 1.2s toast "已记录" + 800ms setTimeout to home.
-        // The toast felt too light for a 45-min commitment; users
-        // wanted real "did it count?" confirmation. Now: show an
-        // inline recap card (duration + subject), auto-nav home
-        // after 2.5s, or tap-to-dismiss for immediate nav.
-        this.setData({
-          submitting: false,
-          recap: {
-            minutes: this.data.durationMinutes,
-            subject: subject ?? null
-          }
-        });
-        this._recapTimer = setTimeout(() => {
-          this._recapTimer = undefined;
-          wx.switchTab({ url: "/pages/home/index" });
-        }, 2500) as unknown as number;
+        // v0.31.5 — reverted the v0.31.2 recap-card overlay. On the
+        // user's WeChat iOS client the overlay rendered with a
+        // transparent backdrop + transparent card, so the form showed
+        // through it (broken, unusable). Back to the simple, reliable
+        // toast + navigate that worked pre-v0.31.2.
+        wx.showToast({ title: "已记录", icon: "success", duration: 1200 });
+        setTimeout(() => wx.switchTab({ url: "/pages/home/index" }), 800);
       }
     } catch (error) {
       wx.showToast({
@@ -263,19 +242,6 @@ Page<{}, CompletePageData>({
    * staying on a useless form is worse than auto-nav.
    */
   onTapUnlockDismiss() {
-    wx.switchTab({ url: "/pages/home/index" });
-  },
-
-  /**
-   * v0.31.2 — Non-unlock recap card dismissal. Tap = nav home now.
-   * Clears the auto-nav timer so we don't get a redundant switchTab
-   * a few hundred ms later.
-   */
-  onTapRecapDismiss() {
-    if (this._recapTimer) {
-      clearTimeout(this._recapTimer);
-      this._recapTimer = undefined;
-    }
     wx.switchTab({ url: "/pages/home/index" });
   },
 

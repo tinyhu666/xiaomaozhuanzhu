@@ -83,6 +83,28 @@ W 必须 ≥ 预估文字宽度
 
 历史 bug：v0.26.0 头像绿色色块（已删除角标，见 §5）。
 
+### F. 关键表面的可见性（颜色 / 对比度 / 按钮底色）
+
+v0.31.3-4 真机暴露：UI 元素"渲染了但看不见"。三条硬规则：
+
+1. **WeChat `<button>` 底色必须 `!important`**。原生 button 有默认底色，
+   优先级压过普通 class 选择器。`.btn-v2--primary` 用
+   `background: #155946 !important`（字面量 hex，别用 var）。否则按钮透明。
+
+2. **卡片必须有清晰可见的描边，不能只靠填充对比**。白卡 `#FFFFFF`
+   叠在近白页面 `#F3FAF6` 上，色差只有 ~3/255，真机看不出来。4% 阴影也
+   会被真机裁掉。`.card-v2` / stat-tile / 日历板 / day-panel 一律
+   `border: 1rpx solid #D2E1DA` + `box-shadow ≥ 10%`。
+
+3. **focus mode 背景 + 文字用字面量 hex + `!important`**。
+   `.focus-mode { background: #1A1F1C !important }` /
+   `.focus-mode__clock { color: #E8EFEC !important }`。曾出现专注模式
+   背景渲染成浅色、计时器黑字的诡异情况。
+
+> ⚠️ 教训：开发者工具模拟器 ≠ 真机。模拟器上 4% 阴影、近白叠白都看得见，
+> 真机看不见。涉及 surface/按钮/对比度的改动，**ship 前必须真机截图确认**，
+> 不能只看模拟器。
+
 ---
 
 ## 2. tab bar 相关改动
@@ -159,3 +181,4 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 | v0.26.0 | focus mode 计时器 "00:00:00" 横向溢出，最后一位被切 | font-size 180rpx + letter-spacing 1rpx + 56rpx 左右 padding 在 750rpx 设计宽度上超出 ~180rpx | 字号 180→128rpx、letter-spacing 0、padding 56→28rpx；新增 §1D 检查：超大文字必须先估算容器宽度（W ≥ N×0.6em） |
 | v0.26.0 | profile 头像有"未知绿色色块" | 38rpx 角标在 `overflow:hidden + border-radius:50%` 的圆形 mask 下被裁成三角形 | 直接删除角标，依靠 chooseAvatar 全区域 tap target；§1E：圆形 mask 内不要放方形角标 |
 | v0.26.0 | 学习日报「保存失败」误报 | iOS 端 `saveImageToPhotosAlbum` errMsg 格式多变，老的 auth 检测错过这些 case | 扩大 auth 关键词匹配（auth/scope/permission/deny），并在 toast 里显示截断 errMsg 方便排查 |
+| v0.31.3-4 | 真机上几乎所有卡片/chip/按钮"不可见"，专注模式背景变浅 | ① WeChat `<button>` 原生底色优先级高，`.btn-v2--primary { background: var(--c-primary) }` 不加 `!important` 压不住 → 按钮透明 ② 白卡 `#FFFFFF` 叠在近白页面 `#F3FAF6` 上 + 4% 阴影 + 浅描边，真机上对比度低于感知阈值 → 卡片像"悬空文字" | §1F 本文件：关键表面用**字面量 hex**（非 var），按钮底色 `!important`，卡片必须有**清晰可见的描边**（≥ #D2E1DA）不能只靠填充对比；focus mode bg/文字用 hex + `!important` |

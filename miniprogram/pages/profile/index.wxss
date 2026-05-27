@@ -53,7 +53,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,7 +69,7 @@
 .profile-hero__avatar-placeholder {
   font-size: 52rpx;
   line-height: 1;
-  color: var(--c-primary);
+  color: #155946;
 }
 
 /* Invisible full-area tap target (open-type=chooseAvatar). v0.18.1
@@ -127,7 +127,7 @@
      devices. 56rpx ≈ 40rpx font × 1.4 line-height. */
   font-size: var(--fs-t1);
   font-weight: 800;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: -0.4rpx;
   background: transparent;
   padding: 0;
@@ -137,7 +137,7 @@
 
 .profile-hero__hint {
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0.2rpx;
 }
 
@@ -157,9 +157,9 @@
 .stat-tile {
   /* Inherits .card-v2 visual treatment from app.wxss via class match;
      we add the tighter padding + the value-row baseline alignment. */
-  background: var(--c-surface-light);
+  background: #FFFFFF;
   border-radius: var(--r-lg);
-  border: 1rpx solid var(--c-stroke);
+  border: 1rpx solid #D2E1DA;
   padding: 22rpx 24rpx;
   display: flex;
   flex-direction: column;
@@ -178,14 +178,14 @@
 
 .stat-tile__label {
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0.2rpx;
 }
 
 .stat-tile__value {
   font-size: 48rpx;
   font-weight: 800;
-  color: var(--c-primary);
+  color: #155946;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5rpx;
@@ -200,13 +200,13 @@
   font-size: var(--fs-caption);
   font-weight: 600;
   margin-left: 0;
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0;
 }
 
 .stat-tile__caption {
   font-size: 20rpx;
-  color: var(--c-text-3);
+  color: #98ABA4;
   letter-spacing: 0.2rpx;
 }
 
@@ -224,8 +224,8 @@
    card chrome (replaced with a clean .card-v2 surface).
    ============================================================ */
 .menu-list {
-  background: var(--c-surface-light);
-  border: 1rpx solid var(--c-stroke);
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
   border-radius: var(--r-lg);
   overflow: hidden;
 }
@@ -235,7 +235,7 @@
   align-items: center;
   gap: 20rpx;
   padding: 24rpx 28rpx;
-  border-top: 1rpx solid var(--c-stroke);
+  border-top: 1rpx solid #E3EBE7;
   transition: background var(--d-1) var(--ease-std);
   min-height: 96rpx;
   box-sizing: border-box;
@@ -244,7 +244,7 @@
 .menu-item:first-child { border-top: none; }
 
 .menu-item:active {
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
 }
 
 .menu-item__icon {
@@ -254,14 +254,14 @@
   width: 64rpx;
   height: 64rpx;
   border-radius: 16rpx;
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 32rpx;
   line-height: 1;
   flex-shrink: 0;
-  color: var(--c-primary);
+  color: #155946;
 }
 
 .menu-item__body {
@@ -275,13 +275,13 @@
 .menu-item__title {
   font-size: 30rpx;
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: 0;
 }
 
 .menu-item__hint {
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -290,7 +290,7 @@
 
 .menu-item__chevron {
   font-size: 32rpx;
-  color: var(--c-text-3);
+  color: #98ABA4;
   line-height: 1;
 }
 
@@ -299,7 +299,7 @@
   margin-top: 16rpx;
   text-align: center;
   font-size: 20rpx;
-  color: var(--c-text-3);
+  color: #98ABA4;
   letter-spacing: 0.5rpx;
 }
 

@@ -139,29 +139,6 @@
   </view>
 
   <!--
-    v0.31.2 — Non-unlock success recap. Shown after a clean submit
-    when no achievement unlocked (the unlock overlay below takes over
-    if one did). The recap card sits over a translucent backdrop;
-    auto-navigates home after 2.5s, or tap-to-dismiss for immediate
-    nav. The big number is the just-completed session minutes so the
-    user sees real acknowledgement instead of a 1.2s toast.
-  -->
-  <view wx:if="{{recap}}" class="recap-overlay" bindtap="onTapRecapDismiss">
-    <view class="recap-card" catchtap="onTapRecapDismiss">
-      <view class="recap-card__check">✓</view>
-      <text class="recap-card__eyebrow">本次专注完成</text>
-      <view class="recap-card__row">
-        <text class="recap-card__num num">{{recap.minutes}}</text>
-        <text class="recap-card__unit">分钟</text>
-      </view>
-      <view wx:if="{{recap.subject}}" class="recap-card__subject">
-        <text class="recap-card__subject-label">{{recap.subject}}</text>
-      </view>
-      <text class="recap-card__hint">轻点回首页</text>
-    </view>
-  </view>
-
-  <!--
     v0.25 — Achievement unlock overlay. Preserved from v0.25/v0.26
     verbatim; only the wrapping container class changed (.complete-page
     instead of .page-shell). The unlock-reveal__* tree is internally

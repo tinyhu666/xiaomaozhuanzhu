@@ -45,7 +45,7 @@
 .home-header__title {
   font-size: var(--fs-t1);
   font-weight: 800;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: -0.6rpx;
 }
 
@@ -54,7 +54,7 @@
   align-items: center;
   gap: 6rpx;
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .home-header__flame {
@@ -64,7 +64,7 @@
 
 .home-header__streak-num {
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
 }
 
 /* ============================================================
@@ -89,7 +89,7 @@
 .makeup-banner__title {
   font-size: var(--fs-body);
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
 }
 
 .makeup-banner__btn {
@@ -113,7 +113,7 @@
 .exam-hero__eyebrow {
   display: block;
   margin-bottom: 8rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .exam-hero__row {
@@ -125,7 +125,7 @@
 .exam-hero__num {
   font-size: var(--fs-hero);
   font-weight: 800;
-  color: var(--c-primary);
+  color: #155946;
   line-height: 1;
   letter-spacing: -0.5rpx;
 }
@@ -133,13 +133,13 @@
 .exam-hero__unit {
   font-size: var(--fs-body);
   font-weight: 600;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .exam-hero__date {
   display: block;
   margin-top: 6rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 /* Urgency tiers — keep palette gentle; design uses primary text on
@@ -147,7 +147,7 @@
    color for soon/urgent/imminent. */
 .exam-hero--soon .exam-hero__num     { color: #c2562b; }
 .exam-hero--urgent .exam-hero__num   { color: #c2562b; }
-.exam-hero--imminent .exam-hero__num { color: var(--c-error); }
+.exam-hero--imminent .exam-hero__num { color: #A0322B; }
 
 /* ============================================================
    TIMER CARD v2 (idle)
@@ -163,21 +163,21 @@
 
 .timer-card-v2__eyebrow {
   display: block;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .timer-card-v2__big {
   display: block;
   font-size: 96rpx;
   font-weight: 800;
-  color: var(--c-text-1);
+  color: #1F2624;
   line-height: 1;
   letter-spacing: -2rpx;
 }
 
 .timer-card-v2__caption {
   display: block;
-  color: var(--c-text-2);
+  color: #5E7D75;
   margin-bottom: 16rpx;
 }
 
@@ -208,17 +208,17 @@
 .goal-card-v2__title {
   font-size: var(--fs-body);
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
 }
 
 .goal-card-v2__value {
   font-size: var(--fs-caption);
   font-weight: 600;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .goal-card-v2__value.is-reached {
-  color: var(--c-primary);
+  color: #155946;
   font-weight: 800;
 }
 
@@ -239,12 +239,12 @@
   background: rgba(46, 169, 133, 0.10);
   font-size: var(--fs-caption);
   font-weight: 600;
-  color: var(--c-primary);
+  color: #155946;
   align-self: flex-start;
 }
 
 .goal-card-v2__challenge.is-done {
-  background: var(--c-primary);
+  background: #155946;
   color: #fff;
 }
 
@@ -293,11 +293,11 @@
 .subjects-card-v2__title {
   font-size: var(--fs-body);
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
 }
 
 .subjects-card-v2__hint {
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 .subjects-card-v2__grid {
@@ -324,13 +324,13 @@
 .subjects-card-v2__row-name {
   font-size: 26rpx;
   font-weight: 600;
-  color: var(--c-text-1);
+  color: #1F2624;
 }
 
 .subjects-card-v2__row-value {
   font-size: var(--fs-caption);
   font-weight: 600;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 /* ============================================================
@@ -340,7 +340,7 @@
   /* v0.31.4 — explicit hex + !important because v0.31.3 device test
      showed focus mode rendering with light bg + dark text (inverted
      from the design). Suspected WeChat iOS theme adjustment was
-     overriding the var(--c-bg-dark) reference. Using literal hex
+     overriding the #1A1F1C reference. Using literal hex
      bypasses any var-substitution shenanigans; !important forecloses
      cascade overrides. */
   position: fixed;
@@ -382,7 +382,7 @@
   justify-content: center;
   align-items: baseline;
   gap: 24rpx;
-  color: var(--c-text-2-dark);
+  color: #8FA59C;
   font-size: var(--fs-caption);
 }
 
@@ -398,18 +398,18 @@
 }
 
 .focus-mode__meta-strong {
-  color: var(--c-text-1-dark);
+  color: #E8EFEC;
   font-weight: 700;
   line-height: 1.4;
 }
 
 .focus-mode__meta-label {
-  color: var(--c-text-2-dark);
+  color: #8FA59C;
   line-height: 1.4;
 }
 
 .focus-mode__divider {
-  color: var(--c-text-2-dark);
+  color: #8FA59C;
   opacity: 0.4;
   line-height: 1.4;
 }
@@ -425,7 +425,7 @@
 }
 
 .focus-mode__subject {
-  color: var(--c-accent);
+  color: #2EA985;
   letter-spacing: 0.5rpx;
 }
 
@@ -455,7 +455,7 @@
 }
 
 .focus-mode__status {
-  color: var(--c-text-2-dark);
+  color: #8FA59C;
 }
 
 .focus-mode__cycles {
@@ -468,11 +468,11 @@
   width: 18rpx;
   height: 18rpx;
   border-radius: 50%;
-  background: var(--c-stroke-dark);
+  background: #2E3633;
 }
 
 .focus-mode__cycle-dot.is-done {
-  background: var(--c-accent);
+  background: #2EA985;
 }
 
 .focus-mode__actions {
@@ -491,7 +491,7 @@
 /* Focus-mode buttons: ghost has light border, end-button uses
    accent (brighter than --c-primary, reads on the dark bg). */
 .focus-mode .btn-v2--ghost {
-  color: var(--c-text-1-dark);
+  color: #E8EFEC;
   background: transparent;
   border: 2rpx solid rgba(232, 239, 236, 0.32);
 }
@@ -501,12 +501,12 @@
 }
 
 .focus-mode .btn-v2--primary {
-  background: var(--c-accent);
+  background: #2EA985;
   color: #fff;
 }
 
 .focus-mode .btn-v2--primary:active {
-  background: var(--c-primary);
+  background: #155946;
 }
 
 @media (prefers-reduced-motion: reduce) {

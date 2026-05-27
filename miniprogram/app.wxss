@@ -121,8 +121,8 @@ page {
      flat bg-light token. Calmer surface, OLED-friendlier, lets the
      hero numbers do the visual work. Focus mode uses --c-bg-dark
      separately via .home-page.is-focus-mode. */
-  background: var(--c-bg-light);
-  color: var(--c-text-1);
+  background: #F3FAF6;
+  color: #1F2624;
   font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
@@ -479,7 +479,7 @@ button::after {
 /* Eyebrow micro-label — "今日已专注" type labels */
 .micro {
   font-size: var(--fs-micro);
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
@@ -487,39 +487,39 @@ button::after {
 }
 .is-dark .micro,
 .is-focus-mode .micro,
-.dark-surface .micro { color: var(--c-text-2-dark); }
+.dark-surface .micro { color: #8FA59C; }
 
 /* Body caption — secondary text */
 .caption {
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
   line-height: 1.4;
 }
 .is-dark .caption,
 .is-focus-mode .caption,
-.dark-surface .caption { color: var(--c-text-2-dark); }
+.dark-surface .caption { color: #8FA59C; }
 
 /* Progress bar — 6rpx track + accent fill */
 .bar {
   width: 100%;
   height: 6rpx;
   border-radius: var(--r-pill);
-  background: var(--c-stroke);
+  background: #E3EBE7;
   overflow: hidden;
 }
 .bar > .bar__fill {
   display: block;
   height: 100%;
-  background: var(--c-primary);
+  background: #155946;
   border-radius: var(--r-pill);
   transition: width var(--d-3) var(--ease-std);
 }
 .is-dark .bar,
 .is-focus-mode .bar,
-.dark-surface .bar { background: var(--c-stroke-dark); }
+.dark-surface .bar { background: #2E3633; }
 .is-dark .bar > .bar__fill,
 .is-focus-mode .bar > .bar__fill,
-.dark-surface .bar > .bar__fill { background: var(--c-accent); }
+.dark-surface .bar > .bar__fill { background: #2EA985; }
 
 /* Card v2 — minimal surface, 24rpx radius, sh-1 lift */
 .card-v2 {
@@ -529,18 +529,29 @@ button::after {
      on real iOS devices. User screenshots showed all cards as
      floating text with zero container affordance. Border + 8% shadow
      guarantees visibility regardless of page bg. */
-  background: var(--c-surface-light);
+  /* v0.31.5 — literal hex instead of #FFFFFF. The
+     user's WeChat iOS client renders var()-based backgrounds as
+     transparent (cards/chips were invisible), while literal hex +
+     the v0.31.4 button hex fix render correctly. Using hex on every
+     load-bearing surface bg until the var() resolution issue is
+     understood. Border also literal so the card edge always shows. */
+  background: #FFFFFF;
   border-radius: var(--r-lg);
-  border: 1rpx solid var(--c-stroke);
-  box-shadow: 0 4rpx 16rpx rgba(20, 60, 50, 0.06);
+  /* v0.31.5 — border bumped to a clearly-visible mint-gray (#D2E1DA)
+     and shadow strengthened to 10%. The white card sits on a near-
+     white page (#F3FAF6), so the card edge MUST come from the border
+     + shadow, not the fill contrast. This is what guarantees the
+     "this is a card" affordance on real devices. */
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 6rpx 20rpx rgba(20, 60, 50, 0.10);
   padding: var(--s-3);
 }
 .is-dark .card-v2,
 .is-focus-mode .card-v2,
 .dark-surface .card-v2 {
-  background: var(--c-surface-dark);
+  background: #2A2F2D;
   box-shadow: none;
-  border: 1rpx solid var(--c-stroke-dark);
+  border: 1rpx solid #2E3633;
 }
 
 /* Chip v2 — pill with active state, replaces the v0.21 .tag-chip
@@ -555,30 +566,35 @@ button::after {
   min-height: 56rpx;
   padding: 0 var(--s-3);
   border-radius: var(--r-pill);
-  background: var(--c-soft-mint);
-  color: var(--c-text-1);
+  /* v0.31.5 — literal hex (was #ECF5F0/#155946).
+     var()-based chip backgrounds rendered transparent on the user's
+     device, so chips showed as bare floating text. Border added so
+     the chip shape reads even if the fill somehow fails. */
+  background: #ECF5F0;
+  border: 1rpx solid #DCEAE3;
+  color: #1F2624;
   font-size: var(--fs-caption);
   font-weight: 600;
-  border: 0;
   transition: background var(--d-2) var(--ease-std),
               color var(--d-2) var(--ease-std),
               transform var(--d-1) var(--ease-std);
 }
 .chip-v2:active { transform: scale(0.97); }
 .chip-v2.is-active {
-  background: var(--c-primary);
+  background: #155946;
+  border-color: #155946;
   color: #fff;
 }
 .is-dark .chip-v2,
 .is-focus-mode .chip-v2,
 .dark-surface .chip-v2 {
-  background: var(--c-soft-mint-deep);
-  color: var(--c-text-1-dark);
+  background: #2D3433;
+  color: #E8EFEC;
 }
 .is-dark .chip-v2.is-active,
 .is-focus-mode .chip-v2.is-active,
 .dark-surface .chip-v2.is-active {
-  background: var(--c-accent);
+  background: #2EA985;
   color: #fff;
 }
 
@@ -628,25 +644,25 @@ button::after {
 .is-dark .btn-v2--primary,
 .is-focus-mode .btn-v2--primary,
 .dark-surface .btn-v2--primary {
-  background: var(--c-accent);
+  background: #2EA985;
 }
 
 .btn-v2--ghost {
   background: transparent;
-  color: var(--c-primary);
-  border: 2rpx solid var(--c-primary);
+  color: #155946;
+  border: 2rpx solid #155946;
 }
 .is-dark .btn-v2--ghost,
 .is-focus-mode .btn-v2--ghost,
 .dark-surface .btn-v2--ghost {
-  color: var(--c-text-1-dark);
+  color: #E8EFEC;
   border-color: rgba(232, 239, 236, 0.35);
 }
 
 .btn-v2--danger {
   background: transparent;
-  color: var(--c-warning);
-  border: 2rpx solid var(--c-warning);
+  color: #C2562B;
+  border: 2rpx solid #C2562B;
 }
 
 /* Page padding helper (32rpx left/right per token §5) */

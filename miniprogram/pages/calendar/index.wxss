@@ -59,7 +59,7 @@
 .calendar-hero__title {
   font-size: var(--fs-t1);
   font-weight: 800;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: -0.4rpx;
   font-feature-settings: "tnum" 1;
   line-height: 1.2;
@@ -67,7 +67,7 @@
 
 .calendar-hero__meta {
   margin-top: 4rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
   font-size: var(--fs-caption);
   letter-spacing: 0;
   font-feature-settings: "tnum" 1;
@@ -82,8 +82,8 @@
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: var(--c-soft-mint);
-  color: var(--c-primary);
+  background: #ECF5F0;
+  color: #155946;
   font-size: 40rpx;
   font-weight: 600;
   letter-spacing: 0;
@@ -94,7 +94,7 @@
 }
 
 .calendar-hero__nav--hover {
-  background: var(--c-primary);
+  background: #155946;
   color: #fff;
   transform: scale(0.97);
 }
@@ -107,15 +107,15 @@
   position: relative;
   padding: 24rpx 18rpx 18rpx;
   border-radius: var(--r-lg);
-  background: var(--c-surface-light);
-  border: 1rpx solid var(--c-stroke);
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
 }
 
 .calendar-board__weekdays {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
   font-size: var(--fs-caption);
   font-weight: 600;
   text-align: center;
@@ -137,7 +137,7 @@
   position: relative;
   height: 88rpx;
   border-radius: 12rpx;
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
   border: 2rpx solid transparent;
   box-sizing: border-box;
   padding: 6rpx 10rpx;
@@ -156,7 +156,7 @@
 }
 
 .calendar-board__cell.is-selected {
-  border-color: var(--c-primary);
+  border-color: #155946;
   border-width: 3rpx;
 }
 
@@ -174,7 +174,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: var(--c-primary);
+  background: #155946;
 }
 
 /* Heat levels — solid colors per design (gradient chrome dropped).
@@ -202,7 +202,7 @@
   font-size: var(--fs-caption);
   font-weight: 600;
   line-height: 1;
-  color: var(--c-text-1);
+  color: #1F2624;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
 }
@@ -233,7 +233,7 @@
 
 .calendar-board__legend-label {
   font-size: 20rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0;
   line-height: 1;
   margin: 0 6rpx;
@@ -246,7 +246,7 @@
   box-sizing: border-box;
 }
 
-.calendar-board__legend-swatch.level-0 { background: var(--c-soft-mint); }
+.calendar-board__legend-swatch.level-0 { background: #ECF5F0; }
 .calendar-board__legend-swatch.level-1 { background: #BFE3D2; }
 .calendar-board__legend-swatch.level-2 { background: #7DCFA8; }
 .calendar-board__legend-swatch.level-3 { background: #3FB392; }
@@ -260,8 +260,8 @@
 .day-panel {
   padding: 28rpx 24rpx 24rpx;
   border-radius: var(--r-lg);
-  background: var(--c-surface-light);
-  border: 1rpx solid var(--c-stroke);
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
 }
 
 .day-panel__header {
@@ -274,7 +274,7 @@
 .day-panel__date {
   font-size: 32rpx;
   font-weight: 800;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: -0.3rpx;
   font-feature-settings: "tnum" 1;
   display: block;
@@ -283,7 +283,7 @@
 .day-panel__meta {
   display: block;
   margin-top: 4rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
   font-size: var(--fs-caption);
   letter-spacing: 0;
 }
@@ -291,7 +291,7 @@
 .day-panel__total {
   font-size: 30rpx;
   font-weight: 800;
-  color: var(--c-primary);
+  color: #155946;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -311,7 +311,7 @@
   position: relative;
   padding: 18rpx 20rpx;
   border-radius: 16rpx;
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
 }
 
 .session-item__top {
@@ -324,14 +324,14 @@
 .session-item__subject {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: 0;
 }
 
 .session-item__duration {
   font-size: var(--fs-caption);
   font-weight: 700;
-  color: var(--c-primary);
+  color: #155946;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
 }
@@ -341,7 +341,7 @@
   margin-top: 8rpx;
   font-size: 24rpx;
   line-height: 1.55;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: 0;
 }
 
@@ -356,7 +356,7 @@
   padding: 4rpx 12rpx;
   border-radius: var(--r-pill);
   background: rgba(46, 169, 133, 0.14);
-  color: var(--c-primary);
+  color: #155946;
   font-size: 20rpx;
   font-weight: 600;
   letter-spacing: 0;
@@ -387,7 +387,7 @@
   padding: 32rpx 20rpx;
   text-align: center;
   font-size: 24rpx;
-  color: var(--c-text-2);
+  color: #5E7D75;
 }
 
 /* ============================================================
@@ -400,7 +400,7 @@
   gap: 4rpx;
   padding: 22rpx 28rpx;
   border-radius: var(--r-md);
-  background: var(--c-soft-mint);
+  background: #ECF5F0;
   margin-bottom: 4rpx;
 }
 
@@ -413,12 +413,12 @@
 .calendar-empty-month__text {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--c-text-1);
+  color: #1F2624;
   letter-spacing: 0;
 }
 
 .calendar-empty-month__sub {
   font-size: var(--fs-caption);
-  color: var(--c-text-2);
+  color: #5E7D75;
   letter-spacing: 0;
 }
