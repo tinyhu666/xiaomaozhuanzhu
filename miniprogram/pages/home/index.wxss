@@ -78,8 +78,12 @@
 }
 
 .home-page.is-focus-mode .timer-card__clock {
-  /* v0.28 — light text on carbon (was dark mint gradient on white). */
-  font-size: var(--fs-display);
+  /* v0.32.1 — reduced 128rpx(--fs-display) → 104rpx. At 128rpx the
+     "00:00:00" string (8 tabular-nums chars ≈ 614rpx) nearly touched
+     the 28rpx side padding on narrower phones, reading as cramped /
+     "比例失调". 104rpx ≈ 500rpx wide leaves a comfortable ~95rpx
+     margin each side and keeps it clearly the hero. */
+  font-size: 104rpx;
   letter-spacing: 0;
   margin-top: auto;
   margin-bottom: auto;
@@ -169,10 +173,20 @@
 }
 
 .home-page.is-focus-mode .cta-button {
-  background: linear-gradient(180deg, var(--c-accent) 0%, var(--c-primary) 100%);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.18),
-    0 12rpx 28rpx rgba(46, 169, 133, 0.24);
+  /* v0.32.1 — was a mint→deep-green gradient whose bottom stop
+     (--c-primary #155946) sat too close to the dark focus bg
+     (#1A1F1C), so the lower half of the 结束 button blended into the
+     background and read as invisible. Switched to a solid bright mint
+     (--c-accent #2EA985) which has clear contrast against the carbon
+     bg. Explicit hex + !important so no cascade can wash it out. */
+  background: #2EA985 !important;
+  background-color: #2EA985 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8rpx 24rpx rgba(46, 169, 133, 0.32);
+}
+.home-page.is-focus-mode .cta-button:active {
+  background: #25886c !important;
+  background-color: #25886c !important;
 }
 
 .home-page.is-focus-mode .timer-card__cycles {
