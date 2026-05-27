@@ -107,8 +107,13 @@
   position: relative;
   padding: 24rpx 18rpx 18rpx;
   border-radius: var(--r-lg);
-  background: #FFFFFF;
-  border: 1rpx solid #D2E1DA;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.20), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f4faf7 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.10);
 }
 
 .calendar-board__weekdays {
@@ -260,8 +265,13 @@
 .day-panel {
   padding: 28rpx 24rpx 24rpx;
   border-radius: var(--r-lg);
-  background: #FFFFFF;
-  border: 1rpx solid #D2E1DA;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(143, 217, 190, 0.20), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f4faf7 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.18);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 10rpx 26rpx -4rpx rgba(46, 169, 133, 0.10);
 }
 
 .day-panel__header {
