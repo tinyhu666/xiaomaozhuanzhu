@@ -15,10 +15,14 @@ const isWindows = process.platform === "win32";
 
 const cliOptions = parseCliArgs(process.argv.slice(2));
 const appId = cliOptions.appid || process.env.MINIPROGRAM_APPID || projectConfig.appid;
+const conventionalPrivateKeyPath = appId
+  ? path.resolve(projectRoot, "..", "..", "minikey", `private.${appId}.key`)
+  : "";
 const privateKeyPath =
   cliOptions.privateKeyPath ||
   process.env.MINIPROGRAM_PRIVATE_KEY_PATH ||
   process.env.WECHAT_PRIVATE_KEY_PATH ||
+  (conventionalPrivateKeyPath && fs.existsSync(conventionalPrivateKeyPath) ? conventionalPrivateKeyPath : "") ||
   "";
 const uploadVersion = cliOptions.version || process.env.MINIPROGRAM_UPLOAD_VERSION || packageJson.version;
 const uploadDescription =
@@ -32,7 +36,11 @@ if (!appId) {
   fail("Missing appid. Set MINIPROGRAM_APPID or keep appid in project.config.json.");
 }
 if (!privateKeyPath || !fs.existsSync(privateKeyPath)) {
-  fail("Missing upload private key. Set MINIPROGRAM_PRIVATE_KEY_PATH or pass --private-key-path.");
+  fail([
+    "Missing upload private key.",
+    "Set MINIPROGRAM_PRIVATE_KEY_PATH, pass --private-key-path,",
+    `or place the key at ${conventionalPrivateKeyPath || "<workspace>/minikey/private.<appid>.key"}.`
+  ].join(" "));
 }
 if (isWindows && !devtoolsDir) {
   fail("Cannot find 微信开发者工具 installation. Set WECHAT_DEVTOOLS_DIR or pass --devtools-dir.");
@@ -108,15 +116,20 @@ function upload() {
 
   const result = spawnSync(npxCommand, args, {
     cwd: projectRoot,
-    stdio: "inherit",
+    stdio: ["inherit", "pipe", "pipe"],
     env,
-    shell: isWindows
+    shell: isWindows,
+    encoding: "utf8"
   });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
 
   if (result.error) {
     throw result.error;
   }
   if (result.status !== 0) {
+    explainUploadFailure(`${result.stdout ?? ""}\n${result.stderr ?? ""}`);
     process.exit(result.status ?? 1);
   }
 }
@@ -176,32 +189,37 @@ function parseCliArgs(args) {
     const current = args[index];
     const next = args[index + 1];
 
-    switch (current) {
+    const equalsIndex = current.indexOf("=");
+    const option = equalsIndex > 0 ? current.slice(0, equalsIndex) : current;
+    const inlineValue = equalsIndex > 0 ? current.slice(equalsIndex + 1) : undefined;
+    const value = inlineValue ?? next;
+
+    switch (option) {
       case "--private-key-path":
-        parsed.privateKeyPath = next;
-        index += 1;
+        parsed.privateKeyPath = value;
+        if (inlineValue === undefined) index += 1;
         break;
       case "--appid":
-        parsed.appid = next;
-        index += 1;
+        parsed.appid = value;
+        if (inlineValue === undefined) index += 1;
         break;
       case "--version":
       case "--upload-version":
-        parsed.version = next;
-        index += 1;
+        parsed.version = value;
+        if (inlineValue === undefined) index += 1;
         break;
       case "--description":
       case "--upload-description":
-        parsed.description = next;
-        index += 1;
+        parsed.description = value;
+        if (inlineValue === undefined) index += 1;
         break;
       case "--robot":
-        parsed.robot = next;
-        index += 1;
+        parsed.robot = value;
+        if (inlineValue === undefined) index += 1;
         break;
       case "--devtools-dir":
-        parsed.devtoolsDir = next;
-        index += 1;
+        parsed.devtoolsDir = value;
+        if (inlineValue === undefined) index += 1;
         break;
       default:
         if (!current.startsWith("--")) {
@@ -211,6 +229,17 @@ function parseCliArgs(args) {
     }
   }
 
+  if (!parsed.privateKeyPath && positionals[0] && looksLikePrivateKeyPath(positionals[0])) {
+    parsed.privateKeyPath = positionals.shift();
+  }
+  if (
+    positionals.length === 1 &&
+    !parsed.version &&
+    !parsed.description &&
+    !looksLikeVersion(positionals[0])
+  ) {
+    parsed.description = positionals.shift();
+  }
   if (!parsed.version && positionals[0]) {
     parsed.version = positionals[0];
   }
@@ -219,6 +248,29 @@ function parseCliArgs(args) {
   }
 
   return parsed;
+}
+
+function looksLikePrivateKeyPath(value) {
+  return /\.(key|pem)$/i.test(value) && fs.existsSync(path.resolve(value));
+}
+
+function looksLikeVersion(value) {
+  return /^v?\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/.test(value);
+}
+
+function explainUploadFailure(output) {
+  if (!/41001|access_token missing|inner get attr fail|code:\s*20003/i.test(output)) {
+    return;
+  }
+
+  console.error("");
+  console.error("WeChat code upload authentication failed before code submission.");
+  console.error("The local package compiled successfully, but WeChat rejected the code-upload credential.");
+  console.error("Check the Mini Program admin console:");
+  console.error("1. Use the 小程序代码上传 key, not the AppSecret.");
+  console.error("2. If the key was regenerated, replace the local private key file.");
+  console.error("3. Disable the code-upload IP whitelist, or add this machine/CI public IP.");
+  console.error("4. Re-run: npm run upload:miniprogram -- <version> <description>");
 }
 
 function fail(message) {
