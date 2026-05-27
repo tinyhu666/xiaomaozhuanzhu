@@ -14,7 +14,17 @@
  * ────────────────────────────────────────────────────────────────── */
 
 .home-page {
+  /* v0.31.7 — match the working 二级 page structure (.subjects-page):
+     flex column + a real vertical gap between sections. The home page
+     previously stacked sections with no gap, so the timer/goal/six-科
+     cards rendered cramped/merged — the "一级页面 broken vs 二级页面
+     normal" the user flagged. The 二级 pages all use this flex+gap
+     pattern. The focus-mode child is position:fixed so it's out of
+     flow and unaffected by the gap. */
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
   padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
 }
 
@@ -35,11 +45,13 @@
    HEADER (idle only)
    ============================================================ */
 .home-header {
+  /* v0.31.7 — dropped padding-bottom: 32rpx; the .home-page flex gap
+     (24rpx) now owns inter-section spacing. Keeping both double-spaced
+     the header. */
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  padding-top: 16rpx;
-  padding-bottom: 32rpx;
+  padding-top: 8rpx;
 }
 
 .home-header__title {
