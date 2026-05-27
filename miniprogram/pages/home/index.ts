@@ -560,9 +560,8 @@ Page<{}, HomePageData>({
     // reopen / pause→resume / complete all converge to the right
     // playback state without per-call branching here.
     this.syncAmbientAudio(session);
-    // v0.22 — focus-mode side-effects: hide tabbar + keep screen on
-    // while a session is live. Mirror state in `inFocusMode` so any
-    // future render path knows whether to render full-screen styling.
+    // Active sessions stay inside the normal home dashboard: the timer card
+    // shows live controls while the rest of the page remains predictable.
     this.syncFocusMode(session);
 
     this.setData({
@@ -594,7 +593,7 @@ Page<{}, HomePageData>({
   },
 
   /**
-   * v0.25.4 — focus-mode side-effects, properly fixed.
+   * Active-session shell reset.
    *
    * History recap (see CLAUDE.md + docs/ui-review-checklist.md §2A):
    *   v0.22.0  added wx.hideTabBar / wx.showTabBar — WRONG: those
@@ -611,22 +610,19 @@ Page<{}, HomePageData>({
    *            The component owns the rendered chrome, so this is
    *            the architecturally correct path.
    *
-   * Both setKeepScreenOn and the tab-bar toggle are best-effort
+   * Both setKeepScreenOn and the tab-bar reset are best-effort
    * (wrapped + .catch()) so any failure doesn't leave the UI
-   * half-broken — the wxml `.is-focus-mode` class binding still
-   * drives the layout shift regardless.
+   * half-broken.
    */
   syncFocusMode(session: ActiveSession | null) {
-    const enter = !!session;
-    // 1) Custom tab bar: hide during session, show during idle.
+    // 1) Custom tab bar: keep dashboard navigation visible during sessions.
     try {
       const tabBar = this.getTabBar?.() as
         | WechatMiniprogram.Component.TrivialInstance
         | undefined;
-      tabBar?.setData?.({ hidden: enter });
+      tabBar?.setData?.({ hidden: false });
     } catch (_) {
-      /* non-fatal — wxml drives the layout, tab bar overlap is
-         a polish issue, not a functional break. */
+      /* non-fatal */
     }
     // 2) Screen-on: still OFF by default (battery, see v0.22.1).
     //    Defensive false on session end clears any stale hold from
