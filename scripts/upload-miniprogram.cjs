@@ -268,8 +268,9 @@ function explainUploadFailure(output) {
   console.error("The local package compiled successfully, but WeChat rejected the code-upload credential.");
   console.error("Check the Mini Program admin console:");
   console.error("1. Use the 小程序代码上传 key, not the AppSecret.");
-  console.error("2. If the key was regenerated, replace the local private key file.");
-  console.error("3. Disable the code-upload IP whitelist, or add this machine/CI public IP.");
+  console.error("2. If the code-upload IP whitelist is enabled, add this machine/CI public IP.");
+  console.error("3. If that whitelist is disabled, regenerate/download the code-upload key");
+  console.error("   and replace the local private key file.");
   console.error("4. Re-run: npm run upload:miniprogram -- <version> <description>");
 }
 
