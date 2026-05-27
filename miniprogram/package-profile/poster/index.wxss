@@ -93,3 +93,41 @@
   text-align: center;
   letter-spacing: 0.2rpx;
 }
+
+/* GPT image2 redesign pass */
+.poster-page {
+  gap: 24rpx;
+}
+
+.poster-page__intro,
+.poster-page__preview-wrap,
+.poster-page__error {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+  box-sizing: border-box;
+}
+
+.poster-page__intro {
+  padding: 28rpx;
+}
+
+.poster-page__title {
+  color: #1F2624;
+  font-size: 40rpx;
+}
+
+.poster-page__sub,
+.poster-page__loading,
+.poster-page__tip {
+  color: #5E7D75;
+}
+
+.poster-page__preview-wrap {
+  box-shadow: 0 12rpx 32rpx -4rpx rgba(20, 60, 50, 0.08);
+}
+
+.poster-page__actions {
+  gap: 16rpx;
+}

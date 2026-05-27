@@ -110,3 +110,46 @@
   color: var(--text-sub);
   letter-spacing: 0.3rpx;
 }
+
+/* GPT image2 redesign pass */
+.share-page {
+  gap: 24rpx;
+}
+
+.share-card,
+.share-page__hidden-note {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.share-card__title,
+.share-page__note-title {
+  color: #1F2624;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.share-card__hint,
+.share-page__note-list,
+.share-card__label {
+  color: #5E7D75;
+}
+
+.share-card__link {
+  border-radius: 16rpx;
+  background: #ECF5F0;
+}
+
+.share-card__link-text {
+  color: #155946;
+}
+
+.share-card__copy {
+  background: #155946;
+}
+
+.share-page__hidden-note {
+  padding: 24rpx;
+}

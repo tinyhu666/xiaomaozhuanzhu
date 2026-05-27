@@ -1,12 +1,11 @@
-<view class="page-shell">
-  <view class="hero-card">
-    <view class="badge">结束学习</view>
-    <view class="title" style="margin-top: 18rpx;">这次专注了 {{durationText}}</view>
-    <view wx:if="{{pomodoroBadgeText}}" class="badge" style="margin-top: 14rpx; background: rgba(229, 122, 50, 0.12); color: #b3551a;">{{pomodoroBadgeText}}</view>
-    <view class="subtitle">想记的就填几个字 / 拍一张照片，不想填直接提交也行。</view>
+<view class="page-shell complete-page">
+  <view class="complete-hero">
+    <text class="complete-hero__label">结束学习</text>
+    <text class="complete-hero__title">这次专注了 {{durationText}}</text>
+    <text wx:if="{{pomodoroBadgeText}}" class="complete-hero__pill">{{pomodoroBadgeText}}</text>
   </view>
 
-  <view class="surface-card" style="margin-top: 24rpx;">
+  <view class="complete-form">
     <view class="field-label">学习照片（可选，最多 3 张）</view>
     <view class="photo-grid">
       <view wx:for="{{photos}}" wx:key="objectKey" class="photo-item">
@@ -22,9 +21,7 @@
         <view>上传照片</view>
       </view>
     </view>
-  </view>
 
-  <view class="surface-card" style="margin-top: 20rpx;">
     <view class="field-label">一句话总结（可选）</view>
     <textarea
       class="textarea-input"
@@ -33,7 +30,6 @@
       value="{{summary}}"
       bindinput="handleSummaryInput"
     />
-  </view>
 
   <!--
     v0.21.3 — restored subject chip picker. Single-select: tapping a
@@ -41,7 +37,6 @@
     Picking here (after the session, not before start) avoids the
     URL-encoding round-trip that broke submits in v0.21.2.
   -->
-  <view class="surface-card" style="margin-top: 20rpx;">
     <view class="field-label">可选科目</view>
     <view class="tag-list">
       <view
@@ -53,7 +48,7 @@
       >{{item.value}}</view>
     </view>
 
-    <view class="field-label" style="margin-top: 24rpx;">标签</view>
+    <view class="field-label field-label--spaced">标签</view>
     <view class="tag-list">
       <view
         wx:for="{{tagChips}}"
@@ -65,7 +60,7 @@
     </view>
   </view>
 
-  <button class="cta-button" style="margin-top: 24rpx;" loading="{{submitting}}" bindtap="submit">完成打卡</button>
+  <button class="cta-button complete-submit" loading="{{submitting}}" bindtap="submit">完成打卡</button>
 
   <!--
     v0.25 — Achievement unlock overlay. Replaces the per-session
@@ -81,17 +76,17 @@
   <view wx:if="{{unlockedBadge}}" class="unlock-reveal" bindtap="onTapUnlockDismiss">
     <view class="unlock-reveal__card unlock-reveal__card--{{unlockedBadge.rarity}}" catchtap="onTapUnlockContent">
       <view class="unlock-reveal__halo"></view>
-      <view wx:if="{{unlockedBadge.rarity === 'legendary'}}" class="unlock-reveal__crown">👑</view>
-      <view wx:elif="{{unlockedBadge.rarity === 'epic'}}" class="unlock-reveal__star">🌟</view>
+      <view wx:if="{{unlockedBadge.rarity === 'legendary'}}" class="unlock-reveal__crown">传</view>
+      <view wx:elif="{{unlockedBadge.rarity === 'epic'}}" class="unlock-reveal__star">史</view>
 
-      <text class="unlock-reveal__eyebrow">🎉 成就解锁</text>
+      <text class="unlock-reveal__eyebrow">成就解锁</text>
       <image
         wx:if="{{unlockedBadge.imageUrl}}"
         class="unlock-reveal__cat-img"
         src="{{unlockedBadge.imageUrl}}"
         mode="aspectFit"
       />
-      <text wx:else class="unlock-reveal__emoji">{{unlockedBadge.icon}}</text>
+      <text wx:else class="unlock-reveal__emoji">猫</text>
       <text class="unlock-reveal__name">{{unlockedBadge.name}}</text>
       <text class="unlock-reveal__rarity unlock-reveal__rarity--{{unlockedBadge.rarity}}">{{unlockedBadgeRarityLabel}}</text>
       <text class="unlock-reveal__cond">{{unlockedBadge.description}}</text>

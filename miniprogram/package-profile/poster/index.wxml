@@ -16,7 +16,7 @@
 
   <view class="poster-page__intro">
     <text class="poster-page__title">学习日报</text>
-    <text class="poster-page__sub">把你今天的专注，分享给世界。长按图片转发或保存到相册。</text>
+    <text class="poster-page__sub">生成一张当天学习卡片，长按图片可转发或保存到相册。</text>
   </view>
 
   <view wx:if="{{loading}}" class="poster-page__loading">正在生成…</view>
@@ -39,5 +39,5 @@
     <button class="ghost-button" open-type="share">分享给好友</button>
   </view>
 
-  <text wx:if="{{tempFilePath}}" class="poster-page__tip">提示：长按图片可直接转发到朋友圈或好友。</text>
+  <text wx:if="{{tempFilePath}}" class="poster-page__tip">长按图片可直接转发或保存。</text>
 </view>

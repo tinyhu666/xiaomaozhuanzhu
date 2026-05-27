@@ -12,7 +12,7 @@
         src="{{profile.avatarUrl}}"
         mode="aspectFill"
       />
-      <text wx:else class="profile-hero__avatar-placeholder">🐱</text>
+      <text wx:else class="profile-hero__avatar-placeholder">猫</text>
       <!--
         v0.26.1 — the 📷 corner badge was deleted. The avatar wrapper
         has `border-radius: 50%; overflow: hidden`, which clipped the
@@ -72,7 +72,7 @@
       vocabulary used in the unlock animation (「成就解锁」).
     -->
     <view class="menu-item" bindtap="openBadges">
-      <view class="menu-item__icon">🏆</view>
+      <view class="menu-item__icon">成</view>
       <view class="menu-item__body">
         <text class="menu-item__title">成就</text>
         <text class="menu-item__hint">{{badgeProgressLabel}}</text>
@@ -80,7 +80,7 @@
       <text class="menu-item__chevron">›</text>
     </view>
     <view class="menu-item" bindtap="openSubjects">
-      <view class="menu-item__icon">📚</view>
+      <view class="menu-item__icon">科</view>
       <view class="menu-item__body">
         <text class="menu-item__title">六科进度</text>
         <text class="menu-item__hint">{{subjectsHint}}</text>
@@ -88,7 +88,7 @@
       <text class="menu-item__chevron">›</text>
     </view>
     <view class="menu-item" bindtap="openSettings">
-      <view class="menu-item__icon">⚙️</view>
+      <view class="menu-item__icon">设</view>
       <view class="menu-item__body">
         <text class="menu-item__title">学习设置</text>
         <text class="menu-item__hint">目标 · 提醒 · 音景</text>
@@ -96,7 +96,7 @@
       <text class="menu-item__chevron">›</text>
     </view>
     <view class="menu-item" bindtap="openPoster">
-      <view class="menu-item__icon">🎴</view>
+      <view class="menu-item__icon">报</view>
       <view class="menu-item__body">
         <text class="menu-item__title">学习日报</text>
         <text class="menu-item__hint">生成可分享的打卡卡片</text>

@@ -322,3 +322,101 @@
   line-height: 1.6;
   letter-spacing: 0.2rpx;
 }
+
+/* GPT image2 redesign pass */
+.subjects-page {
+  gap: 24rpx;
+}
+
+.overall-card,
+.donut-card,
+.subject-card {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.overall-card {
+  padding: 32rpx;
+}
+
+.overall-card__title,
+.subject-card__name {
+  color: #1F2624;
+  font-weight: 600;
+}
+
+.overall-card__value {
+  color: #155946;
+  font-size: 64rpx;
+}
+
+.overall-card__pct,
+.subject-card__pct,
+.subject-card__pct.is-reached {
+  color: #155946;
+}
+
+.overall-card__track,
+.subject-card__track {
+  height: 8rpx;
+  background: #E3EBE7;
+}
+
+.overall-card__fill,
+.subject-card__fill,
+.subject-card__fill.is-reached {
+  background: #155946;
+}
+
+.overall-card__hint,
+.subject-card__hours,
+.subjects-footnote,
+.donut-card__center-sub {
+  color: #5E7D75;
+}
+
+.donut-card {
+  padding: 24rpx;
+  gap: 24rpx;
+}
+
+.donut-card__ring {
+  box-shadow: none;
+}
+
+.donut-card__hole {
+  background: #FFFFFF;
+}
+
+.donut-card__center-label,
+.donut-card__legend-name,
+.donut-card__legend-percent {
+  color: #1F2624;
+}
+
+.subject-list {
+  gap: 12rpx;
+}
+
+.subject-card {
+  padding: 24rpx;
+}
+
+.subject-card.is-reached {
+  background: #FFFFFF;
+  border-color: #D2E1DA;
+}
+
+.subject-card__countdown {
+  background: #ECF5F0;
+  border-color: #DCEAE3;
+  color: #155946;
+}
+
+.subject-card__countdown.is-urgent {
+  background: #FFF3EA;
+  border-color: rgba(194, 86, 43, 0.24);
+  color: #C2562B;
+}

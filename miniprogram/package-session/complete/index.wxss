@@ -240,3 +240,190 @@
 .unlock-reveal__primary:active {
   transform: scale(0.96);
 }
+
+/* GPT image2 redesign pass */
+.complete-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding-bottom: calc(56rpx + env(safe-area-inset-bottom));
+}
+
+.complete-hero,
+.complete-form {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.complete-hero {
+  padding: 32rpx;
+}
+
+.complete-hero__label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: #ECF5F0;
+  color: #155946;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.complete-hero__title {
+  display: block;
+  margin-top: 24rpx;
+  color: #155946;
+  font-size: 64rpx;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.complete-hero__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44rpx;
+  margin-top: 16rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: #FFF3EA;
+  color: #C2562B;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.complete-form {
+  padding: 24rpx;
+}
+
+.complete-form .field-label {
+  margin-top: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.complete-form .field-label:first-child {
+  margin-top: 0;
+}
+
+.field-label--spaced {
+  margin-top: 24rpx;
+}
+
+.complete-submit {
+  width: 100%;
+}
+
+.unlock-reveal {
+  background: rgba(20, 60, 50, 0.55);
+}
+
+.unlock-reveal__card,
+.unlock-reveal__card--rare,
+.unlock-reveal__card--epic,
+.unlock-reveal__card--legendary {
+  border-radius: 32rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 24rpx 60rpx -8rpx rgba(20, 60, 50, 0.16);
+  animation: unlock-reveal-pop-calm 600ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes unlock-reveal-pop-calm {
+  from { opacity: 0; transform: scale(0.96) translateY(24rpx); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.unlock-reveal__eyebrow {
+  color: #155946;
+  letter-spacing: 0;
+}
+
+.unlock-reveal__name {
+  color: #1F2624;
+  font-size: 40rpx;
+}
+
+.unlock-reveal__crown,
+.unlock-reveal__star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 999rpx;
+  background: #F7E8C5;
+  color: #C9881C;
+  font-size: 22rpx;
+  font-weight: 800;
+  filter: none;
+}
+
+.unlock-reveal__ghost,
+.unlock-reveal__primary {
+  border-radius: 16rpx;
+}
+
+.unlock-reveal__primary {
+  background: #155946;
+  box-shadow: none;
+}
+
+.unlock-reveal__ghost {
+  background: transparent;
+  border: 2rpx solid #155946;
+  color: #155946;
+}
+
+/* Second polish pass — completion as a calm handoff, not a form stack. */
+.complete-page {
+  gap: 28rpx;
+}
+
+.complete-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 30rpx;
+}
+
+.complete-hero::after {
+  content: "";
+  position: absolute;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(21, 89, 70, 0), rgba(21, 89, 70, 0.18), rgba(21, 89, 70, 0));
+}
+
+.complete-hero__title {
+  text-shadow: 0 14rpx 34rpx rgba(21, 89, 70, 0.10);
+}
+
+.complete-form {
+  border-radius: 28rpx;
+}
+
+.photo-item,
+.photo-picker {
+  background: linear-gradient(180deg, #F5FBF8 0%, #EAF4EF 100%);
+  border-color: rgba(21, 89, 70, 0.12);
+}
+
+.complete-submit {
+  box-shadow: 0 18rpx 34rpx -24rpx rgba(21, 89, 70, 0.68);
+}
+
+.unlock-reveal__halo {
+  opacity: 0.24;
+}
+
+.unlock-reveal__card,
+.unlock-reveal__card--rare,
+.unlock-reveal__card--epic,
+.unlock-reveal__card--legendary {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FCFA 100%);
+}

@@ -16,12 +16,19 @@
     discoverability — the friendly text spells it out.
   -->
   <view wx:if="{{monthIsEmpty}}" class="calendar-empty-month">
-    <text class="calendar-empty-month__icon">🐾</text>
     <text class="calendar-empty-month__text">本月还没有打卡记录</text>
-    <text class="calendar-empty-month__sub">回到首页开始一次专注吧</text>
+    <text class="calendar-empty-month__sub">开始后这里会形成月度热力图</text>
   </view>
 
   <view class="calendar-board">
+    <view class="calendar-board__summary">
+      <view>
+        <text class="calendar-board__title">学习热力</text>
+        <text class="calendar-board__subtitle">色阶对应投入时长</text>
+      </view>
+      <text class="calendar-board__peak">{{monthTotalText}}</text>
+    </view>
+
     <view class="calendar-board__weekdays">
       <text>一</text>
       <text>二</text>
@@ -42,7 +49,7 @@
         bindtap="openDay"
       >
         <text class="calendar-board__day">{{item.day}}</text>
-        <text wx:if="{{item.totalMinutes > 0}}" class="calendar-board__minutes">{{item.heatLabel}}</text>
+        <text wx:if="{{item.totalMinutes > 0 && selectedDate === item.date}}" class="calendar-board__minutes">{{item.heatLabel}}</text>
       </view>
     </view>
 
@@ -51,14 +58,30 @@
          space. The user only reads it once to calibrate the heat
          colors anyway. -->
     <view class="calendar-board__legend calendar-board__legend--horizontal">
-      <text class="calendar-board__legend-label">少</text>
-      <view class="calendar-board__legend-swatch level-0"></view>
-      <view class="calendar-board__legend-swatch level-1"></view>
-      <view class="calendar-board__legend-swatch level-2"></view>
-      <view class="calendar-board__legend-swatch level-3"></view>
-      <view class="calendar-board__legend-swatch level-4"></view>
-      <view class="calendar-board__legend-swatch level-5"></view>
-      <text class="calendar-board__legend-label">多</text>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-0"></view>
+        <text>0</text>
+      </view>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-1"></view>
+        <text>1m</text>
+      </view>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-2"></view>
+        <text>30m</text>
+      </view>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-3"></view>
+        <text>1h</text>
+      </view>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-4"></view>
+        <text>2h</text>
+      </view>
+      <view class="calendar-board__legend-step">
+        <view class="calendar-board__legend-swatch level-5"></view>
+        <text>4h+</text>
+      </view>
     </view>
   </view>
 

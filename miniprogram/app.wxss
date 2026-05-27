@@ -164,7 +164,7 @@ button::after {
 .glass-card {
   padding: 24rpx;
   background: rgba(255, 255, 255, 0.76);
-  backdrop-filter: blur(18rpx);
+  backdrop-filter: none;
 }
 
 .title {
@@ -706,6 +706,364 @@ button::after {
   .breathe,
   .fade-up,
   .bar > .bar__fill { animation: none !important; transition: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────
+ * GPT image2 UI refresh — calm CPA focus system.
+ *
+ * This layer intentionally keeps business templates and event
+ * bindings intact while pulling every surface toward the new design
+ * brief: fewer blocks, tabular numbers, visible but quiet containers,
+ * no glassmorphism, no ornamental gradients, and focus-mode first.
+ * ───────────────────────────────────────────────────────── */
+page {
+  background: #F3FAF6 !important;
+  color: #1F2624;
+  font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", sans-serif;
+  font-weight: 400;
+}
+
+.page-shell {
+  padding: 32rpx 32rpx calc(184rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.page-shell,
+.card-v2,
+.hero-card,
+.surface-card,
+.glass-card,
+.stat-card,
+.stat-tile,
+.calendar-board,
+.day-panel,
+.goal-card,
+.subjects-card,
+.profile-hero,
+.menu-list,
+.settings-section,
+.share-card,
+.public-card,
+.public-stat,
+.overall-card,
+.donut-card,
+.subject-card,
+.badges-hero,
+.badges-guide,
+.badge-tile,
+.poster-page__preview-wrap {
+  letter-spacing: 0;
+}
+
+.num,
+.stat-value,
+.stat-tile__value,
+.timer-card__clock,
+.exam-hero__count-num,
+.goal-card__value,
+.calendar-hero__title,
+.day-panel__total,
+.badges-hero__title,
+.overall-card__value,
+.subject-card__pct,
+.public-stat__value,
+.settings-row__value {
+  font-family: "SF Pro Rounded", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-card,
+.surface-card,
+.glass-card,
+.card-v2 {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+  backdrop-filter: none;
+}
+
+.hero-card {
+  padding: 32rpx;
+}
+
+.surface-card,
+.glass-card,
+.card-v2 {
+  padding: 24rpx;
+}
+
+.title {
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #1F2624;
+}
+
+.subtitle,
+.caption {
+  color: #5E7D75;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.section-title,
+.field-label {
+  color: #1F2624;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.badge,
+.chip-v2,
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48rpx;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: #ECF5F0;
+  border: 1rpx solid #DCEAE3;
+  color: #155946;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.chip-v2.is-active,
+.tag-chip.is-active {
+  background: #155946;
+  border-color: #155946;
+  color: #FFFFFF;
+}
+
+.cta-button,
+.ghost-button,
+.danger-button,
+.btn-v2 {
+  min-height: 88rpx;
+  height: 88rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+.cta-button::after,
+.ghost-button::after,
+.danger-button::after,
+.btn-v2::after {
+  border: none !important;
+}
+
+.cta-button,
+.btn-v2--primary {
+  background: #155946 !important;
+  background-color: #155946 !important;
+  color: #FFFFFF !important;
+}
+
+.ghost-button,
+.btn-v2--ghost {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #155946 !important;
+  border: 2rpx solid #155946;
+}
+
+.danger-button,
+.btn-v2--danger {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #C2562B !important;
+  border: 2rpx solid #C2562B;
+}
+
+.cta-button:active,
+.ghost-button:active,
+.danger-button:active,
+.btn-v2:active,
+.tag-chip:active,
+.chip-v2:active {
+  transform: scale(0.97);
+}
+
+.cta-button[disabled],
+.ghost-button[disabled],
+.danger-button[disabled],
+.btn-v2[disabled] {
+  opacity: 0.55;
+  transform: none;
+}
+
+.text-input,
+.textarea-input {
+  border-radius: 16rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  color: #1F2624;
+  font-size: 28rpx;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.textarea-input {
+  min-height: 176rpx;
+}
+
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -8rpx;
+}
+
+.photo-item,
+.photo-picker {
+  width: calc(33.333% - 16rpx);
+  height: 184rpx;
+  margin: 8rpx;
+  border-radius: 16rpx;
+  background: #ECF5F0;
+}
+
+.photo-picker {
+  border: 1rpx dashed #9FC5B8;
+  color: #155946;
+  font-size: 24rpx;
+}
+
+.bar,
+.goal-card__track,
+.goal-card__weekly-track,
+.subject-card__track,
+.overall-card__track,
+.badge-tile__track {
+  background: #E3EBE7;
+}
+
+.bar > .bar__fill,
+.goal-card__fill,
+.goal-card__weekly-fill,
+.subject-card__fill,
+.overall-card__fill,
+.badge-tile__fill {
+  background: #155946;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Premium polish pass — subtle material, clearer hierarchy, restrained motion. */
+page {
+  background:
+    linear-gradient(180deg, #F3FAF6 0%, #EEF7F2 54%, #F7FBF8 100%) !important;
+}
+
+.hero-card,
+.surface-card,
+.glass-card,
+.card-v2,
+.calendar-board,
+.day-panel,
+.goal-card,
+.subjects-card,
+.profile-hero,
+.stat-tile,
+.menu-list,
+.settings-section,
+.share-card,
+.public-card,
+.public-stat,
+.overall-card,
+.donut-card,
+.subject-card,
+.badges-hero,
+.badges-guide,
+.badge-tile,
+.poster-page__preview-wrap,
+.complete-form,
+.complete-hero {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 252, 250, 0.99) 100%) !important;
+  border-color: rgba(21, 89, 70, 0.12) !important;
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.88),
+    0 18rpx 44rpx -34rpx rgba(15, 44, 34, 0.38) !important;
+}
+
+.cta-button,
+.btn-v2--primary {
+  background: linear-gradient(180deg, #1B6651 0%, #155946 100%) !important;
+  background-color: #155946 !important;
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.12),
+    0 14rpx 28rpx -20rpx rgba(21, 89, 70, 0.62);
+  transition:
+    transform 100ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ghost-button,
+.danger-button,
+.btn-v2--ghost,
+.btn-v2--danger {
+  transition:
+    transform 100ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    background 220ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    border-color 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.ghost-button:active,
+.btn-v2--ghost:active {
+  background: rgba(21, 89, 70, 0.06) !important;
+}
+
+.badge,
+.chip-v2,
+.tag-chip {
+  background: linear-gradient(180deg, #F2FAF6 0%, #E8F3EE 100%);
+  border-color: rgba(21, 89, 70, 0.10);
+  transition:
+    transform 100ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    background 220ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    color 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.chip-v2.is-active,
+.tag-chip.is-active {
+  background: linear-gradient(180deg, #1B6651 0%, #155946 100%);
+}
+
+.bar > .bar__fill,
+.goal-card__fill,
+.goal-card__weekly-fill,
+.subject-card__fill,
+.overall-card__fill,
+.badge-tile__fill,
+.subjects-card__row-fill,
+.subjects-card__row-fill.is-reached {
+  background: linear-gradient(90deg, #155946 0%, #2EA985 100%) !important;
+  transition: width 600ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.text-input,
+.textarea-input {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAFDFB 100%);
+  border-color: rgba(21, 89, 70, 0.14);
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.86);
 }
 
 

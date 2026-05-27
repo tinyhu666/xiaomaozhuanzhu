@@ -21,15 +21,15 @@
   ],
   "window": {
     "navigationBarTitleText": "CPA 首页",
-    "navigationBarBackgroundColor": "#F4FFF9",
+    "navigationBarBackgroundColor": "#F3FAF6",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7FFF8",
+    "backgroundColor": "#F3FAF6",
     "backgroundTextStyle": "light"
   },
   "tabBar": {
     "custom": true,
-    "color": "#6A8B82",
-    "selectedColor": "#2EA985",
+    "color": "#5E7D75",
+    "selectedColor": "#155946",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [

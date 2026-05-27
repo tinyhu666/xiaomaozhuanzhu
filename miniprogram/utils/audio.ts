@@ -44,18 +44,19 @@ export type AudioScene =
 export type AudioSceneOption = {
   key: AudioScene;
   label: string;
+  /** Compact text mark kept for older UI bindings; do not render emoji in the redesigned UI. */
   emoji: string;
   description: string;
 };
 
 /** All scenes the picker offers, in display order. */
 export const AUDIO_SCENES: AudioSceneOption[] = [
-  { key: "off",     label: "关闭",       emoji: "🔇", description: "保持安静" },
-  { key: "rain",    label: "雨声",       emoji: "🌧️", description: "节奏感雨滴" },
-  { key: "cafe",    label: "咖啡馆",     emoji: "☕", description: "低语 + 杯碟轻响" },
-  { key: "ocean",   label: "海浪",       emoji: "🌊", description: "潮起潮落" },
-  { key: "fire",    label: "篝火",       emoji: "🔥", description: "壁炉柴火" },
-  { key: "library", label: "图书馆",     emoji: "📚", description: "翻书 + 笔尖声" }
+  { key: "off",     label: "关闭",       emoji: "关", description: "保持安静" },
+  { key: "rain",    label: "雨声",       emoji: "雨", description: "节奏感雨滴" },
+  { key: "cafe",    label: "咖啡馆",     emoji: "咖", description: "低语 + 杯碟轻响" },
+  { key: "ocean",   label: "海浪",       emoji: "浪", description: "潮起潮落" },
+  { key: "fire",    label: "篝火",       emoji: "火", description: "壁炉柴火" },
+  { key: "library", label: "图书馆",     emoji: "书", description: "翻书 + 笔尖声" }
 ];
 
 const SCENE_FILE: Record<AudioScene, string> = {

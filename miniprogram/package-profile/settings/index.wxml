@@ -70,7 +70,7 @@
         data-key="{{item.key}}"
         bindtap="onTapAudioScene"
       >
-        <text class="audio-scene__emoji">{{item.emoji}}</text>
+        <text class="audio-scene__emoji">{{item.active ? '开' : '音'}}</text>
         <view class="audio-scene__text">
           <text class="audio-scene__label">{{item.label}}</text>
           <text class="audio-scene__desc">{{item.description}}</text>

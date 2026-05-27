@@ -15,7 +15,7 @@
       src="{{data.profile.avatarUrl}}"
       mode="aspectFill"
     />
-    <view wx:else class="public-hero__avatar public-hero__avatar--placeholder">🐱</view>
+    <view wx:else class="public-hero__avatar public-hero__avatar--placeholder">猫</view>
     <text class="public-hero__name">{{data.profile.nickname || 'CPA 考生'}}</text>
     <text class="public-hero__sub">小猫专注 · 学习数据</text>
   </view>
@@ -42,5 +42,5 @@
     </view>
   </view>
 
-  <text class="public-footer">来自小猫专注 · 同学也来记录吧 🐾</text>
+  <text class="public-footer">来自小猫专注 · 学习记录页</text>
 </view>

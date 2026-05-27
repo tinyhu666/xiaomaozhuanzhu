@@ -20,7 +20,7 @@ import { formatDuration, getDailyQuote } from "../../utils/view-models";
  *
  * Layout (proportions in display px, canvas backing is 3× larger)
  *   ┌─────────────────────────────────┐
- *   │  🐾 小猫专注                   │  brand
+ *   │  小猫专注                      │  brand
  *   │                                 │
  *   │  [avatar] 昵称                  │  user row
  *   │                                 │
@@ -294,10 +294,24 @@ function drawPoster(ctx: any, canvas: any, w: number, h: number, p: any) {
   ctx.fillRect(0, 0, w, h);
 
   // 2. Brand mark — top-left
+  const markSize = 46 * (w / 1125);
+  const brandGap = 16 * (w / 1125);
+  const markGrad = ctx.createLinearGradient(padX, padTop, padX + markSize, padTop + markSize);
+  markGrad.addColorStop(0, "#2EA985");
+  markGrad.addColorStop(1, "#155946");
+  ctx.fillStyle = markGrad;
+  roundRect(ctx, padX, padTop, markSize, markSize, markSize / 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `800 ${Math.floor(24 * (w / 1125))}px -apple-system, "PingFang SC", sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("专", padX + markSize / 2, padTop + markSize / 2 + 1);
   ctx.fillStyle = "#155946";
-  ctx.font = `bold ${Math.floor(40 * (w / 1125))}px -apple-system, "PingFang SC", sans-serif`;
+  ctx.font = `800 ${Math.floor(40 * (w / 1125))}px -apple-system, "PingFang SC", sans-serif`;
+  ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("🐾 小猫专注", padX, padTop);
+  ctx.fillText("小猫专注", padX + markSize + brandGap, padTop + 2);
 
   // Date stamp top-right
   ctx.fillStyle = "rgba(21, 89, 70, 0.55)";
@@ -344,7 +358,7 @@ function drawPoster(ctx: any, canvas: any, w: number, h: number, p: any) {
   const quoteY = gridY + cellH * 2 + gap + 60 * (w / 1125);
   ctx.fillStyle = "#155946";
   const enFont = Math.floor(36 * (w / 1125));
-  ctx.font = `italic 600 ${enFont}px Georgia, "Times New Roman", serif`;
+  ctx.font = `600 ${enFont}px -apple-system, "PingFang SC", sans-serif`;
   drawWrappedText(ctx, p.quoteEn, padX, quoteY, w - padX * 2, enFont * 1.3, 2);
 
   ctx.fillStyle = "#5e7d75";
@@ -421,7 +435,7 @@ function drawAvatarPlaceholder(ctx: any, w: number) {
   ctx.font = `${Math.floor(size * 0.6)}px -apple-system, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("🐱", cx, cy + size * 0.05);
+  ctx.fillText("专", cx, cy + size * 0.02);
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
 }

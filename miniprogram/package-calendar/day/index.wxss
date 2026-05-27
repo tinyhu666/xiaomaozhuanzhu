@@ -14,3 +14,88 @@
 .surface-card .photo-grid {
   margin-top: 18rpx;
 }
+
+/* GPT image2 redesign pass */
+.day-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding-bottom: calc(56rpx + env(safe-area-inset-bottom));
+}
+
+.day-hero,
+.day-session {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.day-hero {
+  padding: 32rpx;
+}
+
+.day-hero__date {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: #ECF5F0;
+  color: #155946;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.day-hero__total {
+  display: block;
+  margin-top: 24rpx;
+  color: #155946;
+  font-size: 56rpx;
+  font-weight: 800;
+  line-height: 1.12;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-session {
+  padding: 24rpx;
+}
+
+.day-session__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.day-session__subject {
+  color: #1F2624;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.day-session__duration {
+  color: #155946;
+  font-size: 24rpx;
+  font-weight: 800;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-session__summary {
+  display: block;
+  margin-top: 16rpx;
+  color: #5E7D75;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.day-session__tags,
+.day-session__photos {
+  margin-top: 18rpx;
+}
+
+.day-session--empty {
+  padding: 32rpx 24rpx;
+}

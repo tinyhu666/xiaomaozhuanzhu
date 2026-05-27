@@ -341,3 +341,173 @@
    wxml. Nobody reads "设置仅保存在当前设备" caveats; if a setting
    matters cross-device we should sync it server-side, not paper
    over it with footer text. */
+
+/* GPT image2 redesign pass */
+.settings-page {
+  gap: 24rpx;
+}
+
+.settings-section {
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.settings-section__title {
+  color: #1F2624;
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.settings-row,
+.reminder-row,
+.settings-link-row {
+  padding: 22rpx 0;
+}
+
+.settings-row__label,
+.reminder-row__label,
+.settings-link-row__label,
+.audio-scene__label {
+  color: #1F2624;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.settings-row__desc,
+.reminder-row__desc,
+.settings-link-row__desc,
+.audio-scene__desc {
+  color: #5E7D75;
+  font-size: 20rpx;
+}
+
+.settings-row__stepper {
+  gap: 0;
+  border-radius: 16rpx;
+  border: 1rpx solid #DCEAE3;
+  background: #ECF5F0;
+  overflow: hidden;
+}
+
+.settings-row__step {
+  width: 56rpx;
+  height: 56rpx;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #155946;
+}
+
+.settings-row__value-wrap {
+  min-width: 112rpx;
+  height: 56rpx;
+  background: #FFFFFF;
+}
+
+.settings-row__value {
+  color: #1F2624;
+  font-size: 30rpx;
+}
+
+.reminder-row__switch {
+  width: 76rpx;
+  height: 44rpx;
+  background: #DCEAE3;
+}
+
+.reminder-row__switch.is-on {
+  background: #155946;
+}
+
+.reminder-row__switch-knob {
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.18);
+}
+
+.audio-scene {
+  border-radius: 16rpx;
+  background: #F8FCFA;
+  border-color: #E3EBE7;
+}
+
+.audio-scene.is-active {
+  background: #ECF5F0;
+  border-color: #155946;
+}
+
+.audio-scene__emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 999rpx;
+  background: #ECF5F0;
+  color: #155946;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.audio-scene.is-active .audio-scene__emoji {
+  background: #155946;
+  color: #FFFFFF;
+}
+
+.audio-scene__check {
+  color: #155946;
+}
+
+.settings-reset {
+  border-radius: 16rpx;
+  background: transparent;
+  border: 2rpx solid #C2562B;
+  color: #C2562B;
+}
+
+/* Second polish pass — settings as quiet controls. */
+.settings-section {
+  border-radius: 28rpx;
+}
+
+.settings-section__title {
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx solid rgba(21, 89, 70, 0.08);
+}
+
+.settings-row,
+.reminder-row,
+.settings-link-row {
+  transition: background 160ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.settings-row:active,
+.reminder-row:active,
+.settings-link-row:active,
+.audio-scene:active {
+  background: rgba(21, 89, 70, 0.04);
+}
+
+.settings-row__stepper {
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.74);
+}
+
+.reminder-row__switch {
+  transition:
+    background 220ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    transform 100ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.reminder-row__switch:active {
+  transform: scale(0.97);
+}
+
+.audio-scene {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F7FBF8 100%);
+}
+
+.audio-scene.is-active {
+  background: linear-gradient(180deg, #F2FAF6 0%, #E8F3EE 100%);
+}

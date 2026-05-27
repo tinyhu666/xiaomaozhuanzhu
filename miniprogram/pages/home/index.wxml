@@ -28,7 +28,6 @@
     <view class="exam-hero__body">
       <text class="exam-hero__eyebrow">距下一科考试</text>
       <text class="exam-hero__subject">{{nextExam.subject}} · {{nextExam.dateLabel}}{{nextExam.fallback ? ' (参考)' : ''}}</text>
-      <text class="exam-hero__motivation">{{nextExam.motivation}}</text>
     </view>
     <view class="exam-hero__count">
       <text class="exam-hero__count-num">{{nextExam.daysRemaining}}</text>
@@ -57,10 +56,9 @@
       </view>
       <view class="timer-card__meta">
         <text wx:if="{{activeSession && activeSession.subject}}" class="timer-card__subject-pill">{{activeSession.subject}}</text>
-        <text wx:if="{{audioBadge.visible}}" class="timer-card__audio-pill">{{audioBadge.emoji}} {{audioBadge.label}}</text>
+        <text wx:if="{{audioBadge.visible}}" class="timer-card__audio-pill">{{audioBadge.label}}</text>
         <text>今日 {{todayMinutesText}}</text>
         <text class="timer-card__streak">
-          <text wx:if="{{streakDays >= 3}}" class="timer-card__flame">🔥</text>
           <text>连续 {{streakText}}</text>
         </text>
       </view>
@@ -150,15 +148,14 @@
         <text class="goal-card__title">今日目标</text>
         <!--
           v0.25.2 — switched from a single <text> to <view> wrapping
-          explicit <text> children. Mixing emoji + Chinese + digits in
-          one <text> caused subtle baseline drift inside the pill (the
-          🎯 sits taller than the Chinese characters), making the
+          explicit <text> children. Mixing symbol marks + Chinese + digits in
+          one <text> caused subtle baseline drift inside the pill, making the
           content read as left-leaning. inline-flex + align-items:center
           + explicit gap centers the children regardless of glyph height.
         -->
         <view wx:if="{{dailyChallenge}}" class="goal-card__challenge-inline {{dailyChallenge.completed ? 'is-done' : ''}}" bindtap="onTapChallengeHint">
-          <text class="goal-card__challenge-inline-icon">{{dailyChallenge.completed ? '✓' : '🎯'}}</text>
-          <text class="goal-card__challenge-inline-text">挑战 {{dailyChallenge.targetMinutes}} 分</text>
+          <text class="goal-card__challenge-inline-icon">{{dailyChallenge.completed ? '达成' : '挑战'}}</text>
+          <text class="goal-card__challenge-inline-text">{{dailyChallenge.targetMinutes}} 分</text>
         </view>
       </view>
       <text class="goal-card__value {{goalReached ? 'is-reached' : ''}}">{{goalText}}</text>
@@ -166,7 +163,7 @@
     <view class="goal-card__track">
       <view class="goal-card__fill {{goalReached ? 'is-reached' : ''}}" style="width: {{goalProgress}}%"></view>
     </view>
-    <text wx:if="{{goalReached}}" class="goal-card__hint">🎉 今日目标已达成</text>
+    <text wx:if="{{goalReached}}" class="goal-card__hint">今日目标已达成</text>
 
     <view wx:if="{{weeklyGoal.visible}}" class="goal-card__weekly">
       <view class="goal-card__weekly-row">

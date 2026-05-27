@@ -356,3 +356,124 @@
   color: var(--text-main);
   opacity: 0.7;
 }
+
+/* GPT image2 redesign pass */
+.badges-page {
+  gap: 24rpx;
+}
+
+.badges-hero,
+.badges-guide,
+.badge-tile {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.badges-hero {
+  padding: 32rpx;
+}
+
+.badges-hero__title {
+  color: #155946;
+  font-size: 64rpx;
+  letter-spacing: 0;
+}
+
+.badges-hero__sub,
+.badges-section__count,
+.badge-tile__desc,
+.badge-tile__progress,
+.guide-row__cond {
+  color: #5E7D75;
+}
+
+.badges-guide__title,
+.badges-section__title,
+.badge-tile__name,
+.guide-row__cat {
+  color: #1F2624;
+  font-weight: 600;
+}
+
+.badges-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -8rpx;
+}
+
+.badge-tile {
+  width: calc(50% - 16rpx);
+  margin: 8rpx;
+  padding: 24rpx 18rpx;
+  box-sizing: border-box;
+  filter: grayscale(0.85);
+  opacity: 0.55;
+}
+
+.badge-tile.is-unlocked,
+.badge-tile--common.is-unlocked,
+.badge-tile--rare.is-unlocked,
+.badge-tile--epic.is-unlocked,
+.badge-tile--legendary.is-unlocked {
+  background: #FFFFFF;
+  border-color: #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+  filter: none;
+  opacity: 1;
+}
+
+.badge-tile--rare.is-unlocked .badge-tile__name { color: #4A6ED9; }
+.badge-tile--epic.is-unlocked .badge-tile__name { color: #E57B2B; }
+.badge-tile--legendary.is-unlocked .badge-tile__name { color: #C9881C; }
+.badge-tile--common.is-unlocked .badge-tile__name { color: #155946; }
+
+.badge-tile__crown,
+.badge-tile__star {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+  background: #F7E8C5;
+  color: #C9881C;
+  font-size: 18rpx;
+  font-weight: 800;
+  filter: none;
+}
+
+.badge-tile__star {
+  background: #FFF3EA;
+  color: #E57B2B;
+}
+
+.badge-tile__icon,
+.guide-row__icon {
+  color: #155946;
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.badge-tile__track {
+  background: #E3EBE7;
+}
+
+.badge-tile__fill,
+.badge-tile--rare.is-unlocked .badge-tile__fill,
+.badge-tile--epic.is-unlocked .badge-tile__fill,
+.badge-tile--legendary.is-unlocked .badge-tile__fill {
+  background: #155946;
+}
+
+.guide-row {
+  border-radius: 16rpx;
+  background: #F8FCFA;
+  border-color: #E3EBE7;
+}
+
+.guide-row__pill--common { background: #ECF5F0; color: #155946; }
+.guide-row__pill--rare { background: #EEF3FF; color: #4A6ED9; }
+.guide-row__pill--epic { background: #FFF3EA; color: #E57B2B; }
+.guide-row__pill--legendary { background: #FFF7DF; color: #C9881C; }

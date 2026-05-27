@@ -177,3 +177,64 @@
   opacity: 0.7;
   letter-spacing: 0.4rpx;
 }
+
+/* GPT image2 redesign pass */
+.public-page {
+  gap: 24rpx;
+}
+
+.public-hero,
+.public-stat,
+.public-card {
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: 0 2rpx 8rpx rgba(20, 60, 50, 0.04);
+}
+
+.public-hero {
+  padding: 40rpx 32rpx;
+}
+
+.public-hero__avatar {
+  background: #ECF5F0;
+  border: 1rpx solid #D2E1DA;
+  box-shadow: none;
+  color: #155946;
+  font-size: 48rpx;
+  font-weight: 800;
+}
+
+.public-hero__name,
+.public-card__title,
+.recent-item__summary {
+  color: #1F2624;
+}
+
+.public-hero__sub,
+.public-stat__label,
+.recent-item__date,
+.public-footer {
+  color: #5E7D75;
+}
+
+.public-stats {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -8rpx;
+}
+
+.public-stat {
+  width: calc(50% - 16rpx);
+  margin: 8rpx;
+  box-sizing: border-box;
+}
+
+.public-stat__value,
+.recent-item__subject {
+  color: #155946;
+}
+
+.recent-item {
+  border-top-color: #E3EBE7;
+}

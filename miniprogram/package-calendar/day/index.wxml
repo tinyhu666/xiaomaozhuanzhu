@@ -1,21 +1,20 @@
-<view class="page-shell">
-  <view class="hero-card">
-    <view class="badge">{{date}}</view>
-    <view class="title" style="margin-top: 18rpx;">当天累计 {{totalText}}</view>
-    <view class="subtitle">点开每次记录，可以回头看自己当时学了什么、卡在哪里。</view>
+<view class="page-shell day-page">
+  <view class="day-hero">
+    <text class="day-hero__date">{{date}}</text>
+    <text class="day-hero__total">当天累计 {{totalText}}</text>
   </view>
 
   <block wx:if="{{sessions.length}}">
-    <view wx:for="{{sessions}}" wx:key="id" class="surface-card" style="margin-top: 20rpx;">
-      <view style="display: flex; align-items: center; justify-content: space-between;">
-        <view class="section-title" style="margin-bottom: 0;">{{item.subject || '未选择科目'}}</view>
-        <view class="badge">{{item.totalMinutes}} 分钟</view>
+    <view wx:for="{{sessions}}" wx:key="id" class="day-session">
+      <view class="day-session__head">
+        <text class="day-session__subject">{{item.subject || '未选择科目'}}</text>
+        <text class="day-session__duration">{{item.totalMinutes}} 分钟</text>
       </view>
-      <view wx:if="{{item.summary}}" class="subtitle">{{item.summary}}</view>
-      <view wx:if="{{item.tags.length}}" class="tag-list" style="margin-top: 18rpx;">
+      <view wx:if="{{item.summary}}" class="day-session__summary">{{item.summary}}</view>
+      <view wx:if="{{item.tags.length}}" class="tag-list day-session__tags">
         <view wx:for="{{item.tags}}" wx:key="*this" class="tag-chip">{{item}}</view>
       </view>
-      <view wx:if="{{item.photos.length}}" class="photo-grid" style="margin-top: 18rpx;">
+      <view wx:if="{{item.photos.length}}" class="photo-grid day-session__photos">
         <image
           wx:for="{{item.photos}}"
           wx:key="objectKey"
@@ -32,7 +31,7 @@
     </view>
   </block>
 
-  <view wx:else class="surface-card" style="margin-top: 24rpx;">
+  <view wx:else class="day-session day-session--empty">
     <view class="empty-state">这一天还没有完成的打卡记录。</view>
   </view>
 </view>

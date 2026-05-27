@@ -18,7 +18,7 @@
   -->
   <view class="badges-guide {{guideOpen ? 'is-open' : ''}}">
     <view class="badges-guide__head" bindtap="onTapToggleGuide">
-      <text class="badges-guide__title">📜 成就说明</text>
+      <text class="badges-guide__title">成就说明</text>
       <text class="badges-guide__hint">{{guideOpen ? '收起' : '查看'}}</text>
       <text class="badges-guide__chevron">{{guideOpen ? '∧' : '∨'}}</text>
     </view>
@@ -34,7 +34,7 @@
           src="{{item.imageUrl}}"
           mode="aspectFit"
         />
-        <text wx:else class="guide-row__icon">{{item.icon}}</text>
+        <text wx:else class="guide-row__icon">猫</text>
         <view class="guide-row__text">
           <view class="guide-row__line1">
             <text class="guide-row__cat">{{item.name}}</text>
@@ -67,15 +67,15 @@
         wx:key="key"
         class="badge-tile badge-tile--{{item.rarity}} {{item.unlocked ? 'is-unlocked' : ''}}"
       >
-        <view wx:if="{{item.unlocked && item.rarity === 'legendary'}}" class="badge-tile__crown">👑</view>
-        <view wx:if="{{item.unlocked && item.rarity === 'epic'}}" class="badge-tile__star">🌟</view>
+        <view wx:if="{{item.unlocked && item.rarity === 'legendary'}}" class="badge-tile__crown">传</view>
+        <view wx:if="{{item.unlocked && item.rarity === 'epic'}}" class="badge-tile__star">史</view>
         <image
           wx:if="{{item.imageUrl}}"
           class="badge-tile__cat-img"
           src="{{item.imageUrl}}"
           mode="aspectFit"
         />
-        <view wx:else class="badge-tile__icon">{{item.icon}}</view>
+        <view wx:else class="badge-tile__icon">猫</view>
         <text class="badge-tile__name">{{item.name}}</text>
         <text class="badge-tile__desc">{{item.description}}</text>
         <view class="badge-tile__track">
