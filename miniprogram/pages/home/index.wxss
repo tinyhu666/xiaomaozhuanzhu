@@ -78,12 +78,15 @@
 }
 
 .home-page.is-focus-mode .timer-card__clock {
-  /* v0.32.1 — reduced 128rpx(--fs-display) → 104rpx. At 128rpx the
-     "00:00:00" string (8 tabular-nums chars ≈ 614rpx) nearly touched
-     the 28rpx side padding on narrower phones, reading as cramped /
-     "比例失调". 104rpx ≈ 500rpx wide leaves a comfortable ~95rpx
-     margin each side and keeps it clearly the hero. */
-  font-size: 104rpx;
+  /* v0.32.2 — ENLARGED to 144rpx + weight 800. v0.32.1 wrongly shrank
+     this to 104rpx (misread "比例失调" as "too big" — it was "数字太
+     小"). In a full-screen dark focus view the clock is the hero and
+     must command the screen, not float as a tiny number in the void.
+     Width check: "00:00:00" ≈ 4.2em (6 tabular digits + 2 narrow
+     colons) × 144rpx = 605rpx, fits the 694rpx available (750 − 2×28
+     padding) with ~45rpx margin each side. */
+  font-size: 144rpx;
+  font-weight: 800;
   letter-spacing: 0;
   margin-top: auto;
   margin-bottom: auto;
