@@ -68,9 +68,10 @@
   border: none;
   box-shadow: none;
   background: transparent;
-  /* v0.26.1: horizontal padding tightened 56→28 so "00:00:00" doesn't
-     overflow at 128rpx font. */
-  padding: 100rpx 28rpx calc(56rpx + env(safe-area-inset-bottom));
+  /* v0.32.3: horizontal padding tightened 28→16 to give the enlarged
+     clock (160rpx) maximum room. The action buttons in this card sit
+     comfortably even at 16rpx side padding. */
+  padding: 100rpx 16rpx calc(56rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   position: relative;
@@ -85,9 +86,16 @@
      Width check: "00:00:00" ≈ 4.2em (6 tabular digits + 2 narrow
      colons) × 144rpx = 605rpx, fits the 694rpx available (750 − 2×28
      padding) with ~45rpx margin each side. */
-  font-size: 144rpx;
+  /* v0.32.3 — pushed to 160rpx (physical max for an 8-char HH:MM:SS
+     string). Negative letter-spacing packs the glyphs tighter to buy
+     safety margin against overflow. With 16rpx card padding the
+     available width is 718rpx; worst-case glyph width (~4.5em ×
+     160rpx = 720rpx) minus the -2rpx×7 letter-spacing (~14rpx) lands
+     at ~706rpx < 718. Beyond this size the only way bigger is to drop
+     the leading "00:" hours — a format change, not a CSS change. */
+  font-size: 160rpx;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: -2rpx;
   margin-top: auto;
   margin-bottom: auto;
   color: var(--c-text-1-dark);
