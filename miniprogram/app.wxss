@@ -957,9 +957,19 @@ page {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  /* v0.32.4 hotfix — the GPT-image2 redesign shipped this block with
+     the universal selector `*, *::before, *::after`, which WeChat
+     WXSS rejects (compile error -80056 "unexpected token `*`",
+     blocking upload entirely). WXSS supports element/component
+     selectors but NOT `*` or universal pseudo-elements. Swapped to
+     the rendered component types, which covers virtually everything
+     the app animates. (The targeted .breathe/.fade-up/.bar rule above
+     at the other @media block still handles the named animations.) */
+  view,
+  text,
+  button,
+  image,
+  scroll-view {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
