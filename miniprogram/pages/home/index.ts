@@ -956,9 +956,20 @@ Page<{}, HomePageData>({
         const cycles = target.mode === "pomodoro"
           ? (pomodoroState?.cyclesCompleted ?? target.pomodoroCycles ?? 0)
           : 0;
+        // v0.32.5 — minutes shown on the complete page. `effectiveMinutes`
+        // is the server value from the last poll / pause response; if the
+        // pause-before-complete call above failed, that value is stale
+        // (too low) and the complete page would display the wrong
+        // duration. getElapsedMs recomputes the live elapsed time from the
+        // session's own timestamps (same util the running clock uses), so
+        // we take whichever is larger. (The server still recomputes the
+        // authoritative recorded duration on submit; this only fixes the
+        // displayed number.)
+        const liveMinutes = Math.floor(getElapsedMs(target) / 60000);
+        const minutes = Math.max(1, target.effectiveMinutes ?? 0, liveMinutes);
         const params = [
           `sessionId=${target.id}`,
-          `minutes=${Math.max(1, target.effectiveMinutes)}`
+          `minutes=${minutes}`
         ];
         if (cycles > 0) params.push(`cycles=${cycles}`);
         wx.navigateTo({

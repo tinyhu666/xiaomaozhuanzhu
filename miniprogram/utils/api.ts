@@ -1,5 +1,6 @@
 import { runtimeConfig } from "../config/runtime";
 import type {
+  Badge,
   CalendarDayResponse,
   HomeResponse,
   ProfileDashboardResponse,
@@ -319,6 +320,13 @@ export function completeSession(
       heatLevel: number;
       streakDays: number;
     };
+    // v0.32.5 — the server sets this when the just-completed session
+    // crossed an achievement threshold (server/src/app.ts). It drives
+    // the unlock overlay on the complete page. Previously the complete
+    // page read it via an unsafe `as` cast because the type omitted it;
+    // declaring it here makes the contract explicit so the overlay
+    // can't be silently broken by a future refactor of that cast.
+    newlyUnlockedBadge?: Badge | null;
   }>({
     path: `/sessions/${sessionId}/complete`,
     method: "POST",

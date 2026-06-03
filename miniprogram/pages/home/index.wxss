@@ -1106,33 +1106,14 @@
   letter-spacing: 1rpx;
 }
 
-/* Dark-mode overrides — card surface flips to dark, English line
-   becomes accent mint (#2EA985 reads on dark), Chinese line uses
-   the dark text-sub token. */
-@media (prefers-color-scheme: dark) {
-  .quote-card {
-    background:
-      radial-gradient(circle at 50% 0%, rgba(46, 169, 133, 0.22), transparent 62%),
-      linear-gradient(180deg, #2A2F2D 0%, #1F2421 100%);
-    border-color: rgba(232, 239, 236, 0.08);
-    box-shadow:
-      inset 0 1rpx 0 rgba(255, 255, 255, 0.06),
-      0 24rpx 60rpx -8rpx rgba(0, 0, 0, 0.4);
-  }
-  .quote-card__eyebrow {
-    color: #4dc6a0;
-    background: rgba(46, 169, 133, 0.18);
-  }
-  .quote-card__en {
-    color: #4dc6a0;
-  }
-  .quote-card__zh {
-    color: #8FA59C;
-  }
-  .quote-card__hint {
-    color: #8FA59C;
-  }
-}
+/* v0.32.5 — removed the @media(prefers-color-scheme:dark) override on
+   the quote card. The app dropped system dark mode (no `darkmode` flag
+   in app.json); every other surface stays light regardless of the OS
+   theme. This orphaned block was the ONLY rule that still reacted to
+   the OS theme, so on a phone in dark mode the cold-start quote overlay
+   rendered dark-on-light while the page behind it stayed light —
+   jarring and inconsistent. The quote card now always uses its light
+   treatment, matching the rest of the app. */
 
 /* GPT image2 redesign pass — idle is a quiet four-block study surface,
    focus mode is a full-screen timer. Functional bindings stay in WXML. */

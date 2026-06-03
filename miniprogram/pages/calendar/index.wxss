@@ -467,15 +467,21 @@
 }
 
 .calendar-hero__nav {
-  height: 56rpx;
-  line-height: 56rpx;
-  padding: 0 20rpx;
+  /* v0.32.5 — height 56→76rpx + wider padding. 上月/下月 is primary
+     calendar navigation; 56rpx (≈28pt) was below the comfortable
+     tap-target floor and easy to miss. 76rpx (≈38pt) + 28rpx side
+     padding gives a reliable hit area. */
+  min-width: 96rpx;
+  height: 76rpx;
+  line-height: 76rpx;
+  padding: 0 28rpx;
   border-radius: 999rpx;
   background: #ECF5F0;
   border: 1rpx solid #DCEAE3;
   box-shadow: none;
   color: #155946;
-  font-size: 22rpx;
+  font-size: 24rpx;
+  text-align: center;
 }
 
 .calendar-board,

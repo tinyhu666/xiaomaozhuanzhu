@@ -389,19 +389,22 @@ button::after {
 }
 
 .photo-remove {
+  /* v0.32.5 — 40→56rpx so the delete affordance is reliably tappable
+     (40rpx ≈ 20pt was a frequent miss). Sits at the photo corner;
+     darker bg for contrast on light thumbnails. */
   position: absolute;
-  top: 10rpx;
-  right: 10rpx;
+  top: 6rpx;
+  right: 6rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40rpx;
-  height: 40rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.55);
   color: #fff;
   text-align: center;
-  font-size: 24rpx;
+  font-size: 32rpx;
   line-height: 1;
 }
 
