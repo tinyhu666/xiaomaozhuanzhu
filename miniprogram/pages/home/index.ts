@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { runtimeConfig } from "../../config/runtime";
 import type { ActiveSession, ExamDateInfo, HomeResponse, MakeupOpportunity, ProfileDashboardResponse, SessionMode, SubjectProgress } from "../../types/models";
-import { abandonSession, getHome, getProfileDashboard, listMySessions, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
+import { getHome, getProfileDashboard, listMySessions, makeupSession, pauseSession, resumeSession, startSession } from "../../utils/api";
 import {
   getOrCreateTodayChallenge,
   markChallengeIfComplete,
@@ -240,11 +240,6 @@ Page<{}, HomePageData>({
   /** Tap-to-dismiss the cold-start quote card. */
   onTapQuoteDismiss() {
     this.setData({ launchQuote: null });
-  },
-
-  /** Stop propagation so taps on the card content don't dismiss. */
-  onTapQuoteContent(event: WechatMiniprogram.BaseEvent) {
-    event.stopPropagation?.();
   },
 
   // v0.21.3 — restorePickerFromStorage / onTapSubjectChip removed

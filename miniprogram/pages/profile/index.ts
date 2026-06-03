@@ -7,25 +7,6 @@ import { consumeWeeklyRecap, type WeeklyRecap } from "../../utils/weekly-recap";
 import { formatDuration } from "../../utils/view-models";
 
 /**
- * Plain-Chinese hour label, e.g. 8 → "早上 8 点", 20 → "晚上 8 点",
- * 0 → "凌晨 0 点". The hour=0 case keeps the explicit "0" so the
- * sentence "凌晨 0 点最高效" is unambiguous (vs. "凌晨 12 点" which
- * could mean noon or midnight in casual speech).
- * Hour bands chosen to match how native speakers parse the day:
- *   0–5 凌晨 · 6–10 早上 · 11–12 中午 · 13–17 下午 · 18–23 晚上
- */
-function hourLabel(hour: number): string {
-  const h12 = hour === 0 ? 0 : hour > 12 ? hour - 12 : hour;
-  let period: string;
-  if (hour < 6) period = "凌晨";
-  else if (hour < 11) period = "早上";
-  else if (hour < 13) period = "中午";
-  else if (hour < 18) period = "下午";
-  else period = "晚上";
-  return `${period} ${h12} 点`;
-}
-
-/**
  * v0.15: collapsed the old "records" row (single-day-longest / best-
  * week) into the same 4-tile stat grid as the cumulative numbers,
  * so the page has one place to look for "how am I doing" instead of
@@ -40,15 +21,6 @@ type StatTileView = {
   tone: "mint" | "amber" | "blue" | "rose";
 };
 
-type InsightView = {
-  hasData: boolean;
-  peakHourLabel: string;
-  peakWeekdayLabel: string;
-  /** 24 bars — no axis labels in v0.15 (the peak callout above the chart
-   *  carries the only word the user actually needs). */
-  bars: Array<{ height: number; isPeak: boolean }>;
-};
-
 type ProfilePageData = {
   profile: { nickname: string; avatarUrl: string; profileCompleted: boolean };
   nicknameFocus: boolean;
@@ -57,7 +29,6 @@ type ProfilePageData = {
   shareHint: string;
   appVersion: string;
   statTiles: StatTileView[];
-  insights: InsightView;
   /** v0.18 — the "上月小结" modal payload. Non-null only on the first
    *  open of a new calendar month (when there was data last month). */
   monthlySummary: MonthlySummary | null;
@@ -82,7 +53,6 @@ Page<{}, ProfilePageData>({
     shareHint: "未开启",
     appVersion: runtimeConfig.appVersion,
     statTiles: [],
-    insights: { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] },
     monthlySummary: null,
     monthlyChangeText: "",
     weeklyRecap: null,
@@ -146,7 +116,6 @@ Page<{}, ProfilePageData>({
         subjectsHint: subjectsLabel,
         shareHint: dashboard.profile?.isPublic ? "已开启" : "未开启",
         statTiles: this.buildStatTiles(dashboard),
-        insights: this.buildInsightsView(dashboard.patterns)
       });
     } catch (error) {
       console.error("[profile] dashboard failed", error);
@@ -278,35 +247,6 @@ Page<{}, ProfilePageData>({
         tone: "rose"
       }
     ];
-  },
-
-  /**
-   * 24-bin hourly pattern → sparkline view-model. The card around
-   * this chart was compacted in v0.15 (single-line peak callout
-   * instead of a 2-line title/subtitle block); the per-bar shape
-   * stays the same.
-   */
-  buildInsightsView(patterns?: ProfileDashboardResponse["patterns"]): InsightView {
-    if (!patterns || !patterns.hourly?.length) {
-      return { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] };
-    }
-    const hourlySum = patterns.hourly.reduce((sum, value) => sum + value, 0);
-    if (hourlySum <= 0) {
-      return { hasData: false, peakHourLabel: "", peakWeekdayLabel: "", bars: [] };
-    }
-    const max = Math.max(...patterns.hourly, 1);
-    const bars = patterns.hourly.map((minutes, hour) => ({
-      height: minutes > 0 ? Math.max(8, Math.round((minutes / max) * 100)) : 4,
-      isPeak: patterns.peakHour !== null && hour === patterns.peakHour
-    }));
-
-    const peakHourLabel = patterns.peakHour === null ? "—" : hourLabel(patterns.peakHour);
-    const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-    const peakWeekdayLabel = patterns.peakWeekday === null
-      ? "—"
-      : weekdayNames[patterns.peakWeekday] || "—";
-
-    return { hasData: true, peakHourLabel, peakWeekdayLabel, bars };
   },
 
   /**
