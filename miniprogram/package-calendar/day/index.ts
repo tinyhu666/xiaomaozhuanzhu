@@ -13,13 +13,20 @@ type DayPageData = {
     totalMinutes: number;
     photos: Array<{ objectKey: string; url: string }>;
   }>;
+  /** v0.32.7 — distinguishes a genuine "no records" day from a load
+   *  failure (network off). Without this the catch path left sessions
+   *  empty and the page silently showed the "还没有打卡记录" empty
+   *  state, which reads as "you didn't study" rather than "load
+   *  failed — tap to retry". */
+  loadState: "loading" | "loaded" | "error";
 };
 
 Page<{}, DayPageData>({
   data: {
     date: "",
     totalText: "0m",
-    sessions: []
+    sessions: [],
+    loadState: "loading"
   },
 
   async onLoad(query) {
@@ -28,7 +35,13 @@ Page<{}, DayPageData>({
     await this.loadDay(date);
   },
 
+  /** Retry button on the error state re-runs the load for the same day. */
+  retryLoad() {
+    if (this.data.date) this.loadDay(this.data.date);
+  },
+
   async loadDay(date: string) {
+    this.setData({ loadState: "loading" });
     try {
       const result = await getCalendarDay(date);
       const photoRefs = result.sessions.flatMap((session) =>
@@ -45,6 +58,7 @@ Page<{}, DayPageData>({
       }
 
       this.setData({
+        loadState: "loaded",
         totalText: formatDuration(result.totalMinutes),
         sessions: result.sessions.map((session) => ({
           id: session.id,
@@ -60,6 +74,7 @@ Page<{}, DayPageData>({
         }))
       });
     } catch (error) {
+      this.setData({ loadState: "error" });
       wx.showToast({
         title: error instanceof Error ? error.message : "加载详情失败",
         icon: "none"

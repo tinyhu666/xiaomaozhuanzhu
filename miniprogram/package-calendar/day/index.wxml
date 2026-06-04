@@ -4,7 +4,15 @@
     <text class="day-hero__total">当天累计 {{totalText}}</text>
   </view>
 
-  <block wx:if="{{sessions.length}}">
+  <!-- v0.32.7 — load-error state with retry, distinct from the empty
+       (no-records) state so a network failure doesn't read as "you
+       didn't study". -->
+  <view wx:if="{{loadState === 'error'}}" class="day-session day-session--empty">
+    <view class="empty-state">加载失败，请检查网络后重试。</view>
+    <view class="day-retry" bindtap="retryLoad">重新加载</view>
+  </view>
+
+  <block wx:elif="{{sessions.length}}">
     <view wx:for="{{sessions}}" wx:key="id" class="day-session">
       <view class="day-session__head">
         <text class="day-session__subject">{{item.subject || '未选择科目'}}</text>
@@ -31,7 +39,7 @@
     </view>
   </block>
 
-  <view wx:else class="day-session day-session--empty">
+  <view wx:elif="{{loadState === 'loaded'}}" class="day-session day-session--empty">
     <view class="empty-state">这一天还没有完成的打卡记录。</view>
   </view>
 </view>
