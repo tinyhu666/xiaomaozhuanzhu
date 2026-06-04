@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildMonthGrid,
+  buildSubjectBalance,
   buildSubjectSummary,
   formatDuration,
   getDailyQuote,
@@ -96,6 +97,81 @@ describe("miniprogram view models", () => {
       { subject: "审计", totalMinutes: 140, durationText: "2h 20m" },
       { subject: "会计", totalMinutes: 75, durationText: "1h 15m" }
     ]);
+  });
+
+  // v0.33 — B1 科目×考期 平衡复盘
+  describe("buildSubjectBalance", () => {
+    it("ranks an exam-imminent neglected subject as urgent and first", () => {
+      const result = buildSubjectBalance(
+        [
+          { subject: "会计", totalMinutes: 6000, targetMinutes: 6000 }, // reached
+          { subject: "审计", totalMinutes: 0, targetMinutes: 600 }       // neglected, exam in 5 days
+        ],
+        [
+          { subject: "会计", daysRemaining: 90 },
+          { subject: "审计", daysRemaining: 5 }
+        ]
+      );
+      expect(result[0].subject).toBe("审计");
+      expect(result[0].tier).toBe("urgent");
+      // 600 remaining over 5 days = 120/day
+      expect(result[0].requiredDailyMinutes).toBe(120);
+      // reached subject sinks to the bottom
+      expect(result[result.length - 1].subject).toBe("会计");
+      expect(result[result.length - 1].tier).toBe("reached");
+    });
+
+    it("computes required daily minutes by remaining gap / days left", () => {
+      const [item] = buildSubjectBalance(
+        [{ subject: "财管", totalMinutes: 100, targetMinutes: 1000 }],
+        [{ subject: "财管", daysRemaining: 30 }]
+      );
+      // (1000-100)/30 = 30/day → ontrack (<45)
+      expect(item.remainingMinutes).toBe(900);
+      expect(item.requiredDailyMinutes).toBe(30);
+      expect(item.tier).toBe("ontrack");
+      expect(item.progressPercent).toBe(10);
+    });
+
+    it("marks a reached subject and reports 0 required minutes", () => {
+      const [item] = buildSubjectBalance(
+        [{ subject: "战略", totalMinutes: 700, targetMinutes: 600 }],
+        [{ subject: "战略", daysRemaining: 40 }]
+      );
+      expect(item.tier).toBe("reached");
+      expect(item.remainingMinutes).toBe(0);
+      expect(item.requiredDailyMinutes).toBe(0);
+      expect(item.progressPercent).toBe(100);
+    });
+
+    it("orders tiers urgent → behind → ontrack → reached", () => {
+      const tiers = buildSubjectBalance(
+        [
+          { subject: "会计", totalMinutes: 600, targetMinutes: 600 },  // reached
+          { subject: "审计", totalMinutes: 0, targetMinutes: 1800 },   // behind (1800/30=60/day)
+          { subject: "税法", totalMinutes: 0, targetMinutes: 300 },    // ontrack (300/30=10/day)
+          { subject: "财管", totalMinutes: 0, targetMinutes: 4000 }    // urgent (4000/30=134/day)
+        ],
+        [
+          { subject: "会计", daysRemaining: 30 },
+          { subject: "审计", daysRemaining: 30 },
+          { subject: "税法", daysRemaining: 30 },
+          { subject: "财管", daysRemaining: 30 }
+        ]
+      ).map((item) => item.tier);
+      expect(tiers).toEqual(["urgent", "behind", "ontrack", "reached"]);
+    });
+
+    it("does not crash when a subject is missing from the exam schedule", () => {
+      const [item] = buildSubjectBalance(
+        [{ subject: "经济法", totalMinutes: 30, targetMinutes: 300 }],
+        [] // no schedule entry → daysRemaining defaults to 0
+      );
+      expect(item.daysRemaining).toBe(0);
+      // remaining 270 over max(1,0)=1 day → all "today"
+      expect(item.requiredDailyMinutes).toBe(270);
+      expect(item.tier).toBe("urgent");
+    });
   });
 
 });

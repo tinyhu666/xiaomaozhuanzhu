@@ -250,3 +250,95 @@ export function buildSubjectProgress(items: Array<{ subject: string; totalMinute
       };
     });
 }
+
+/* ============================================================
+ * v0.33 — B1 科目 × 考期 平衡复盘 (subject-time vs exam-urgency).
+ *
+ * The single most useful judgment for a 6-subject CPA candidate:
+ * "am I spending time on the subjects that need it, given how close
+ * each exam is?" Joins each subject's invested-vs-target minutes with
+ * the days remaining until THAT subject's exam, and ranks by how
+ * behind/urgent it is. Pure function — fully unit-tested. The data
+ * (subjectTargets + examSchedule) already flows from /me/dashboard,
+ * so this needs zero server/schema change.
+ * ============================================================ */
+export type SubjectBalanceTier = "reached" | "ontrack" | "behind" | "urgent";
+
+export type SubjectBalanceItem = {
+  subject: string;
+  totalMinutes: number;
+  targetMinutes: number;
+  daysRemaining: number;
+  remainingMinutes: number;
+  /** Minutes/day needed from now to hit target by this subject's exam. */
+  requiredDailyMinutes: number;
+  progressPercent: number;
+  tier: SubjectBalanceTier;
+  hint: string;
+  durationText: string;
+};
+
+const SUBJECT_BALANCE_TIER_ORDER: Record<SubjectBalanceTier, number> = {
+  urgent: 0,
+  behind: 1,
+  ontrack: 2,
+  reached: 3
+};
+
+export function buildSubjectBalance(
+  subjectTargets: Array<{ subject: string; totalMinutes: number; targetMinutes?: number }>,
+  examSchedule: Array<{ subject: string; daysRemaining: number }> = []
+): SubjectBalanceItem[] {
+  const daysBySubject = new Map(examSchedule.map((entry) => [entry.subject, entry.daysRemaining]));
+
+  return subjectTargets
+    .map((item) => {
+      const target = item.targetMinutes ?? 0;
+      const total = Math.max(0, item.totalMinutes ?? 0);
+      const daysRemaining = Math.max(0, daysBySubject.get(item.subject) ?? 0);
+      const remainingMinutes = Math.max(0, target - total);
+      const progressPercent = target > 0 ? Math.min(100, Math.round((total / target) * 100)) : 0;
+      // When the exam is here (0 days) but work remains, the whole gap
+      // is "today" — divide by 1, not 0.
+      const requiredDailyMinutes =
+        remainingMinutes === 0 ? 0 : Math.ceil(remainingMinutes / Math.max(1, daysRemaining));
+
+      let tier: SubjectBalanceTier;
+      let hint: string;
+      if (target > 0 && total >= target) {
+        tier = "reached";
+        hint = "投入已达目标";
+      } else if (daysRemaining > 0 && daysRemaining <= 7 && remainingMinutes > 0) {
+        tier = "urgent";
+        hint = `距考仅 ${daysRemaining} 天，需 ${requiredDailyMinutes} 分钟/天`;
+      } else if (requiredDailyMinutes >= 120) {
+        tier = "urgent";
+        hint = `落后较多，需 ${requiredDailyMinutes} 分钟/天`;
+      } else if (requiredDailyMinutes >= 45) {
+        tier = "behind";
+        hint = `需 ${requiredDailyMinutes} 分钟/天 达标`;
+      } else {
+        tier = "ontrack";
+        hint = requiredDailyMinutes > 0 ? `按 ${requiredDailyMinutes} 分钟/天 可达标` : "进度良好";
+      }
+
+      return {
+        subject: item.subject,
+        totalMinutes: total,
+        targetMinutes: target,
+        daysRemaining,
+        remainingMinutes,
+        requiredDailyMinutes,
+        progressPercent,
+        tier,
+        hint,
+        durationText: formatDuration(total)
+      };
+    })
+    .sort((left, right) => {
+      const tierDiff = SUBJECT_BALANCE_TIER_ORDER[left.tier] - SUBJECT_BALANCE_TIER_ORDER[right.tier];
+      if (tierDiff !== 0) return tierDiff;
+      // Within a tier, the one needing more minutes/day is more pressing.
+      return right.requiredDailyMinutes - left.requiredDailyMinutes;
+    });
+}

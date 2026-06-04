@@ -1,0 +1,58 @@
+<!--
+  v0.33 — B1 学习复盘 · 科目 × 考期 平衡。
+  Ranks the 6 subjects by how behind/urgent each is, given invested
+  time vs target vs days-to-that-subject's-exam. Ranking math is
+  unit-tested in view-models.buildSubjectBalance.
+-->
+<view class="page-shell review-page">
+
+  <!-- Headline: one-line read of the whole picture as a next-action -->
+  <view wx:if="{{loadState === 'loaded' && items.length}}" class="review-hero">
+    <text class="review-hero__headline">{{headline}}</text>
+    <text class="review-hero__subhead">{{subhead}}</text>
+  </view>
+
+  <!-- Loaded + has subjects: ranked balance list -->
+  <block wx:if="{{loadState === 'loaded' && items.length}}">
+    <view
+      wx:for="{{items}}"
+      wx:key="subject"
+      class="review-card review-card--{{item.tier}}"
+    >
+      <view class="review-card__top">
+        <view class="review-card__title">
+          <text class="review-card__subject">{{item.subject}}</text>
+          <text class="review-card__tier review-card__tier--{{item.tier}}">{{item.tierLabel}}</text>
+        </view>
+        <text class="review-card__days">距考 {{item.daysRemaining}} 天</text>
+      </view>
+
+      <view class="review-bar">
+        <view class="review-bar__fill review-bar__fill--{{item.tier}}" style="width: {{item.progressPercent}}%;"></view>
+      </view>
+
+      <view class="review-card__bottom">
+        <text class="review-card__nums">已投入 {{item.durationText}} · 目标 {{item.targetText}}（{{item.progressPercent}}%）</text>
+        <text class="review-card__hint">{{item.hint}}</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- Loaded but no data -->
+  <view wx:elif="{{loadState === 'loaded'}}" class="review-empty">
+    <text class="review-empty__title">{{headline || '还没有可复盘的数据'}}</text>
+    <text class="review-empty__sub">{{subhead || '完成几段专注后再回来看'}}</text>
+  </view>
+
+  <!-- Load error -->
+  <view wx:elif="{{loadState === 'error'}}" class="review-empty">
+    <text class="review-empty__title">加载失败</text>
+    <text class="review-empty__sub">请检查网络后重试。</text>
+    <view class="review-retry" bindtap="retryLoad">重新加载</view>
+  </view>
+
+  <!-- Loading -->
+  <view wx:else class="review-empty">
+    <text class="review-empty__sub">加载中…</text>
+  </view>
+</view>

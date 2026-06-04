@@ -26,6 +26,8 @@ type ProfilePageData = {
   nicknameFocus: boolean;
   badgeProgressLabel: string;
   subjectsHint: string;
+  /** v0.33 — 学习复盘 menu hint. */
+  reviewHint: string;
   shareHint: string;
   appVersion: string;
   statTiles: StatTileView[];
@@ -50,6 +52,7 @@ Page<{}, ProfilePageData>({
     nicknameFocus: false,
     badgeProgressLabel: "—",
     subjectsHint: "—",
+    reviewHint: "看时间花得对不对",
     shareHint: "未开启",
     appVersion: runtimeConfig.appVersion,
     statTiles: [],
@@ -353,6 +356,10 @@ Page<{}, ProfilePageData>({
   },
 
   // v0.25 — openGarden removed alongside the garden subsystem.
+
+  openReview() {
+    wx.navigateTo({ url: "/package-profile/review/index" });
+  },
 
   openBadges() {
     wx.navigateTo({ url: "/package-profile/badges/index" });

@@ -1,0 +1,182 @@
+/* v0.33 — 学习复盘 (B1). Calm, low-density list. Tier drives a single
+   left-accent color + matching bar fill; everything else stays neutral
+   so the page reads as "where should my time go", not a dashboard. */
+
+.review-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+/* -------- Hero headline -------- */
+.review-hero {
+  padding: 8rpx 4rpx 6rpx;
+}
+
+.review-hero__headline {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: #21473f;
+  letter-spacing: 0.3rpx;
+}
+
+.review-hero__subhead {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #5e7d75;
+  letter-spacing: 0.2rpx;
+}
+
+/* -------- Subject card -------- */
+.review-card {
+  position: relative;
+  padding: 24rpx 26rpx 22rpx 30rpx;
+  border-radius: 24rpx;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.06);
+  overflow: hidden;
+}
+
+/* Left accent strip, tier-colored. */
+.review-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 6rpx;
+}
+.review-card--urgent::before  { background: linear-gradient(180deg, #e88a5a 0%, #c2562b 100%); }
+.review-card--behind::before  { background: linear-gradient(180deg, #f0c060 0%, #d99a36 100%); }
+.review-card--ontrack::before { background: linear-gradient(180deg, #5fc491 0%, #2ea985 100%); }
+.review-card--reached::before { background: linear-gradient(180deg, #b8c9c2 0%, #8fa59c 100%); }
+
+.review-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.review-card__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.review-card__subject {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #21473f;
+  letter-spacing: 0.3rpx;
+}
+
+.review-card__tier {
+  padding: 2rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.review-card__tier--urgent  { background: rgba(194, 86, 43, 0.14);  color: #b3551a; }
+.review-card__tier--behind  { background: rgba(217, 154, 54, 0.16); color: #8a6410; }
+.review-card__tier--ontrack { background: rgba(46, 169, 133, 0.14); color: #238167; }
+.review-card__tier--reached { background: rgba(94, 125, 117, 0.14); color: #5e7d75; }
+
+.review-card__days {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #5e7d75;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* -------- Progress bar -------- */
+.review-bar {
+  height: 10rpx;
+  border-radius: 999rpx;
+  background: #e7f0eb;
+  overflow: hidden;
+  margin: 16rpx 0 14rpx;
+}
+
+.review-bar__fill {
+  height: 100%;
+  border-radius: 999rpx;
+  min-width: 2rpx;
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.review-bar__fill--urgent  { background: linear-gradient(90deg, #e88a5a 0%, #c2562b 100%); }
+.review-bar__fill--behind  { background: linear-gradient(90deg, #f0c060 0%, #d99a36 100%); }
+.review-bar__fill--ontrack { background: linear-gradient(90deg, #5fc491 0%, #2ea985 100%); }
+.review-bar__fill--reached { background: linear-gradient(90deg, #b8c9c2 0%, #8fa59c 100%); }
+
+/* -------- Bottom row -------- */
+.review-card__bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.review-card__nums {
+  font-size: 22rpx;
+  color: #5e7d75;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.2rpx;
+}
+
+.review-card__hint {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #21473f;
+  letter-spacing: 0.2rpx;
+}
+.review-card--urgent .review-card__hint  { color: #b3551a; }
+.review-card--behind .review-card__hint  { color: #8a6410; }
+
+/* -------- Empty / error / loading -------- */
+.review-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding: 80rpx 40rpx;
+  text-align: center;
+}
+
+.review-empty__title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #21473f;
+}
+
+.review-empty__sub {
+  font-size: 24rpx;
+  color: #5e7d75;
+  line-height: 1.5;
+}
+
+.review-retry {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18rpx;
+  min-height: 72rpx;
+  padding: 0 40rpx;
+  border-radius: 999rpx;
+  background: #ecf5f0;
+  border: 1rpx solid #dceae3;
+  color: #155946;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+.review-retry:active {
+  background: #dceae3;
+}

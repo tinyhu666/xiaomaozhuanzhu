@@ -71,6 +71,16 @@
       subsystem. 「徽章」 was renamed to 「成就」 to align with the
       vocabulary used in the unlock animation (「成就解锁」).
     -->
+    <!-- v0.33 — 学习复盘 (B1) placed first: it's the core 复盘 surface
+         per the product direction (record time + review). -->
+    <view class="menu-item" bindtap="openReview">
+      <view class="menu-item__icon">盘</view>
+      <view class="menu-item__body">
+        <text class="menu-item__title">学习复盘</text>
+        <text class="menu-item__hint">{{reviewHint}}</text>
+      </view>
+      <text class="menu-item__chevron">›</text>
+    </view>
     <view class="menu-item" bindtap="openBadges">
       <view class="menu-item__icon">成</view>
       <view class="menu-item__body">
