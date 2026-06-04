@@ -1,0 +1,72 @@
+<!--
+  v0.34 — A1 补录学习. Recover study time done without the timer.
+  Reuses the global .surface-card / .field-label / .tag-list / .tag-chip
+  / .textarea-input / .cta-button so it matches the complete page.
+-->
+<view class="page-shell manual-page">
+  <view class="surface-card">
+    <view class="field-label">哪一天</view>
+    <picker mode="date" value="{{dateValue}}" end="{{maxDate}}" bindchange="onDateChange">
+      <view class="manual-date">
+        <text class="manual-date__value">{{dateValue}}</text>
+        <text class="manual-date__chev">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="field-label">学习时长</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{durations}}"
+        wx:key="*this"
+        class="tag-chip {{durationMinutes === item ? 'is-active' : ''}}"
+        data-min="{{item}}"
+        bindtap="selectDuration"
+      >{{item}} 分钟</view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="field-label">科目（可选）</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{subjectChips}}"
+        wx:key="value"
+        class="tag-chip {{item.selected ? 'is-active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="toggleSubject"
+      >{{item.value}}</view>
+    </view>
+
+    <view class="field-label" style="margin-top: 24rpx;">标签（可选）</view>
+    <view class="tag-list">
+      <view
+        wx:for="{{tagChips}}"
+        wx:key="value"
+        class="tag-chip {{item.selected ? 'is-active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="toggleTag"
+      >{{item.value}}</view>
+    </view>
+  </view>
+
+  <view class="surface-card" style="margin-top: 20rpx;">
+    <view class="field-label">一句话（可选）</view>
+    <textarea
+      class="textarea-input"
+      maxlength="80"
+      placeholder="补一句当时学了什么"
+      value="{{summary}}"
+      bindinput="onSummaryInput"
+    />
+  </view>
+
+  <button
+    class="cta-button"
+    style="margin-top: 24rpx;"
+    loading="{{submitting}}"
+    disabled="{{submitting}}"
+    bindtap="submit"
+  >完成补录</button>
+</view>

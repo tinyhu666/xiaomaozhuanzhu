@@ -173,6 +173,12 @@ Page<{}, CalendarPageData>({
     await this.loadMonth();
   },
 
+  // v0.34 — A1 补录 entry. The manual page navigates back on submit;
+  // this page's onShow reloads the month, so the new record appears.
+  openManual() {
+    wx.navigateTo({ url: "/package-session/manual/index" });
+  },
+
   async openDay(event: WechatMiniprogram.BaseEvent) {
     const { date, inmonth } = event.currentTarget.dataset as { date: string; inmonth: boolean };
     if (!inmonth) return;

@@ -941,3 +941,26 @@
     animation: none !important;
   }
 }
+
+/* v0.34 — A1 补录 entry pill (right-aligned under the month nav). */
+.calendar-makeup {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4rpx;
+  margin-bottom: 4rpx;
+}
+.calendar-makeup__btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 60rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: #ecf5f0;
+  border: 1rpx solid #dceae3;
+  color: #155946;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.calendar-makeup__btn--hover {
+  background: #dceae3;
+}

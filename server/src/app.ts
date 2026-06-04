@@ -560,6 +560,83 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
+  // -----------------------------------------------------------------
+  // v0.34 — A1 补录: manual retroactive study entry. Records a
+  // completed session for a past (or today) date with a user-supplied
+  // duration, so time studied without the timer (forgot to start /
+  // studied on paper) isn't lost. Anchors the session at 20:00
+  // Shanghai of the target date so BOTH the timestamp-based day
+  // attribution (buildDayContributions) AND the durationMinutes field
+  // (subject totals) land on that date without crossing midnight
+  // (duration ≤ 600min = 10h, so startedAt ≥ 10:00 same day). Reuses
+  // the exact complete-flow tail: rebuildDailyStats recomputes the
+  // past day's stats + streak automatically, and we diff badges.
+  // -----------------------------------------------------------------
+  const manualSessionSchema = z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
+    durationMinutes: z.number().int().min(1).max(600),
+    subject: z.enum(SUBJECTS).nullable().optional(),
+    tags: z.array(z.enum(TAGS)).max(6).default([]),
+    summary: z.string().trim().max(80).default("")
+  });
+
+  app.post("/api/sessions/manual", withUser(store, clock, async (request, response, context) => {
+    const payload = parse(manualSessionSchema, request.body);
+    const nowIso = clock.now().toISOString();
+    const todayKey = formatShanghaiDate(nowIso);
+    if (payload.date > todayKey) {
+      throw new AppError(400, "INVALID_INPUT", "不能补录未来的日期");
+    }
+
+    const endedAt = new Date(`${payload.date}T20:00:00+08:00`).toISOString();
+    if (Number.isNaN(new Date(endedAt).getTime())) {
+      throw new AppError(400, "INVALID_INPUT", "日期无效");
+    }
+    const startedAt = new Date(new Date(endedAt).getTime() - payload.durationMinutes * 60_000).toISOString();
+
+    const badgesBefore = await computeBadgesFromUserData(store, context.user.id);
+
+    const session: StudySession = {
+      id: randomUUID(),
+      userId: context.user.id,
+      status: "completed",
+      mode: "free",
+      startedAt,
+      endedAt,
+      currentPauseStartedAt: null,
+      pauseSegments: [],
+      durationMinutes: payload.durationMinutes,
+      pomodoroCycles: 0,
+      summary: payload.summary,
+      subject: (payload.subject ?? null) as Subject | null,
+      tags: payload.tags as SessionTag[],
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+    await store.saveSession(session);
+
+    await store.replaceDailyStats(
+      context.user.id,
+      rebuildDailyStats(
+        context.user.id,
+        (await store.listSessions(context.user.id)).filter(
+          (item) => item.status === "completed" || item.status === "makeup"
+        ),
+        nowIso
+      )
+    );
+
+    const badgesAfter = await computeBadgesFromUserData(store, context.user.id);
+    const newlyUnlockedBadge = pickNewlyUnlockedBadge(badgesBefore, badgesAfter);
+    response.json({
+      session,
+      dailyStats:
+        (await store.getDailyStats(context.user.id)).get(payload.date) ??
+        emptyDailyStat(context.user.id, payload.date, nowIso),
+      newlyUnlockedBadge
+    });
+  }));
+
   app.get("/api/calendar", withUser(store, clock, async (request, response, context) => {
     const month = typeof request.query.month === "string" ? request.query.month : "";
     if (!/^\d{4}-\d{2}$/.test(month)) {

@@ -8,6 +8,12 @@
     <view class="calendar-hero__nav" hover-class="calendar-hero__nav--hover" bindtap="handleNextMonth">下月</view>
   </view>
 
+  <!-- v0.34 — A1 补录 entry. Recover study time done without the timer.
+       Lives on the calendar since that's where past days are reviewed. -->
+  <view class="calendar-makeup">
+    <view class="calendar-makeup__btn" hover-class="calendar-makeup__btn--hover" bindtap="openManual">+ 补录学习</view>
+  </view>
+
   <!--
     v0.26 — empty-month hint. When totalMinutes for this month is 0
     we surface a small message above the grid so the all-gray board

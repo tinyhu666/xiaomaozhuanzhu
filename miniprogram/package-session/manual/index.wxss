@@ -1,0 +1,30 @@
+/* v0.34 — A1 补录. Only the date-picker row needs page-specific style;
+   everything else reuses global .surface-card / .tag-chip / etc. */
+.manual-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.manual-date {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: #f2faf6;
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+}
+
+.manual-date__value {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #21473f;
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.manual-date__chev {
+  font-size: 32rpx;
+  color: #8fa59c;
+}

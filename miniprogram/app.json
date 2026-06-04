@@ -8,7 +8,7 @@
   "subpackages": [
     {
       "root": "package-session",
-      "pages": ["complete/index"]
+      "pages": ["complete/index", "manual/index"]
     },
     {
       "root": "package-calendar",

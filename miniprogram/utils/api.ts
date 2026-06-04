@@ -334,6 +334,30 @@ export function completeSession(
   });
 }
 
+/**
+ * v0.34 — A1 补录: record a completed study session for a past (or
+ * today) date with a user-supplied duration. Same response shape as
+ * completeSession (incl. newlyUnlockedBadge) so the caller can reuse
+ * the post-submit handling.
+ */
+export function manualSession(payload: {
+  date: string; // YYYY-MM-DD
+  durationMinutes: number;
+  subject: string | null;
+  tags: string[];
+  summary?: string;
+}) {
+  return callContainer<{
+    session: { id: string; durationMinutes: number; status: string };
+    dailyStats: { totalMinutes: number; heatLevel: number; streakDays: number };
+    newlyUnlockedBadge?: Badge | null;
+  }>({
+    path: `/sessions/manual`,
+    method: "POST",
+    data: payload
+  });
+}
+
 export function getCalendar(month: string) {
   return callContainer<{
     month: string;
