@@ -36,6 +36,23 @@
         <text class="review-card__hint">{{item.hint}}</text>
       </view>
     </view>
+
+    <!-- v0.36 — B3 状态聚合: subjects where 卡住 share is worth flagging. -->
+    <view wx:if="{{effectiveness.length}}" class="review-effect">
+      <text class="review-effect__title">学习状态</text>
+      <view
+        wx:for="{{effectiveness}}"
+        wx:key="subject"
+        class="review-effect__row {{item.stuckPercent >= 50 ? 'is-high' : ''}}"
+      >
+        <text class="review-effect__subject">{{item.subject}}</text>
+        <view class="review-effect__bar">
+          <view class="review-effect__bar-fill" style="width: {{item.stuckPercent}}%;"></view>
+        </view>
+        <text class="review-effect__pct">卡住 {{item.stuckPercent}}%</text>
+      </view>
+      <text class="review-effect__foot">{{effectiveness[0].hint}}</text>
+    </view>
   </block>
 
   <!-- Loaded but no data -->

@@ -427,6 +427,8 @@ export type CompletedSession = {
   mode: "free" | "pomodoro";
   durationMinutes: number;
   pomodoroCycles: number;
+  /** v0.36 — B3: state/activity tags (顺利/卡住/高效/复习/刷题/新课). */
+  tags?: string[];
   startedAt: string;
   endedAt: string | null;
 };

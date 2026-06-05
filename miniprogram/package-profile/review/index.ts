@@ -1,7 +1,12 @@
 // @ts-nocheck
 import type { ExamDateInfo, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
-import { getProfileDashboard } from "../../utils/api";
-import { buildSubjectBalance, type SubjectBalanceItem } from "../../utils/view-models";
+import { getProfileDashboard, listMySessions } from "../../utils/api";
+import {
+  buildEffectivenessBySubject,
+  buildSubjectBalance,
+  type SubjectBalanceItem,
+  type SubjectEffectivenessItem
+} from "../../utils/view-models";
 
 /**
  * v0.33 — B1 学习复盘 · 科目 × 考期 平衡。
@@ -19,6 +24,8 @@ type ReviewPageData = {
   behindCount: number;
   headline: string;
   subhead: string;
+  /** v0.36 — B3 状态聚合: subjects with a notable 卡住 share. */
+  effectiveness: SubjectEffectivenessItem[];
 };
 
 Page<{}, ReviewPageData>({
@@ -28,7 +35,8 @@ Page<{}, ReviewPageData>({
     urgentCount: 0,
     behindCount: 0,
     headline: "",
-    subhead: ""
+    subhead: "",
+    effectiveness: []
   },
 
   async onLoad() {
@@ -48,7 +56,15 @@ Page<{}, ReviewPageData>({
     this.setData({ loadState: "loading" });
     wx.showNavigationBarLoading();
     try {
-      const dashboard = (await getProfileDashboard()) as ProfileDashboardResponse;
+      // Dashboard drives B1 balance; sessions drive B3 effectiveness.
+      // Sessions degrade gracefully (B3 section just hides on failure).
+      const [dashboard, sessionsRes] = await Promise.all([
+        getProfileDashboard() as Promise<ProfileDashboardResponse>,
+        listMySessions().catch((err) => {
+          console.warn("[review] sessions fetch failed", err);
+          return null;
+        })
+      ]);
       // subjectTargets = all 6 subjects (incl. 0-minute ones); fall back
       // to subjects if an older server build omits it.
       const allSubjects = (dashboard.subjectTargets ?? dashboard.subjects ?? []) as SubjectProgress[];
@@ -92,13 +108,20 @@ Page<{}, ReviewPageData>({
         subhead = "按当前投入继续即可";
       }
 
+      // v0.36 — B3 状态聚合: only surface subjects worth flagging
+      // (stuck share ≥ 25%), so the section stays actionable + quiet.
+      const effectiveness = buildEffectivenessBySubject(sessionsRes?.items ?? []).filter(
+        (item) => item.flagged
+      );
+
       this.setData({
         loadState: "loaded",
         items,
         urgentCount,
         behindCount,
         headline,
-        subhead
+        subhead,
+        effectiveness
       });
     } catch (error) {
       console.error("[review] dashboard failed", error);

@@ -342,3 +342,71 @@ export function buildSubjectBalance(
       return right.requiredDailyMinutes - left.requiredDailyMinutes;
     });
 }
+
+/* ============================================================
+ * v0.36 — B3 状态聚合 (effectiveness aggregation). The 顺利/卡住/高效
+ * tags the user attaches to sessions are recorded but never analyzed.
+ * This aggregates, per subject, how much study time was tagged 卡住
+ * (stuck) vs 顺利/高效 (smooth), so the user can see "财管 60% 卡住 →
+ * change approach". Pure function — unit-tested. Feeds the 复盘 page.
+ * ============================================================ */
+const STUCK_TAG = "卡住";
+const SMOOTH_TAGS = ["顺利", "高效"];
+
+export type SubjectEffectivenessItem = {
+  subject: string;
+  totalMinutes: number;
+  stuckMinutes: number;
+  smoothMinutes: number;
+  stuckPercent: number;
+  /** "needs-attention" when stuck share is high enough to flag. */
+  flagged: boolean;
+  hint: string;
+};
+
+export function buildEffectivenessBySubject(
+  sessions: Array<{ subject: string | null; durationMinutes: number; tags?: string[] }>
+): SubjectEffectivenessItem[] {
+  const bySubject = new Map<string, { total: number; stuck: number; smooth: number }>();
+
+  for (const session of sessions) {
+    const subject = session.subject;
+    if (!subject) continue;
+    const minutes = Math.max(0, session.durationMinutes ?? 0);
+    if (minutes <= 0) continue;
+    const tags = session.tags ?? [];
+    const entry = bySubject.get(subject) ?? { total: 0, stuck: 0, smooth: 0 };
+    entry.total += minutes;
+    if (tags.includes(STUCK_TAG)) entry.stuck += minutes;
+    if (tags.some((tag) => SMOOTH_TAGS.includes(tag))) entry.smooth += minutes;
+    bySubject.set(subject, entry);
+  }
+
+  return [...bySubject.entries()]
+    .map(([subject, agg]) => {
+      const stuckPercent = agg.total > 0 ? Math.round((agg.stuck / agg.total) * 100) : 0;
+      let flagged = false;
+      let hint: string;
+      if (stuckPercent >= 50) {
+        flagged = true;
+        hint = "卡住偏多，考虑换方法或加时间";
+      } else if (stuckPercent >= 25) {
+        flagged = true;
+        hint = "有些卡顿，留意一下";
+      } else if (agg.smooth > 0) {
+        hint = "状态不错";
+      } else {
+        hint = "";
+      }
+      return {
+        subject,
+        totalMinutes: agg.total,
+        stuckMinutes: agg.stuck,
+        smoothMinutes: agg.smooth,
+        stuckPercent,
+        flagged,
+        hint
+      };
+    })
+    .sort((left, right) => right.stuckPercent - left.stuckPercent);
+}

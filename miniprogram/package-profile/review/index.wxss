@@ -180,3 +180,65 @@
 .review-retry:active {
   background: #dceae3;
 }
+
+/* v0.36 — B3 学习状态 (effectiveness) section. */
+.review-effect {
+  margin-top: 8rpx;
+  padding: 24rpx 26rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcf9 100%);
+  border: 1rpx solid rgba(46, 169, 133, 0.1);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.7),
+    0 6rpx 18rpx -4rpx rgba(46, 169, 133, 0.06);
+}
+.review-effect__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #21473f;
+  margin-bottom: 16rpx;
+}
+.review-effect__row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+}
+.review-effect__subject {
+  flex: 0 0 88rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #21473f;
+}
+.review-effect__bar {
+  flex: 1;
+  height: 12rpx;
+  border-radius: 999rpx;
+  background: #e7f0eb;
+  overflow: hidden;
+}
+.review-effect__bar-fill {
+  height: 100%;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #f0c060 0%, #d99a36 100%);
+}
+.review-effect__row.is-high .review-effect__bar-fill {
+  background: linear-gradient(90deg, #e88a5a 0%, #c2562b 100%);
+}
+.review-effect__pct {
+  flex: 0 0 auto;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #8a6410;
+  font-feature-settings: "tnum" 1;
+}
+.review-effect__row.is-high .review-effect__pct {
+  color: #b3551a;
+}
+.review-effect__foot {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #5e7d75;
+}

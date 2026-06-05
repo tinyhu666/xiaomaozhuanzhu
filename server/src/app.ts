@@ -349,6 +349,9 @@ export function createApp(options: CreateAppOptions = {}) {
         mode: s.mode,
         durationMinutes: s.durationMinutes,
         pomodoroCycles: s.pomodoroCycles,
+        // v0.36 — B3 状态聚合 needs per-session tags (already stored,
+        // just not previously exposed) to aggregate 卡住/顺利 by subject.
+        tags: s.tags,
         startedAt: s.startedAt,
         endedAt: s.endedAt
       }))

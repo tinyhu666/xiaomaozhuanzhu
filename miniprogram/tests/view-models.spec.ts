@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildEffectivenessBySubject,
   buildMonthGrid,
   buildSubjectBalance,
   buildSubjectSummary,
@@ -171,6 +172,55 @@ describe("miniprogram view models", () => {
       // remaining 270 over max(1,0)=1 day → all "today"
       expect(item.requiredDailyMinutes).toBe(270);
       expect(item.tier).toBe("urgent");
+    });
+  });
+
+  // v0.36 — B3 状态聚合
+  describe("buildEffectivenessBySubject", () => {
+    it("aggregates stuck vs smooth minutes per subject", () => {
+      const result = buildEffectivenessBySubject([
+        { subject: "财管", durationMinutes: 60, tags: ["卡住"] },
+        { subject: "财管", durationMinutes: 40, tags: ["顺利"] },
+        { subject: "会计", durationMinutes: 90, tags: ["高效"] }
+      ]);
+      const caishui = result.find((r) => r.subject === "财管");
+      const kuaiji = result.find((r) => r.subject === "会计");
+      expect(caishui?.totalMinutes).toBe(100);
+      expect(caishui?.stuckMinutes).toBe(60);
+      expect(caishui?.smoothMinutes).toBe(40);
+      expect(caishui?.stuckPercent).toBe(60);
+      expect(caishui?.flagged).toBe(true);
+      expect(kuaiji?.stuckPercent).toBe(0);
+      expect(kuaiji?.flagged).toBe(false);
+      expect(kuaiji?.hint).toBe("状态不错");
+    });
+
+    it("sorts most-stuck subject first", () => {
+      const order = buildEffectivenessBySubject([
+        { subject: "会计", durationMinutes: 100, tags: ["顺利"] },          // 0% stuck
+        { subject: "审计", durationMinutes: 100, tags: ["卡住"] },          // 100% stuck
+        { subject: "税法", durationMinutes: 100, tags: ["卡住"] },
+        { subject: "税法", durationMinutes: 100, tags: ["顺利"] }           // 50% stuck
+      ]).map((r) => r.subject);
+      expect(order).toEqual(["审计", "税法", "会计"]);
+    });
+
+    it("skips null-subject and zero-duration sessions", () => {
+      const result = buildEffectivenessBySubject([
+        { subject: null, durationMinutes: 60, tags: ["卡住"] },
+        { subject: "战略", durationMinutes: 0, tags: ["卡住"] }
+      ]);
+      expect(result).toHaveLength(0);
+    });
+
+    it("flags 25–49% stuck as a milder caution", () => {
+      const [item] = buildEffectivenessBySubject([
+        { subject: "经济法", durationMinutes: 30, tags: ["卡住"] },
+        { subject: "经济法", durationMinutes: 70, tags: ["顺利"] }
+      ]);
+      expect(item.stuckPercent).toBe(30);
+      expect(item.flagged).toBe(true);
+      expect(item.hint).toContain("卡顿");
     });
   });
 
