@@ -72,6 +72,10 @@ export type HomeResponse = {
   weeklyReview?: WeeklyReview;
   makeupAvailable?: MakeupOpportunity | null;
   examSchedule?: ExamDateInfo[];
+  /** v0.35 — A2: set when /home auto-handled a forgotten session
+   *  (recorded its real run-time, or cleaned up an over-long timer).
+   *  The client surfaces a one-line toast. null on the common path. */
+  reapedSession?: { action: "completed" | "abandoned"; minutes: number } | null;
 };
 
 export type CalendarDayResponse = {

@@ -358,6 +358,20 @@ Page<{}, HomePageData>({
       });
       this.applyActiveSession(home.activeSession ?? null);
       this.refreshEmptyHint();
+      // v0.35 — A2: if the server auto-handled a forgotten session, tell
+      // the user. Fires once — the next /home returns reapedSession=null
+      // because the session is now completed/abandoned server-side.
+      const reaped = home.reapedSession;
+      if (reaped) {
+        wx.showToast({
+          title:
+            reaped.action === "completed"
+              ? `上次有段没结束的专注，已记录 ${reaped.minutes} 分钟`
+              : "已清理一段未结束的专注",
+          icon: "none",
+          duration: 2600
+        });
+      }
       return true;
     } catch (error) {
       console.error("[home] loadHomeStats failed", error);

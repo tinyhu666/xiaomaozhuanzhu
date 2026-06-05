@@ -211,7 +211,8 @@ export function createApp(options: CreateAppOptions = {}) {
   }));
 
   app.get("/api/home", withUser(store, clock, async (_request, response, context) => {
-    const activeSession = await reapStalePausedSession(store, context.user.id, clock.now());
+    const reap = await reapStaleSession(store, context.user.id, clock.now());
+    const activeSession = reap.session;
     const todayKey = formatShanghaiDate(clock.now());
     const dailyStats = await store.getDailyStats(context.user.id);
     const today = dailyStats.get(todayKey) ?? emptyDailyStat(context.user.id, todayKey, clock.now().toISOString());
@@ -221,6 +222,10 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
       activeSession: activeSession ? serializeActiveSession(activeSession, clock.now()) : null,
+      // v0.35 — A2: when /home auto-handled a forgotten session, tell the
+      // client so it can surface a one-line toast (recorded N min, or
+      // cleaned up an over-long timer). null on the common path.
+      reapedSession: reap.reaped,
       today,
       summary: {
         totalMinutes: [...dailyStats.values()].reduce((sum, stat) => sum + stat.totalMinutes, 0),
@@ -946,25 +951,84 @@ const PAUSED_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 // certainly abandoned (user closed the app, fell asleep, etc.). We
 // auto-reap rather than letting the timer accumulate fake hours.
 const RUNNING_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+// v0.35 — A2: real run-time at or below this is auto-RECORDED when a
+// stale session is reaped (recover the study the user did before they
+// forgot to stop). Above it, the elapsed is almost certainly a
+// forgotten timer accumulating idle hours, so we discard rather than
+// fabricate study time. Matches the 补录 manual cap (10h).
+const REAP_AUTO_COMPLETE_CAP_MIN = 600;
 
-async function reapStalePausedSession(store: DataStore, userId: string, now: Date) {
+type ReapInfo = { action: "completed" | "abandoned"; minutes: number };
+
+/**
+ * v0.35 — A2 暂停/挂死 session 超时处理. Lazy sweep on /home: a session
+ * paused for > 24h or running for > 12h is "forgotten". Instead of
+ * always discarding it (the old behavior — lost the real study time),
+ * we recover the genuine run-time (excluding pauses, up to the moment
+ * study stopped) and auto-COMPLETE it when that's within a sane cap;
+ * only fabrication-risk durations (or none) are abandoned. Returns the
+ * still-active session (or null) plus what was reaped, so /home can
+ * tell the client to surface a one-line toast.
+ */
+async function reapStaleSession(
+  store: DataStore,
+  userId: string,
+  now: Date
+): Promise<{ session: StudySession | null; reaped: ReapInfo | null }> {
   const session = await store.getCurrentSession(userId);
-  if (!session) return null;
+  if (!session) return { session: null, reaped: null };
+
+  const nowIso = now.toISOString();
+  let stale = false;
+  // The moment study actually stopped: for a paused session that's when
+  // they paused; for a runaway running session, "now".
+  let endedAt = nowIso;
+
   if (session.status === "paused" && session.currentPauseStartedAt) {
     const pausedAt = new Date(session.currentPauseStartedAt).getTime();
     if (Number.isFinite(pausedAt) && now.getTime() - pausedAt > PAUSED_SESSION_TTL_MS) {
-      await abandonSession(store, session, now.toISOString());
-      return null;
+      stale = true;
+      endedAt = session.currentPauseStartedAt;
     }
-  }
-  if (session.status === "running") {
+  } else if (session.status === "running") {
     const startedAt = new Date(session.startedAt).getTime();
     if (Number.isFinite(startedAt) && now.getTime() - startedAt > RUNNING_SESSION_TTL_MS) {
-      await abandonSession(store, session, now.toISOString());
-      return null;
+      stale = true;
+      endedAt = nowIso;
     }
   }
-  return session;
+
+  if (!stale) return { session, reaped: null };
+
+  const runMinutes = calculateDurationMinutes(session.startedAt, endedAt, session.pauseSegments);
+
+  if (runMinutes <= REAP_AUTO_COMPLETE_CAP_MIN) {
+    // Recover real study time rather than discard it.
+    if (session.status === "paused" && session.currentPauseStartedAt) {
+      session.pauseSegments.push({ startedAt: session.currentPauseStartedAt, endedAt });
+      session.currentPauseStartedAt = null;
+    }
+    session.status = "completed";
+    session.endedAt = endedAt;
+    session.durationMinutes = runMinutes;
+    session.updatedAt = nowIso;
+    await store.saveSession(session);
+    await store.replaceDailyStats(
+      userId,
+      rebuildDailyStats(
+        userId,
+        (await store.listSessions(userId)).filter(
+          (item) => item.status === "completed" || item.status === "makeup"
+        ),
+        nowIso
+      )
+    );
+    return { session: null, reaped: { action: "completed", minutes: runMinutes } };
+  }
+
+  // Beyond the cap → forgotten timer; discard, never fabricate hours.
+  await abandonSession(store, session, nowIso);
+  return { session: null, reaped: { action: "abandoned", minutes: 0 } };
 }
 
 function extractCloudObjectKey(value: string): string | null {

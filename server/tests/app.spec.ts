@@ -144,7 +144,7 @@ describe("CPA study check-in API", () => {
     expect(calendar.body.days["2026-04-16"].heatLevel).toBe(4);
   });
 
-  it("preserves a paused session on home re-fetch within the TTL but reaps it after 24h", async () => {
+  it("preserves a paused session within TTL, then RECOVERS its pre-pause study time after 24h (A2)", async () => {
     await request(app)
       .post("/api/me/profile")
       .set("x-wx-openid", "user-2")
@@ -186,13 +186,18 @@ describe("CPA study check-in API", () => {
       .expect(200);
 
     expect(homeStale.body.activeSession).toBeNull();
+    // v0.35 A2 — the reap now RECOVERS the 20 min studied before the
+    // pause (auto-completes it) instead of discarding the session.
+    expect(homeStale.body.reapedSession?.action).toBe("completed");
+    expect(homeStale.body.reapedSession?.minutes).toBe(20);
 
     const details = await request(app)
       .get("/api/calendar/2026-04-16")
       .set("x-wx-openid", "user-2")
       .expect(200);
 
-    expect(details.body.sessions).toHaveLength(0);
+    expect(details.body.sessions).toHaveLength(1);
+    expect(details.body.sessions[0].totalMinutes).toBe(20);
   });
 
   it("splits an overnight session into the correct day totals and protects public pages", async () => {
