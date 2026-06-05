@@ -168,7 +168,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 18rpx;
-  min-height: 72rpx;
+  min-height: 88rpx;
   padding: 0 40rpx;
   border-radius: 999rpx;
   background: #ecf5f0;

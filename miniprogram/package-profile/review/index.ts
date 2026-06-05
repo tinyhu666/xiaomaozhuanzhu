@@ -36,6 +36,9 @@ type ReviewPageData = {
   /** v0.38 — B2/B4 周复盘. */
   weekKey: string;
   reviewDraft: string;
+  /** v0.38.1 — true once the user edits the draft, so a background
+   *  reload (pull-to-refresh) never clobbers unsaved edits. */
+  reviewDirty: boolean;
   savingReview: boolean;
   pastReviews: WeeklyReview[];
 };
@@ -51,6 +54,7 @@ Page<{}, ReviewPageData>({
     effectiveness: [],
     weekKey: "",
     reviewDraft: "",
+    reviewDirty: false,
     savingReview: false,
     pastReviews: []
   },
@@ -69,7 +73,7 @@ Page<{}, ReviewPageData>({
   },
 
   onReviewInput(event: WechatMiniprogram.Input) {
-    this.setData({ reviewDraft: event.detail.value });
+    this.setData({ reviewDraft: event.detail.value, reviewDirty: true });
   },
 
   async saveReview() {
@@ -83,6 +87,9 @@ Page<{}, ReviewPageData>({
     try {
       await saveWeeklyReview({ weekKey: this.data.weekKey, content });
       wx.showToast({ title: "已保存本周复盘", icon: "success" });
+      // Saved → draft is now in sync with the server; clear dirty so the
+      // reload reflects the persisted value.
+      this.setData({ reviewDirty: false });
       await this.loadReviews();
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : "保存失败", icon: "none" });
@@ -99,11 +106,16 @@ Page<{}, ReviewPageData>({
       const res = await listWeeklyReviews();
       const all = res?.items ?? [];
       const current = all.find((r) => r.weekKey === weekKey);
-      this.setData({
+      // v0.38.1 — never clobber an unsaved in-progress edit: only adopt
+      // the server's saved content when the draft is pristine.
+      const patch: Record<string, unknown> = {
         weekKey,
-        reviewDraft: current?.content ?? this.data.reviewDraft,
         pastReviews: all.filter((r) => r.weekKey !== weekKey)
-      });
+      };
+      if (!this.data.reviewDirty) {
+        patch.reviewDraft = current?.content ?? "";
+      }
+      this.setData(patch);
     } catch (err) {
       console.warn("[review] weekly reviews fetch failed", err);
       this.setData({ weekKey });

@@ -303,23 +303,33 @@ export function buildSubjectBalance(
       const requiredDailyMinutes =
         remainingMinutes === 0 ? 0 : Math.ceil(remainingMinutes / Math.max(1, daysRemaining));
 
+      // v0.38.1 — tier on COVERAGE (progress vs target) with exam
+      // proximity as an escalator, NOT on raw minutes/day. Exam dates
+      // sit months out most of the year, so minutes/day is tiny and
+      // would park every subject in "ontrack" — the old model's
+      // flagship signal almost never fired (review finding). Coverage%
+      // is meaningful year-round; proximity (≤21 days) escalates an
+      // under-covered subject to urgent as its exam approaches.
+      const hasTarget = target > 0;
+      const examSoon = daysRemaining > 0 && daysRemaining <= 21;
       let tier: SubjectBalanceTier;
       let hint: string;
-      if (target > 0 && total >= target) {
+      if (hasTarget && total >= target) {
         tier = "reached";
         hint = "投入已达目标";
-      } else if (daysRemaining > 0 && daysRemaining <= 7 && remainingMinutes > 0) {
+      } else if (examSoon && progressPercent < 80) {
         tier = "urgent";
-        hint = `距考仅 ${daysRemaining} 天，需 ${requiredDailyMinutes} 分钟/天`;
-      } else if (requiredDailyMinutes >= 120) {
+        hint = `距考 ${daysRemaining} 天 · 进度 ${progressPercent}% · 优先补`;
+      } else if (progressPercent < 25) {
+        // Barely touched — needs attention regardless of how far the exam is.
         tier = "urgent";
-        hint = `落后较多，需 ${requiredDailyMinutes} 分钟/天`;
-      } else if (requiredDailyMinutes >= 45) {
+        hint = hasTarget ? `进度仅 ${progressPercent}% · 尽快开始` : "还没投入";
+      } else if (progressPercent < 55) {
         tier = "behind";
-        hint = `需 ${requiredDailyMinutes} 分钟/天 达标`;
+        hint = `进度 ${progressPercent}% · 建议加量`;
       } else {
         tier = "ontrack";
-        hint = requiredDailyMinutes > 0 ? `按 ${requiredDailyMinutes} 分钟/天 可达标` : "进度良好";
+        hint = `进度 ${progressPercent}% · 保持`;
       }
 
       return {

@@ -24,7 +24,7 @@
           <text class="review-card__subject">{{item.subject}}</text>
           <text class="review-card__tier review-card__tier--{{item.tier}}">{{item.tierLabel}}</text>
         </view>
-        <text class="review-card__days">距考 {{item.daysRemaining}} 天</text>
+        <text wx:if="{{item.tier !== 'reached'}}" class="review-card__days">距考 {{item.daysRemaining}} 天</text>
       </view>
 
       <view class="review-bar">

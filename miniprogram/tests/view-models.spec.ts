@@ -122,16 +122,16 @@ describe("miniprogram view models", () => {
       expect(result[result.length - 1].tier).toBe("reached");
     });
 
-    it("computes required daily minutes by remaining gap / days left", () => {
+    it("computes required daily minutes + coverage; 70% with a far exam is ontrack", () => {
       const [item] = buildSubjectBalance(
-        [{ subject: "财管", totalMinutes: 100, targetMinutes: 1000 }],
-        [{ subject: "财管", daysRemaining: 30 }]
+        [{ subject: "财管", totalMinutes: 700, targetMinutes: 1000 }],
+        [{ subject: "财管", daysRemaining: 60 }]
       );
-      // (1000-100)/30 = 30/day → ontrack (<45)
-      expect(item.remainingMinutes).toBe(900);
-      expect(item.requiredDailyMinutes).toBe(30);
+      // (1000-700)/60 = 5/day; 70% coverage + far exam → ontrack
+      expect(item.remainingMinutes).toBe(300);
+      expect(item.requiredDailyMinutes).toBe(5);
+      expect(item.progressPercent).toBe(70);
       expect(item.tier).toBe("ontrack");
-      expect(item.progressPercent).toBe(10);
     });
 
     it("marks a reached subject and reports 0 required minutes", () => {
@@ -145,22 +145,33 @@ describe("miniprogram view models", () => {
       expect(item.progressPercent).toBe(100);
     });
 
-    it("orders tiers urgent → behind → ontrack → reached", () => {
+    it("orders tiers urgent → behind → ontrack → reached (coverage-based, far exams)", () => {
+      // All exams far (60 days, not ≤21) so tiers come from coverage%:
+      // <25 urgent · <55 behind · else ontrack · ≥100 reached.
       const tiers = buildSubjectBalance(
         [
-          { subject: "会计", totalMinutes: 600, targetMinutes: 600 },  // reached
-          { subject: "审计", totalMinutes: 0, targetMinutes: 1800 },   // behind (1800/30=60/day)
-          { subject: "税法", totalMinutes: 0, targetMinutes: 300 },    // ontrack (300/30=10/day)
-          { subject: "财管", totalMinutes: 0, targetMinutes: 4000 }    // urgent (4000/30=134/day)
+          { subject: "会计", totalMinutes: 600, targetMinutes: 600 },   // 100% → reached
+          { subject: "审计", totalMinutes: 100, targetMinutes: 1000 },  // 10%  → urgent
+          { subject: "税法", totalMinutes: 700, targetMinutes: 1000 },  // 70%  → ontrack
+          { subject: "财管", totalMinutes: 400, targetMinutes: 1000 }   // 40%  → behind
         ],
         [
-          { subject: "会计", daysRemaining: 30 },
-          { subject: "审计", daysRemaining: 30 },
-          { subject: "税法", daysRemaining: 30 },
-          { subject: "财管", daysRemaining: 30 }
+          { subject: "会计", daysRemaining: 60 },
+          { subject: "审计", daysRemaining: 60 },
+          { subject: "税法", daysRemaining: 60 },
+          { subject: "财管", daysRemaining: 60 }
         ]
       ).map((item) => item.tier);
       expect(tiers).toEqual(["urgent", "behind", "ontrack", "reached"]);
+    });
+
+    it("escalates an under-covered subject to urgent when the exam is ≤21 days", () => {
+      const [item] = buildSubjectBalance(
+        [{ subject: "会计", totalMinutes: 700, targetMinutes: 1000 }], // 70% → would be ontrack
+        [{ subject: "会计", daysRemaining: 10 }]                       // but exam in 10 days
+      );
+      expect(item.progressPercent).toBe(70);
+      expect(item.tier).toBe("urgent");
     });
 
     it("does not crash when a subject is missing from the exam schedule", () => {
