@@ -24,8 +24,13 @@ Page({
     durationMinutes: 30,
     subjectChips: SUBJECTS.map((value) => ({ value, selected: false })),
     tagChips: TAGS.map((value) => ({ value, selected: false })),
+    topic: "",
     summary: "",
     submitting: false
+  },
+
+  onTopicInput(event: WechatMiniprogram.Input) {
+    this.setData({ topic: event.detail.value });
   },
 
   onDateChange(event: WechatMiniprogram.PickerChange) {
@@ -77,6 +82,7 @@ Page({
         date: this.data.dateValue,
         durationMinutes,
         subject,
+        topic: this.data.topic.trim() || null,
         tags,
         summary: this.data.summary
       });

@@ -26,6 +26,8 @@ type CompletePageData = {
   sessionId: string;
   durationText: string;
   summary: string;
+  /** v0.37 — A3: optional free-text chapter/topic within the subject. */
+  topic: string;
   /** v0.21.3 — restored single-select subject chip row. */
   subjectChips: ChipView[];
   tagChips: ChipView[];
@@ -53,6 +55,7 @@ Page<{}, CompletePageData>({
     sessionId: "",
     durationText: "0 分钟",
     summary: "",
+    topic: "",
     subjectChips: makeChips(SUBJECTS),
     tagChips: makeChips(TAGS),
     photos: [],
@@ -84,6 +87,12 @@ Page<{}, CompletePageData>({
   handleSummaryInput(event: WechatMiniprogram.Input) {
     this.setData({
       summary: event.detail.value
+    });
+  },
+
+  handleTopicInput(event: WechatMiniprogram.Input) {
+    this.setData({
+      topic: event.detail.value
     });
   },
 
@@ -195,6 +204,7 @@ Page<{}, CompletePageData>({
       const response = await completeSession(this.data.sessionId, {
         summary: this.data.summary,
         subject,
+        topic: this.data.topic.trim() || null,
         tags: selectedTags,
         photos: this.data.photos.map((photo) => ({
           fileId: photo.fileId,

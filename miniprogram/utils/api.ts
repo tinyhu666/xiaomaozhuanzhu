@@ -304,6 +304,8 @@ export function completeSession(
   payload: {
     summary: string;
     subject: string | null;
+    /** v0.37 — A3: optional free-text chapter/topic within the subject. */
+    topic?: string | null;
     tags: string[];
     photos: SessionPhoto[];
     pomodoroCycles?: number;
@@ -344,6 +346,7 @@ export function manualSession(payload: {
   date: string; // YYYY-MM-DD
   durationMinutes: number;
   subject: string | null;
+  topic?: string | null;
   tags: string[];
   summary?: string;
 }) {

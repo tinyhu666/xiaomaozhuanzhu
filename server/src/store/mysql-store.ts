@@ -83,6 +83,7 @@ type SessionRow = RowDataPacket & {
   pomodoro_cycles: number | null;
   summary: string;
   subject: string | null;
+  topic: string | null;
   tags_json: string | null;
   created_at: string;
   updated_at: string;
@@ -287,8 +288,8 @@ export class MySQLStore {
   async saveSession(session: StudySession) {
     await this.pool.execute(
       `INSERT INTO study_sessions
-        (id, user_id, status, mode, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, pomodoro_cycles, summary, subject, tags_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, user_id, status, mode, started_at, ended_at, current_pause_started_at, pause_segments_json, duration_minutes, pomodoro_cycles, summary, subject, topic, tags_json, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         status = VALUES(status),
         mode = VALUES(mode),
@@ -299,6 +300,7 @@ export class MySQLStore {
         pomodoro_cycles = VALUES(pomodoro_cycles),
         summary = VALUES(summary),
         subject = VALUES(subject),
+        topic = VALUES(topic),
         tags_json = VALUES(tags_json),
         updated_at = VALUES(updated_at)`,
       [
@@ -314,6 +316,7 @@ export class MySQLStore {
         session.pomodoroCycles,
         session.summary,
         session.subject,
+        session.topic ?? null,
         JSON.stringify(session.tags),
         toMySQLDateTimeRequired(session.createdAt),
         toMySQLDateTimeRequired(session.updatedAt)
@@ -771,6 +774,7 @@ function mapSessionRow(row: SessionRow): StudySession {
     pomodoroCycles: Number(row.pomodoro_cycles ?? 0),
     summary: String(row.summary ?? ""),
     subject: (row.subject as StudySession["subject"]) ?? null,
+    topic: (row.topic as string | null) ?? null,
     tags,
     createdAt: toIsoString(row.created_at),
     updatedAt: toIsoString(row.updated_at)

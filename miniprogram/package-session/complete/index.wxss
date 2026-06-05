@@ -427,3 +427,17 @@
 .unlock-reveal__card--legendary {
   background: linear-gradient(180deg, #FFFFFF 0%, #F8FCFA 100%);
 }
+
+/* v0.37 — A3 章节/主题 input on the complete page. */
+.complete-topic-input {
+  display: block;
+  width: 100%;
+  margin-top: 12rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: #f2faf6;
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  font-size: 28rpx;
+  color: #21473f;
+  box-sizing: border-box;
+}

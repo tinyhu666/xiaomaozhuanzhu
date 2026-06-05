@@ -129,4 +129,35 @@ describe("/api/sessions/manual — 补录 contract", () => {
     expect(res.status).toBe(200);
     expect(res.body.session.durationMinutes).toBe(45);
   });
+
+  // v0.37 — A3 章节粒度
+  it("round-trips an optional topic", async () => {
+    await bootstrap("u-manual-8");
+    const res = await request(app)
+      .post("/api/sessions/manual")
+      .set("x-wx-openid", "u-manual-8")
+      .send({ date: "2026-05-18", durationMinutes: 50, subject: "会计", topic: "金融资产", tags: [] });
+    expect(res.status).toBe(200);
+    expect(res.body.session.topic).toBe("金融资产");
+  });
+
+  it("defaults topic to null when omitted", async () => {
+    await bootstrap("u-manual-9");
+    const res = await request(app)
+      .post("/api/sessions/manual")
+      .set("x-wx-openid", "u-manual-9")
+      .send({ date: "2026-05-18", durationMinutes: 30, subject: "会计", tags: [] });
+    expect(res.status).toBe(200);
+    expect(res.body.session.topic ?? null).toBeNull();
+  });
+
+  it("rejects an over-long topic (> 40 chars)", async () => {
+    await bootstrap("u-manual-10");
+    const res = await request(app)
+      .post("/api/sessions/manual")
+      .set("x-wx-openid", "u-manual-10")
+      .send({ date: "2026-05-18", durationMinutes: 30, topic: "草".repeat(41), tags: [] });
+    expect(res.status).toBe(400);
+    expect(res.body?.error?.code).toBe("INVALID_INPUT");
+  });
 });

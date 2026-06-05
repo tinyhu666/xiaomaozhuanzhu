@@ -85,6 +85,8 @@ const profileSchema = z.object({
 const completeSchema = z.object({
   summary: z.string().trim().max(80).default(""),
   subject: z.enum(SUBJECTS).nullable().optional(),
+  // v0.37 — A3: optional free-text chapter/topic within the subject.
+  topic: z.string().trim().max(40).nullable().optional(),
   tags: z.array(z.enum(TAGS)).max(6).default([]),
   pomodoroCycles: z.number().int().min(0).max(32).optional(),
   photos: z
@@ -523,6 +525,7 @@ export function createApp(options: CreateAppOptions = {}) {
     session.endedAt = now;
     session.summary = payload.summary;
     session.subject = (payload.subject ?? null) as Subject | null;
+    session.topic = payload.topic ?? null;
     session.tags = payload.tags as SessionTag[];
     session.durationMinutes = calculateDurationMinutes(session.startedAt, now, session.pauseSegments);
     if (typeof payload.pomodoroCycles === "number") {
@@ -584,6 +587,7 @@ export function createApp(options: CreateAppOptions = {}) {
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
     durationMinutes: z.number().int().min(1).max(600),
     subject: z.enum(SUBJECTS).nullable().optional(),
+    topic: z.string().trim().max(40).nullable().optional(),
     tags: z.array(z.enum(TAGS)).max(6).default([]),
     summary: z.string().trim().max(80).default("")
   });
@@ -617,6 +621,7 @@ export function createApp(options: CreateAppOptions = {}) {
       pomodoroCycles: 0,
       summary: payload.summary,
       subject: (payload.subject ?? null) as Subject | null,
+      topic: payload.topic ?? null,
       tags: payload.tags as SessionTag[],
       createdAt: nowIso,
       updatedAt: nowIso

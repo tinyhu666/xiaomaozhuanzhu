@@ -28,3 +28,17 @@
   font-size: 32rpx;
   color: #8fa59c;
 }
+
+/* v0.37 — A3 章节/主题 input. */
+.manual-topic-input {
+  display: block;
+  width: 100%;
+  margin-top: 10rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: #f2faf6;
+  border: 1rpx solid rgba(46, 169, 133, 0.12);
+  font-size: 28rpx;
+  color: #21473f;
+  box-sizing: border-box;
+}

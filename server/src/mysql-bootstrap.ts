@@ -34,6 +34,7 @@ const TABLE_STATEMENTS = [
     pomodoro_cycles INT NOT NULL DEFAULT 0,
     summary VARCHAR(80) NOT NULL DEFAULT '',
     subject VARCHAR(16) NULL,
+    topic VARCHAR(40) NULL,
     tags_json JSON NULL,
     created_at DATETIME(3) NOT NULL,
     updated_at DATETIME(3) NOT NULL,
@@ -262,6 +263,13 @@ async function migrateSessionsModeSchema(connection: Connection, dbName: string)
   if (!columns.has("pomodoro_cycles")) {
     await connection.query(
       "ALTER TABLE study_sessions ADD COLUMN pomodoro_cycles INT NOT NULL DEFAULT 0 AFTER duration_minutes"
+    );
+  }
+  // v0.37 — A3 章节粒度: optional free-text topic within a subject
+  // (e.g. "会计·金融资产"). Nullable; old rows stay topic-less. Safe to re-run.
+  if (!columns.has("topic")) {
+    await connection.query(
+      "ALTER TABLE study_sessions ADD COLUMN topic VARCHAR(40) NULL AFTER subject"
     );
   }
 }

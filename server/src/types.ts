@@ -70,6 +70,10 @@ export interface StudySession {
   pomodoroCycles: number;
   summary: string;
   subject: Subject | null;
+  /** v0.37 — A3: optional free-text chapter/topic within a subject
+   *  (e.g. "会计·金融资产"). Optional so existing session literals and
+   *  rows without it stay valid. */
+  topic?: string | null;
   tags: SessionTag[];
   createdAt: string;
   updatedAt: string;

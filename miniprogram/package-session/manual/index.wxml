@@ -39,6 +39,15 @@
       >{{item.value}}</view>
     </view>
 
+    <view class="field-label" style="margin-top: 24rpx;">章节 / 主题（可选）</view>
+    <input
+      class="manual-topic-input"
+      maxlength="40"
+      placeholder="如：金融资产、长期股权投资"
+      value="{{topic}}"
+      bindinput="onTopicInput"
+    />
+
     <view class="field-label" style="margin-top: 24rpx;">标签（可选）</view>
     <view class="tag-list">
       <view
