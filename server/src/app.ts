@@ -360,6 +360,32 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
+  // -----------------------------------------------------------------
+  // v0.38 — B2/B4 周复盘: save (upsert) + list weekly reflections.
+  // weekKey is an opaque client-supplied key (the client computes its
+  // own ISO week, e.g. "2026-W21") so the server stays out of week math.
+  // -----------------------------------------------------------------
+  const weeklyReviewSchema = z.object({
+    weekKey: z.string().trim().regex(/^[0-9A-Za-z-]{1,16}$/, "invalid weekKey"),
+    content: z.string().trim().max(1000).default("")
+  });
+
+  app.post("/api/me/weekly-review", withUser(store, clock, async (request, response, context) => {
+    const payload = parse(weeklyReviewSchema, request.body);
+    const review = await store.saveWeeklyReview(
+      context.user.id,
+      payload.weekKey,
+      payload.content,
+      clock.now().toISOString()
+    );
+    response.json({ review });
+  }));
+
+  app.get("/api/me/weekly-reviews", withUser(store, clock, async (_request, response, context) => {
+    const reviews = await store.listWeeklyReviews(context.user.id);
+    response.json({ items: reviews });
+  }));
+
   app.post("/api/sessions/start", withUser(store, clock, async (request, response, context) => {
     const payload = parse(startSessionSchema, request.body ?? {});
     const currentSession = await store.getCurrentSession(context.user.id);

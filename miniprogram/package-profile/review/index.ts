@@ -1,6 +1,13 @@
 // @ts-nocheck
 import type { ExamDateInfo, ProfileDashboardResponse, SubjectProgress } from "../../types/models";
-import { getProfileDashboard, listMySessions } from "../../utils/api";
+import {
+  getProfileDashboard,
+  listMySessions,
+  listWeeklyReviews,
+  saveWeeklyReview,
+  type WeeklyReview
+} from "../../utils/api";
+import { isoWeekKey } from "../../utils/weekly-recap";
 import {
   buildEffectivenessBySubject,
   buildSubjectBalance,
@@ -26,6 +33,11 @@ type ReviewPageData = {
   subhead: string;
   /** v0.36 — B3 状态聚合: subjects with a notable 卡住 share. */
   effectiveness: SubjectEffectivenessItem[];
+  /** v0.38 — B2/B4 周复盘. */
+  weekKey: string;
+  reviewDraft: string;
+  savingReview: boolean;
+  pastReviews: WeeklyReview[];
 };
 
 Page<{}, ReviewPageData>({
@@ -36,7 +48,11 @@ Page<{}, ReviewPageData>({
     behindCount: 0,
     headline: "",
     subhead: "",
-    effectiveness: []
+    effectiveness: [],
+    weekKey: "",
+    reviewDraft: "",
+    savingReview: false,
+    pastReviews: []
   },
 
   async onLoad() {
@@ -50,6 +66,48 @@ Page<{}, ReviewPageData>({
 
   retryLoad() {
     this.refresh();
+  },
+
+  onReviewInput(event: WechatMiniprogram.Input) {
+    this.setData({ reviewDraft: event.detail.value });
+  },
+
+  async saveReview() {
+    if (this.data.savingReview) return;
+    const content = this.data.reviewDraft.trim();
+    if (!content) {
+      wx.showToast({ title: "写点什么再保存", icon: "none" });
+      return;
+    }
+    this.setData({ savingReview: true });
+    try {
+      await saveWeeklyReview({ weekKey: this.data.weekKey, content });
+      wx.showToast({ title: "已保存本周复盘", icon: "success" });
+      await this.loadReviews();
+    } catch (error) {
+      wx.showToast({ title: error instanceof Error ? error.message : "保存失败", icon: "none" });
+    } finally {
+      this.setData({ savingReview: false });
+    }
+  },
+
+  // v0.38 — (re)load weekly reviews: split current week (editable draft)
+  // from past weeks (read-only history list / B4).
+  async loadReviews() {
+    const weekKey = this.data.weekKey || isoWeekKey(new Date());
+    try {
+      const res = await listWeeklyReviews();
+      const all = res?.items ?? [];
+      const current = all.find((r) => r.weekKey === weekKey);
+      this.setData({
+        weekKey,
+        reviewDraft: current?.content ?? this.data.reviewDraft,
+        pastReviews: all.filter((r) => r.weekKey !== weekKey)
+      });
+    } catch (err) {
+      console.warn("[review] weekly reviews fetch failed", err);
+      this.setData({ weekKey });
+    }
   },
 
   async refresh() {
@@ -123,6 +181,9 @@ Page<{}, ReviewPageData>({
         subhead,
         effectiveness
       });
+      // v0.38 — B2/B4 周复盘 loads independently (secondary to the balance
+      // view); fire-and-forget so it never blocks the main render.
+      this.loadReviews();
     } catch (error) {
       console.error("[review] dashboard failed", error);
       this.setData({ loadState: "error" });

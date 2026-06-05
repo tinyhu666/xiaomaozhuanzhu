@@ -6,7 +6,8 @@ import type {
   SessionPhoto,
   StudySession,
   User,
-  UserResolutionInput
+  UserResolutionInput,
+  WeeklyReview
 } from "../types";
 
 export type DataStore = {
@@ -36,6 +37,15 @@ export type DataStore = {
   getPhotosBySessionIds(sessionIds: string[]): SessionPhoto[] | Promise<SessionPhoto[]>;
   replaceDailyStats(userId: string, dailyStats: Map<string, DailyStat>): void | Promise<void>;
   getDailyStats(userId: string): Map<string, DailyStat> | Promise<Map<string, DailyStat>>;
+
+  /**
+   * v0.38 — B2/B4 周复盘. Upsert (one row per user+week) and list a
+   * user's weekly reflections, newest first.
+   */
+  saveWeeklyReview(userId: string, weekKey: string, content: string, now: string):
+    | WeeklyReview
+    | Promise<WeeklyReview>;
+  listWeeklyReviews(userId: string): WeeklyReview[] | Promise<WeeklyReview[]>;
 
   /**
    * v0.20 — reminder state mutations. All four are tiny single-row

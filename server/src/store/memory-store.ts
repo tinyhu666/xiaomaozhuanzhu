@@ -7,7 +7,8 @@ import type {
   SessionPhoto,
   StudySession,
   User,
-  UserResolutionInput
+  UserResolutionInput,
+  WeeklyReview
 } from "../types";
 import type { NewsListOptions, NewsUpsertResult } from "./types";
 
@@ -23,6 +24,8 @@ export class MemoryStore {
   private newsById = new Map<string, NewsItem>();
   /** (source, url) -> id index, mirrors the MySQL UNIQUE constraint. */
   private newsBySourceUrl = new Map<string, string>();
+  /** v0.38 — B2/B4 周复盘: userId -> reviews (one per weekKey). */
+  private weeklyReviews = new Map<string, WeeklyReview[]>();
 
   /**
    * Resolve (or create) a user from an identity bundle. The miniprogram
@@ -342,6 +345,33 @@ export class MemoryStore {
     this.newsById.delete(id);
     this.newsBySourceUrl.delete(`${item.source} ${item.url}`);
     return true;
+  }
+
+  saveWeeklyReview(userId: string, weekKey: string, content: string, now: string): WeeklyReview {
+    const list = this.weeklyReviews.get(userId) ?? [];
+    const existing = list.find((review) => review.weekKey === weekKey);
+    if (existing) {
+      existing.content = content;
+      existing.updatedAt = now;
+      this.weeklyReviews.set(userId, list);
+      return existing;
+    }
+    const review: WeeklyReview = {
+      id: randomUUID(),
+      userId,
+      weekKey,
+      content,
+      createdAt: now,
+      updatedAt: now
+    };
+    list.push(review);
+    this.weeklyReviews.set(userId, list);
+    return review;
+  }
+
+  listWeeklyReviews(userId: string): WeeklyReview[] {
+    const list = this.weeklyReviews.get(userId) ?? [];
+    return [...list].sort((a, b) => b.weekKey.localeCompare(a.weekKey));
   }
 
   listRecentCompletedSessions(limit: number) {

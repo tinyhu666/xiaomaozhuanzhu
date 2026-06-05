@@ -443,6 +443,32 @@ export function listMySessions() {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  v0.38 — B2/B4 周复盘 (weekly reflection)                                    */
+/* -------------------------------------------------------------------------- */
+
+export type WeeklyReview = {
+  id: string;
+  weekKey: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function saveWeeklyReview(payload: { weekKey: string; content: string }) {
+  return callContainer<{ review: WeeklyReview }>({
+    path: "/me/weekly-review",
+    method: "POST",
+    data: payload
+  });
+}
+
+export function listWeeklyReviews() {
+  return callContainer<{ items: WeeklyReview[] }>({
+    path: "/me/weekly-reviews"
+  });
+}
+
+/* -------------------------------------------------------------------------- */
 /*  v0.20 — daily 20:30 reminder (WeChat 一次性订阅消息)                       */
 /* -------------------------------------------------------------------------- */
 

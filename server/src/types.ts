@@ -88,6 +88,20 @@ export interface SessionPhoto {
   createdAt: string;
 }
 
+/**
+ * v0.38 — B2/B4 周复盘. A free-text weekly reflection the user writes
+ * during their weekly review, keyed by an opaque client-supplied week
+ * key (e.g. "2026-W21"). One row per user+week (upsert).
+ */
+export interface WeeklyReview {
+  id: string;
+  userId: string;
+  weekKey: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DailyStat {
   userId: string;
   date: string;

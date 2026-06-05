@@ -10,7 +10,8 @@ import type {
   SessionPhoto,
   StudySession,
   User,
-  UserResolutionInput
+  UserResolutionInput,
+  WeeklyReview
 } from "../types";
 import type { NewsListOptions, NewsUpsertResult } from "./types";
 
@@ -727,6 +728,42 @@ export class MySQLStore {
       };
     });
   }
+
+  // v0.38 — B2/B4 周复盘.
+  async saveWeeklyReview(userId: string, weekKey: string, content: string, now: string): Promise<WeeklyReview> {
+    const ts = toMySQLDateTimeRequired(now);
+    const id = randomUUID();
+    await this.pool.query(
+      `INSERT INTO weekly_reviews (id, user_id, week_key, content, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE content = VALUES(content), updated_at = VALUES(updated_at)`,
+      [id, userId, weekKey, content, ts, ts]
+    );
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT * FROM weekly_reviews WHERE user_id = ? AND week_key = ? LIMIT 1",
+      [userId, weekKey]
+    );
+    return mapWeeklyReviewRow(rows[0]);
+  }
+
+  async listWeeklyReviews(userId: string): Promise<WeeklyReview[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      "SELECT * FROM weekly_reviews WHERE user_id = ? ORDER BY week_key DESC",
+      [userId]
+    );
+    return rows.map((row) => mapWeeklyReviewRow(row));
+  }
+}
+
+function mapWeeklyReviewRow(row: RowDataPacket): WeeklyReview {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    weekKey: String(row.week_key),
+    content: String(row.content ?? ""),
+    createdAt: toIsoString(row.created_at),
+    updatedAt: toIsoString(row.updated_at)
+  };
 }
 
 function mapUserRow(row: RowDataPacket): User {

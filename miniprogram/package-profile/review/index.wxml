@@ -72,4 +72,39 @@
   <view wx:else class="review-empty">
     <text class="review-empty__sub">加载中…</text>
   </view>
+
+  <!-- v0.38 — B2 本周复盘 (write + save) + B4 往期复盘 (history). Shows
+       whenever the page loaded, independent of the balance data above. -->
+  <block wx:if="{{loadState === 'loaded' || loadState === 'error'}}">
+    <view class="review-journal">
+      <text class="review-journal__title">本周复盘</text>
+      <text class="review-journal__hint">这周学得怎么样、下周调整什么</text>
+      <textarea
+        class="review-journal__input"
+        maxlength="1000"
+        placeholder="写下这周的复盘…"
+        value="{{reviewDraft}}"
+        bindinput="onReviewInput"
+        auto-height
+      />
+      <button
+        class="cta-button review-journal__save"
+        loading="{{savingReview}}"
+        disabled="{{savingReview}}"
+        bindtap="saveReview"
+      >保存本周复盘</button>
+    </view>
+
+    <view wx:if="{{pastReviews.length}}" class="review-journal">
+      <text class="review-journal__title">往期复盘</text>
+      <view
+        wx:for="{{pastReviews}}"
+        wx:key="id"
+        class="review-past"
+      >
+        <text class="review-past__week">{{item.weekKey}}</text>
+        <text class="review-past__content">{{item.content}}</text>
+      </view>
+    </view>
+  </block>
 </view>

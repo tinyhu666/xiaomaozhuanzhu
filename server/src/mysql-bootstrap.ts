@@ -84,6 +84,17 @@ const TABLE_STATEMENTS = [
     KEY idx_news_pin_pub (hidden, pinned DESC, published_at DESC),
     KEY idx_news_category_published (category, hidden, published_at DESC),
     UNIQUE KEY uk_source_url (source, url)
+  )`,
+  // v0.38 — B2/B4 周复盘: one free-text reflection per user per week.
+  `CREATE TABLE IF NOT EXISTS weekly_reviews (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    week_key VARCHAR(16) NOT NULL,
+    content VARCHAR(1000) NOT NULL DEFAULT '',
+    created_at DATETIME(3) NOT NULL,
+    updated_at DATETIME(3) NOT NULL,
+    UNIQUE KEY uk_review_user_week (user_id, week_key),
+    CONSTRAINT fk_review_user FOREIGN KEY (user_id) REFERENCES users(id)
   )`
 ] as const;
 
