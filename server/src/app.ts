@@ -20,6 +20,7 @@ import {
   findBestWeek,
   rebuildDailyStats
 } from "./domain/stats";
+import { signSession, verifySession } from "./domain/session-token";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
 import { createStorageClient, type StorageClient } from "./storage/default-storage";
@@ -39,6 +40,15 @@ type Clock = {
   now(): Date;
 };
 
+/**
+ * v0.39 — the minimal WeChat surface the auth route needs. We type it
+ * structurally (not as the full WeChatAPIClient) so tests can inject a
+ * stub that just resolves code → openid without a live HTTP fetcher.
+ */
+type AuthWeChatClient = {
+  code2session(jsCode: string): Promise<{ openid: string }>;
+};
+
 type CreateAppOptions = {
   clock?: Clock;
   storage?: StorageClient;
@@ -48,6 +58,18 @@ type CreateAppOptions = {
    * Tests that depend on an empty store should pass `seedNews: false`.
    */
   seedNews?: boolean;
+  /**
+   * v0.39 — WeChat client for POST /api/auth/login. Omitted → the login
+   * route returns 503 (server not configured for wx.login yet). On the
+   * VPS, index.ts wires the real WeChatAPIClient.
+   */
+  wechat?: AuthWeChatClient;
+  /**
+   * v0.39 — HMAC secret for signing/verifying session tokens. Falls back
+   * to SESSION_SECRET env. Empty → Bearer auth is disabled (云托管 mode,
+   * where x-wx-openid is injected upstream).
+   */
+  sessionSecret?: string;
 };
 
 const profileSchema = z.object({
@@ -121,6 +143,12 @@ const shareSchema = z.object({
   requireWechatAuth: z.boolean().optional()
 });
 
+// v0.39 — wx.login() yields a short-lived `code` (~5 min, single-use).
+// We don't constrain its exact shape beyond non-empty + sane length.
+const loginSchema = z.object({
+  code: z.string().trim().min(1).max(512)
+});
+
 const tempUrlSchema = z
   .object({
     objectKeys: z.array(z.string().min(1)).max(30).optional(),
@@ -144,6 +172,11 @@ export function createApp(options: CreateAppOptions = {}) {
   const store = options.store ?? createDataStore();
   const clock = options.clock ?? { now: () => new Date() };
   const storage = options.storage ?? createStorageClient();
+  // v0.39 — VPS auth. When sessionSecret is set, getOpenId trusts a
+  // verified `Authorization: Bearer` token; on 云托管 it stays empty and
+  // the upstream-injected x-wx-openid is used instead.
+  const sessionSecret = options.sessionSecret ?? process.env.SESSION_SECRET ?? "";
+  const wechat = options.wechat ?? null;
 
   // v0.26 — news seed no longer installed at boot. The public news
   // routes were removed in v0.26 alongside the 「动态」 tab cleanup;
@@ -165,7 +198,7 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.use((request, response, next) => {
     const requestId = randomUUID();
-    const openid = getOpenId(request) || "-";
+    const openid = getOpenId(request, sessionSecret) || "-";
     const clientUid = getClientUid(request) || "-";
     response.setHeader("x-request-id", requestId);
     response.on("finish", () => {
@@ -183,7 +216,51 @@ export function createApp(options: CreateAppOptions = {}) {
     next();
   });
 
-  app.post("/api/me/bootstrap", withUser(store, clock, async (_request, response, context) => {
+  // v0.39 — wx.login exchange (VPS auth). The client sends { code } from
+  // wx.login(); we resolve it to the real openid via WeChat, mint a signed
+  // session token, and (when a clientUid is present) merge the anonymous
+  // history into the openid account right here at login time. The client
+  // stores `token` and sends it as `Authorization: Bearer <token>` on every
+  // subsequent request. 503 when the server has no WeChat client / secret
+  // configured (i.e. still running in 云托管 mode).
+  app.post("/api/auth/login", async (request, response, next) => {
+    try {
+      if (!wechat || !sessionSecret) {
+        throw new AppError(503, "LOGIN_UNAVAILABLE", "wx.login 未在此服务端启用");
+      }
+      const { code } = parse(loginSchema, request.body);
+      let openid = "";
+      try {
+        ({ openid } = await wechat.code2session(code));
+      } catch (error) {
+        throw new AppError(502, "WECHAT_LOGIN_FAILED", "微信登录换取 openid 失败", {
+          reason: error instanceof Error ? error.message : String(error)
+        });
+      }
+      if (!openid) {
+        throw new AppError(502, "WECHAT_LOGIN_FAILED", "微信未返回 openid");
+      }
+      // Merge anonymous (clientUid) history into the openid account so a
+      // user who studied before logging in keeps their streak/records.
+      const clientUid = getClientUid(request);
+      const context = await store.ensureUser(
+        { openid, clientUid: clientUid || null },
+        clock.now().toISOString()
+      );
+      const token = signSession(openid, sessionSecret);
+      response.json({
+        token,
+        openid,
+        profile: serializeProfile(context.user, context.publicProfile),
+        needsOnboarding: !context.user.profileCompleted,
+        serverTime: clock.now().toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/me/bootstrap", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
       needsOnboarding: !context.user.profileCompleted,
@@ -191,7 +268,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.post("/api/me/profile", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/me/profile", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(profileSchema, request.body);
     const { user, publicProfile } = await store.updateProfile(
       context.user.id,
@@ -212,7 +289,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.get("/api/home", withUser(store, clock, async (_request, response, context) => {
+  app.get("/api/home", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const reap = await reapStaleSession(store, context.user.id, clock.now());
     const activeSession = reap.session;
     const todayKey = formatShanghaiDate(clock.now());
@@ -242,7 +319,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.get("/api/me/dashboard", withUser(store, clock, async (_request, response, context) => {
+  app.get("/api/me/dashboard", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const dailyStats = await store.getDailyStats(context.user.id);
     const sessions = (await store.listSessions(context.user.id)).filter((session) => session.status === "completed");
     const subjectTotals = SUBJECTS.map((subject) => {
@@ -340,7 +417,7 @@ export function createApp(options: CreateAppOptions = {}) {
    * summary text — since the garden view-model only needs each
    * session's identity, subject, mode, duration, and timestamps.
    */
-  app.get("/api/me/sessions", withUser(store, clock, async (_request, response, context) => {
+  app.get("/api/me/sessions", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const sessions = (await store.listSessions(context.user.id))
       .filter((s) => s.status === "completed")
       .slice(0, 200);
@@ -370,7 +447,7 @@ export function createApp(options: CreateAppOptions = {}) {
     content: z.string().trim().max(1000).default("")
   });
 
-  app.post("/api/me/weekly-review", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/me/weekly-review", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(weeklyReviewSchema, request.body);
     const review = await store.saveWeeklyReview(
       context.user.id,
@@ -381,12 +458,12 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ review });
   }));
 
-  app.get("/api/me/weekly-reviews", withUser(store, clock, async (_request, response, context) => {
+  app.get("/api/me/weekly-reviews", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const reviews = await store.listWeeklyReviews(context.user.id);
     response.json({ items: reviews });
   }));
 
-  app.post("/api/sessions/start", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/start", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(startSessionSchema, request.body ?? {});
     const currentSession = await store.getCurrentSession(context.user.id);
 
@@ -421,7 +498,7 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ session: serializeActiveSession(session, clock.now()), reused: false });
   }));
 
-  app.post("/api/sessions/:id/pause", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/:id/pause", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const session = await requireSession(store, String(request.params.id), context.user.id);
     if (session.status !== "running") {
       throw new AppError(409, "INVALID_STATE", "Only running sessions can be paused");
@@ -435,7 +512,7 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ session: serializeActiveSession(session, clock.now()) });
   }));
 
-  app.post("/api/sessions/:id/resume", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/:id/resume", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const session = await requireSession(store, String(request.params.id), context.user.id);
     if (session.status !== "paused" || !session.currentPauseStartedAt) {
       throw new AppError(409, "INVALID_STATE", "Only paused sessions can be resumed");
@@ -453,13 +530,13 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ session: serializeActiveSession(session, clock.now()) });
   }));
 
-  app.post("/api/sessions/:id/abandon", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/:id/abandon", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const session = await requireSession(store, String(request.params.id), context.user.id);
     await abandonSession(store, session, clock.now().toISOString());
     response.json({ session });
   }));
 
-  app.post("/api/sessions/makeup", withUser(store, clock, async (_request, response, context) => {
+  app.post("/api/sessions/makeup", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const todayKey = formatShanghaiDate(clock.now());
     const dailyStats = await store.getDailyStats(context.user.id);
     const sessions = await store.listSessions(context.user.id);
@@ -507,7 +584,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.post("/api/sessions/:id/complete", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/:id/complete", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(completeSchema, request.body);
     const session = await requireSession(store, String(request.params.id), context.user.id);
 
@@ -618,7 +695,7 @@ export function createApp(options: CreateAppOptions = {}) {
     summary: z.string().trim().max(80).default("")
   });
 
-  app.post("/api/sessions/manual", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/sessions/manual", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(manualSessionSchema, request.body);
     const nowIso = clock.now().toISOString();
     const todayKey = formatShanghaiDate(nowIso);
@@ -676,7 +753,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.get("/api/calendar", withUser(store, clock, async (request, response, context) => {
+  app.get("/api/calendar", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const month = typeof request.query.month === "string" ? request.query.month : "";
     if (!/^\d{4}-\d{2}$/.test(month)) {
       throw new AppError(400, "INVALID_INPUT", "month must use YYYY-MM format");
@@ -694,7 +771,7 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ month, days });
   }));
 
-  app.get("/api/calendar/:date", withUser(store, clock, async (request, response, context) => {
+  app.get("/api/calendar/:date", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const date = String(request.params.date);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new AppError(400, "INVALID_INPUT", "date must use YYYY-MM-DD format");
@@ -732,7 +809,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.get("/api/share/me", withUser(store, clock, async (_request, response, context) => {
+  app.get("/api/share/me", withUser(store, clock, sessionSecret, async (_request, response, context) => {
     const stats = await store.getDailyStats(context.user.id);
     response.json({
       profile: serializeProfile(context.user, context.publicProfile),
@@ -743,7 +820,7 @@ export function createApp(options: CreateAppOptions = {}) {
     });
   }));
 
-  app.post("/api/share/me", withUser(store, clock, async (request, response, context) => {
+  app.post("/api/share/me", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(shareSchema, request.body);
     const { publicProfile } = await store.updateProfile(
       context.user.id,
@@ -763,7 +840,7 @@ export function createApp(options: CreateAppOptions = {}) {
     if (!record || !record.publicProfile.isPublic) {
       throw new AppError(404, "NOT_FOUND", "Public profile does not exist");
     }
-    if (record.publicProfile.requireWechatAuth && !getOpenId(request)) {
+    if (record.publicProfile.requireWechatAuth && !getOpenId(request, sessionSecret)) {
       throw new AppError(401, "UNAUTHORIZED", "Wechat login is required to view this page");
     }
 
@@ -808,7 +885,7 @@ export function createApp(options: CreateAppOptions = {}) {
   // now in case we revive the feature later. news_items table
   // also kept so existing data isn't deleted.
 
-  app.post("/api/storage/temp-urls", withUser(store, clock, async (request, response) => {
+  app.post("/api/storage/temp-urls", withUser(store, clock, sessionSecret, async (request, response) => {
     const payload = parse(tempUrlSchema, request.body);
     const queries = [
       ...(payload.items ?? []),
@@ -832,7 +909,7 @@ export function createApp(options: CreateAppOptions = {}) {
    * --------------------------------------------------------------- */
   app.get(
     "/api/me/reminder/status",
-    withUser(store, clock, async (_request, response, context) => {
+    withUser(store, clock, sessionSecret, async (_request, response, context) => {
       response.json({
         enabled: context.user.reminderEnabled,
         credits: context.user.reminderCredits,
@@ -850,7 +927,7 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.post(
     "/api/me/reminder/subscribe",
-    withUser(store, clock, async (request, response, context) => {
+    withUser(store, clock, sessionSecret, async (request, response, context) => {
       const payload = parse(reminderSubscribeSchema, request.body);
       // Two-step: ensure the toggle is on, then bump credits. Both
       // are idempotent at the row level.
@@ -865,7 +942,7 @@ export function createApp(options: CreateAppOptions = {}) {
 
   app.post(
     "/api/me/reminder/disable",
-    withUser(store, clock, async (_request, response, context) => {
+    withUser(store, clock, sessionSecret, async (_request, response, context) => {
       const user = await store.setReminderEnabled(context.user.id, false);
       response.json({
         enabled: !!user?.reminderEnabled,
@@ -901,6 +978,7 @@ export function createApp(options: CreateAppOptions = {}) {
 function withUser(
   store: DataStore,
   clock: Clock,
+  sessionSecret: string,
   handler: (
     request: Request,
     response: Response,
@@ -912,7 +990,7 @@ function withUser(
 ) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
-      const openid = getOpenId(request);
+      const openid = getOpenId(request, sessionSecret);
       const clientUid = getClientUid(request);
       if (!openid && !clientUid) {
         throw new AppError(
@@ -932,7 +1010,29 @@ function withUser(
   };
 }
 
-function getOpenId(request: Request) {
+function getOpenId(request: Request, sessionSecret = "") {
+  // Two trust modes, selected by whether a session secret is configured:
+  //
+  // VPS mode (sessionSecret set): a verified `Authorization: Bearer` token
+  //   is the ONLY trusted identity. A plain server sits behind nothing that
+  //   injects/overwrites headers, so a raw client-sent `x-wx-openid` is
+  //   spoofable and MUST NOT be trusted (openids aren't secret). The dev
+  //   override stays available off-production for local testing.
+  //
+  // 云托管 mode (no sessionSecret): the platform injects a trusted
+  //   `x-wx-openid` upstream, so we honor it (legacy behavior, unchanged).
+  if (sessionSecret) {
+    const auth = request.header("authorization") ?? request.header("Authorization") ?? "";
+    const match = /^Bearer\s+(.+)$/i.exec(auth.trim());
+    if (match) {
+      const verified = verifySession(match[1].trim(), sessionSecret);
+      if (verified) return verified.openid;
+    }
+    if (process.env.NODE_ENV !== "production") {
+      return request.header("x-dev-openid") ?? request.header("X-DEV-OPENID") ?? "";
+    }
+    return "";
+  }
   const openid = request.header("x-wx-openid") ?? request.header("X-WX-OPENID");
   if (openid) return openid;
   if (process.env.NODE_ENV !== "production") {

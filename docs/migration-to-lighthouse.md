@@ -79,7 +79,11 @@ DATABASE_URL=mysql://cpa:<pw>@127.0.0.1:3306/cpa
 # 微信登录（M1）
 WECHAT_APP_ID=wxfb24f334e5070a82
 WECHAT_APP_SECRET=<小程序后台→开发管理→AppSecret>
-SESSION_SECRET=<随机长串，签名会话 token>     # M1 新增
+# M1 新增：签名会话 token 的 HMAC 密钥。必须 ≥32 字符、高熵；生产环境
+# 若 <32 字符服务端拒绝启动（防 Bearer token 被爆破伪造）。生成：
+#   openssl rand -base64 48
+SESSION_SECRET=<随机长串>
+
 
 # COS 存储（M2）
 COS_SECRET_ID=<腾讯云 API 密钥>
@@ -117,3 +121,20 @@ mysql -u cpa -p cpa < backup.sql
 - 备案是最长卡点（1-2 周）；代码可先就绪，联通等备案。
 - 免备案过渡：可临时用香港/境外区域服务器（延迟略高），但正式还是建议国内 + 备案。
 - 登录态：旧用户此前以 clientUid（匿名）为主；M1 上线后首次 wx.login 会以 openid 建立稳定身份。若旧数据按 clientUid 存，迁移后需保证 clientUid 仍透传（`x-client-uid`）以便用户首次登录时把匿名历史并入 openid 账号（`ensureUser` 已有 openid↔clientUid 合并逻辑）。
+
+## M1 安全评审结论（2026-06，security-reviewer）
+
+**M1 内已修**（发版前堵住）：
+- **H1 弱密钥**：非空但过短的 `SESSION_SECRET` 会让 Bearer token 可爆破伪造 → 生产环境 <32 字符拒绝启动（`index.ts`）。
+- **H2 头部伪造**：VPS 上裸 `x-wx-openid` 可被任意客户端伪造（openid 非密）。`getOpenId` 改为：设了 `sessionSecret`（VPS 模式）时，**只信任验签过的 Bearer**，不再回退裸 header；非生产保留 `x-dev-openid` 便于本地联调。云托管模式（无 secret）仍信任上游注入的 header。
+- **M4 无过期**：session token 加 90 天过期（payload 已带签发时间 `t`，`verifySession` 现读取并校验；可注入 `now`/`maxAgeMs`）。wx.login 刷新对用户无感（客户端拿到 401 静默重登即可）。
+- **L1 openid 形状**：`verifySession` 增 `^[A-Za-z0-9_-]{6,128}$` 校验，挡空白/类型混淆值。
+
+**切换前（M3/M4）仍需处理**：
+- **M2 clientUid 吸并**（中危，方向性）：攻击者若拿到某「仅匿名、从未登录」用户的 clientUid，可在登录时带该 header 把对方匿名历史并入自己 openid 账号。已登录账号不可被夺（`ensureUser` 不重绑已绑定的标识）。clientUid 是设备本地 UUID、数据低敏感，暂列**可接受风险**；M2 加固方向：仅当 openid 全新且 clientUid 行无 openid 时才合并，或改为客户端显式信号触发合并。
+- **登录限流**（中危）：`POST /api/auth/login` 无限流，可刷爆 `jscode2session` 配额。**首选 M4 在 nginx 边缘按 IP 限流**（更合适的层）；或加 `express-rate-limit`。
+- **appSecret 出现在 jscode2session URL query**（微信 API 契约，无法避免）：**禁止记录任何出站微信 URL**；VPS egress proxy 关闭对 `api.weixin.qq.com` 的 URI 日志；密钥轮换列入 runbook。（已确认现有请求日志只记 `path`，不含出站 URL，无泄漏。）
+- **COS SDK 传递依赖 CVE**（`request@2.88.2` 等 3 critical/7 moderate，均非 M1 引入、不在鉴权链路）：随 **M2** COS 上传链路一并处理（核对正确升级目标）。
+- **L3 500 处理器回显 `error.message`**（非 M1 引入）：后续将未捕获 500 收敛为通用消息，仅服务端记录细节。
+
+> 客户端 M3 注意：token 90 天过期 → 请求拿到 401（且非首次启动）时静默 `wx.login` 重新换 token 重试一次，对用户无感。

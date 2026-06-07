@@ -23,6 +23,11 @@
 const TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
 const SEND_URL =
   "https://api.weixin.qq.com/cgi-bin/message/subscribe/send";
+// v0.39 — wx.login code → openid exchange. Uses appid+secret directly
+// (no access_token), so it works the moment the server has credentials.
+const JSCODE2SESSION_URL = "https://api.weixin.qq.com/sns/jscode2session";
+
+export type Code2SessionResult = { openid: string; sessionKey: string };
 
 export type SubscribeMessageData = Record<string, { value: string }>;
 
@@ -125,6 +130,33 @@ export class WeChatAPIClient {
       refreshAfter: this.now() + ttlMs
     };
     return body.access_token;
+  }
+
+  /**
+   * v0.39 — Exchange a wx.login() code for the user's openid. Used by
+   * the VPS auth flow (云托管 used to inject openid; a plain server must
+   * do this round-trip itself). Throws on any WeChat error so the
+   * /api/auth/login handler can surface a clean failure.
+   */
+  async code2session(jsCode: string): Promise<Code2SessionResult> {
+    const url =
+      `${JSCODE2SESSION_URL}?appid=${encodeURIComponent(this.appId)}` +
+      `&secret=${encodeURIComponent(this.appSecret)}` +
+      `&js_code=${encodeURIComponent(jsCode)}&grant_type=authorization_code`;
+    const response = await this.fetcher(url, { method: "GET" });
+    if (!response.ok) {
+      throw new Error(`wechat code2session http ${response.status}`);
+    }
+    const body = (await response.json()) as {
+      openid?: string;
+      session_key?: string;
+      errcode?: number;
+      errmsg?: string;
+    };
+    if (!body.openid) {
+      throw new Error(`wechat code2session error ${body.errcode ?? "?"}: ${body.errmsg ?? "no openid"}`);
+    }
+    return { openid: body.openid, sessionKey: body.session_key ?? "" };
   }
 
   /**
