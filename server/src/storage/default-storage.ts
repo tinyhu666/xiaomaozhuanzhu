@@ -2,8 +2,31 @@ import type { TemporaryUrl } from "../types";
 
 export type StorageQuery = { objectKey: string; fileId?: string };
 
+/**
+ * v0.40 (M2) — direct-upload credential. The server picks a safe,
+ * user-namespaced objectKey and signs a short-lived PUT URL; the
+ * miniprogram uploads the file bytes straight to COS, then submits the
+ * objectKey back (in complete/profile). publicUrl is the bucket path
+ * (private bucket → resolved to a signed GET on read via cos:// refs).
+ */
+export type UploadCredentialRequest = { objectKey: string };
+export type UploadCredential = {
+  objectKey: string;
+  method: "PUT";
+  uploadUrl: string;
+  publicUrl: string;
+  expiresAt: string;
+};
+
 export interface StorageClient {
   getTemporaryUrls(items: StorageQuery[]): Promise<TemporaryUrl[]>;
+  /**
+   * Issue presigned direct-upload credentials. Optional: only the COS
+   * client implements it; on 云托管 (wx.cloud.uploadFile) it's undefined
+   * and the route 503s. Callers MUST decide the objectKey themselves
+   * (this method only signs) so a client can't inject an arbitrary path.
+   */
+  createUploadCredentials?(items: UploadCredentialRequest[]): Promise<UploadCredential[]>;
 }
 
 export class DefaultStorageClient implements StorageClient {
@@ -202,6 +225,11 @@ export function createStorageClient(): StorageClient {
       SecretId: process.env.COS_SECRET_ID,
       SecretKey: process.env.COS_SECRET_KEY
     });
+    const bucket = process.env.COS_BUCKET;
+    const region = process.env.COS_REGION;
+    const publicBase = (
+      process.env.STORAGE_PUBLIC_BASE_URL ?? `https://${bucket}.cos.${region}.myqcloud.com`
+    ).replace(/\/$/, "");
 
     return {
       async getTemporaryUrls(items: StorageQuery[]) {
@@ -209,12 +237,31 @@ export function createStorageClient(): StorageClient {
         return items.map((item) => ({
           objectKey: item.objectKey,
           url: client.getObjectUrl({
-            Bucket: process.env.COS_BUCKET,
-            Region: process.env.COS_REGION,
+            Bucket: bucket,
+            Region: region,
             Key: item.objectKey,
             Sign: true,
             Expires: 1800
           }),
+          expiresAt
+        }));
+      },
+      async createUploadCredentials(items: UploadCredentialRequest[]) {
+        // 15-min window: long enough for a retried upload on slow mobile,
+        // short enough that a leaked URL is near-useless.
+        const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
+        return items.map((item) => ({
+          objectKey: item.objectKey,
+          method: "PUT" as const,
+          uploadUrl: client.getObjectUrl({
+            Bucket: bucket,
+            Region: region,
+            Key: item.objectKey,
+            Method: "PUT",
+            Sign: true,
+            Expires: 900
+          }),
+          publicUrl: `${publicBase}/${item.objectKey}`,
           expiresAt
         }));
       }

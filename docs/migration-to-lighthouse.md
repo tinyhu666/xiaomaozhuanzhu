@@ -38,6 +38,23 @@
 
 版本规划：M1=v0.39.0、M2=v0.40.0、M3=v0.41.0（客户端切换，发版前必须域名就绪）。
 
+## M1/M2 已冻结的服务端契约（M3 客户端按此对接）
+
+**登录（M1）**
+- `POST /api/auth/login` body `{ code }`（来自 `wx.login`）→ `{ token, openid, profile, needsOnboarding, serverTime }`。
+- 之后每个请求带 `Authorization: Bearer <token>`；token 90 天过期，**拿到 401（且非首启）→ 静默 `wx.login` 重换 token 重试一次**（对用户无感）。
+- 仍透传 `x-client-uid`（首次登录把匿名历史并入 openid 账号）。
+
+**上传（M2）— COS 直传三步**
+1. `POST /api/storage/upload-credential` body `{ kind: "checkin"|"avatar", files: [{ ext }] }`（checkin 1–3 张、avatar 恰好 1 张；ext ∈ jpg/jpeg/png/webp/heic）。
+   → `{ credentials: [{ objectKey, method:"PUT", uploadUrl, publicUrl, expiresAt }] }`。**objectKey 由服务端决定**，客户端不要自拟路径。
+2. 客户端把图片字节 `PUT` 到 `uploadUrl`（预签名，900s 内有效）。
+3. 回填：
+   - 照片 → `complete` 的 `photos: [{ objectKey }]`（**不再需要 `fileId`**；云托管旧字段仍兼容）。
+   - 头像 → `profile` 的 `avatarUrl: "cos://<objectKey>"`（服务端读时签成临时 GET URL，bucket 保持私有）。
+
+> 非 COS 部署（云托管）`upload-credential` 返回 503——云托管继续走 `wx.cloud.uploadFile`。M3 据 `runtimeConfig` 是否配 `apiBaseUrl` 选择直传 COS 还是云上传。
+
 ## 服务器部署（M4，备案后执行）
 
 **规格建议**：2 核 2G 起；地域选已备案域名对应区域（国内）。系统 Ubuntu 22.04。

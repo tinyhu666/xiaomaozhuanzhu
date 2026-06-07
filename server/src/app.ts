@@ -23,7 +23,7 @@ import {
 import { signSession, verifySession } from "./domain/session-token";
 import { resolveDatabaseUrl } from "./env";
 import { AppError } from "./errors";
-import { createStorageClient, type StorageClient } from "./storage/default-storage";
+import { createStorageClient, type StorageClient, type StorageQuery } from "./storage/default-storage";
 import { MemoryStore } from "./store/memory-store";
 import { MySQLStore } from "./store/mysql-store";
 import type { DataStore } from "./store/types";
@@ -74,13 +74,14 @@ type CreateAppOptions = {
 
 const profileSchema = z.object({
   nickname: z.string().trim().min(1).max(20),
-  // avatarUrl is either a valid URL (incl. cloud:// fileId) or empty,
-  // so users can update just their nickname without having uploaded
-  // an avatar yet.
+  // avatarUrl is either a valid URL (incl. cloud:// fileId for 云托管 or
+  // cos:// objectKey for the VPS), or empty so users can update just
+  // their nickname without having uploaded an avatar yet. A cos:// ref
+  // is signed to a temporary GET URL on read (private bucket).
   avatarUrl: z
     .string()
     .max(512)
-    .refine((v) => v === "" || /^(https?|cloud):\/\//.test(v), {
+    .refine((v) => v === "" || /^(https?|cloud|cos):\/\//.test(v), {
       message: "avatarUrl must be empty or a URL"
     }),
   isPublic: z.boolean().optional(),
@@ -114,7 +115,13 @@ const completeSchema = z.object({
   photos: z
     .array(
       z.object({
-        fileId: z.string().min(1).startsWith("cloud://"),
+        // v0.40 — fileId is now OPTIONAL. 云托管 sends a `cloud://` fileId;
+        // COS direct-upload has no fileId (the objectKey alone identifies
+        // the object, signed on read). If present it must be a cloud:// id.
+        fileId: z
+          .string()
+          .refine((value) => value === "" || value.startsWith("cloud://"), "fileId must be a cloud:// id")
+          .optional(),
         objectKey: z
           .string()
           .min(1)
@@ -166,6 +173,21 @@ const tempUrlSchema = z
     (value) => (value.objectKeys?.length ?? 0) + (value.items?.length ?? 0) > 0,
     { message: "objectKeys or items required" }
   );
+
+// v0.40 (M2) — request presigned COS upload credentials. The client says
+// what it wants to upload (kind + per-file extension); the SERVER picks
+// the objectKey, so a client can never inject an arbitrary path.
+const uploadCredentialSchema = z.object({
+  kind: z.enum(["checkin", "avatar"]),
+  files: z
+    .array(
+      z.object({
+        ext: z.enum(["jpg", "jpeg", "png", "webp", "heic"]).default("jpg")
+      })
+    )
+    .min(1)
+    .max(3)
+});
 
 export function createApp(options: CreateAppOptions = {}) {
   const app = express();
@@ -642,7 +664,9 @@ export function createApp(options: CreateAppOptions = {}) {
         (photo, index): SessionPhoto => ({
           id: randomUUID(),
           sessionId: session.id,
-          fileId: photo.fileId,
+          // COS photos have no cloud:// fileId — persist "" so the read
+          // path keys purely on objectKey (the COS client signs by key).
+          fileId: photo.fileId ?? "",
           objectKey: photo.objectKey,
           sortOrder: index,
           createdAt: now
@@ -895,6 +919,40 @@ export function createApp(options: CreateAppOptions = {}) {
       items: await storage.getTemporaryUrls(queries)
     });
   }));
+
+  // v0.40 (M2) — presigned COS direct-upload credentials. The client says
+  // WHAT it wants to upload (kind + per-file ext); the SERVER decides the
+  // objectKey (namespaced by userId), so a client can never write to
+  // another user's prefix or an arbitrary path. The miniprogram then PUTs
+  // the bytes to `uploadUrl` and submits `objectKey` back via complete
+  // (photos) / profile (avatar as `cos://<objectKey>`). 503 on non-COS
+  // deployments — 云托管 keeps using wx.cloud.uploadFile client-side.
+  app.post(
+    "/api/storage/upload-credential",
+    withUser(store, clock, sessionSecret, async (request, response, context) => {
+      if (typeof storage.createUploadCredentials !== "function") {
+        throw new AppError(503, "UPLOAD_UNAVAILABLE", "对象存储直传未配置");
+      }
+      const payload = parse(uploadCredentialSchema, request.body);
+      if (payload.kind === "avatar" && payload.files.length !== 1) {
+        throw new AppError(400, "INVALID_INPUT", "头像仅支持单张上传");
+      }
+      const userId = context.user.id;
+      // yyyymm partition keeps a bucket listing browsable and bounds any
+      // single prefix; Shanghai-local so it matches the user's calendar.
+      const ym = formatShanghaiDate(clock.now()).slice(0, 7).replace("-", "");
+      const requests = payload.files.map((file) => {
+        const ext = file.ext === "jpeg" ? "jpg" : file.ext;
+        const objectKey =
+          payload.kind === "avatar"
+            ? `avatars/${userId}/${randomUUID()}.${ext}`
+            : `uploads/${userId}/${ym}/${randomUUID()}.${ext}`;
+        return { objectKey };
+      });
+      const credentials = await storage.createUploadCredentials(requests);
+      response.json({ credentials });
+    })
+  );
 
   /* ----------------------------------------------------------------
    * v0.20 — daily 20:30 reminder. Three endpoints:
@@ -1165,23 +1223,36 @@ async function reapStaleSession(
   return { session: null, reaped: { action: "abandoned", minutes: 0 } };
 }
 
-function extractCloudObjectKey(value: string): string | null {
-  if (!value || !value.startsWith("cloud://")) return null;
-  try {
-    const url = new URL(value);
-    const key = url.pathname.replace(/^\//, "");
-    return key || null;
-  } catch {
-    return null;
+/**
+ * Turn a stored avatar/photo reference into a storage query, or null if
+ * it's already a plain URL (https) or empty.
+ *  - `cloud://env.appid/path` (云托管): host is the env, so the real key
+ *    is the URL pathname; resolution keys on the fileId.
+ *  - `cos://path/to/object` (VPS): the whole tail is the objectKey; the
+ *    COS client signs it on read (no fileId).
+ */
+function extractStorageRef(value: string): StorageQuery | null {
+  if (!value) return null;
+  if (value.startsWith("cloud://")) {
+    try {
+      const url = new URL(value);
+      const key = url.pathname.replace(/^\//, "");
+      return key ? { objectKey: key, fileId: value } : null;
+    } catch {
+      return null;
+    }
   }
+  if (value.startsWith("cos://")) {
+    const key = value.slice("cos://".length).replace(/^\/+/, "");
+    return key ? { objectKey: key } : null;
+  }
+  return null;
 }
 
 async function resolvePublicAvatarUrl(storage: StorageClient, avatarUrl: string) {
-  const objectKey = extractCloudObjectKey(avatarUrl);
-  if (!objectKey) return avatarUrl;
-  const [resolved] = await storage.getTemporaryUrls([
-    { objectKey, fileId: avatarUrl }
-  ]);
+  const ref = extractStorageRef(avatarUrl);
+  if (!ref) return avatarUrl;
+  const [resolved] = await storage.getTemporaryUrls([ref]);
   return resolved?.url || avatarUrl;
 }
 
