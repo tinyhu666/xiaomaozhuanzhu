@@ -212,6 +212,48 @@ export function createApp(options: CreateAppOptions = {}) {
     response.json({ status: "ok", time: clock.now().toISOString() });
   });
 
+  // v0.42 — launch-time app gate (NO auth, must work pre-login and during
+  // maintenance). The client fetches this on launch and:
+  //   - shows a blocking「维护中」notice when `maintenance` is on, and
+  //   - nudges an upgrade when its own version < `minClientVersion`.
+  // Env-driven so a cutover/maintenance window is a flag flip + restart:
+  //   MAINTENANCE=1                 → maintenance:true
+  //   MIN_CLIENT_VERSION=0.42.0     → clients below this should upgrade
+  //   MAINTENANCE_MESSAGE="…"       → optional custom copy
+  // Fail-open by design: if the client can't reach this, it proceeds
+  // normally (a transient blip must never brick the app).
+  app.get("/api/app-config", (_request, response) => {
+    const maintenance = process.env.MAINTENANCE === "1" || process.env.MAINTENANCE === "true";
+    response.json({
+      maintenance,
+      minClientVersion: process.env.MIN_CLIENT_VERSION ?? "",
+      message: process.env.MAINTENANCE_MESSAGE ?? "",
+      serverTime: clock.now().toISOString()
+    });
+  });
+
+  // v0.42 — maintenance WRITE FREEZE. The client gate (above) only deters
+  // new launches; it cannot stop an already-running client from writing.
+  // So when MAINTENANCE is on we reject mutating /api requests server-side,
+  // which is what actually makes a final data sync consistent ("避免写到一半").
+  // Reads (GET) stay up; /api/auth/login stays up so clients can still
+  // authenticate and render the「维护中」gate; /admin/* is exempt for ops.
+  app.use((request, response, next) => {
+    const maintenance = process.env.MAINTENANCE === "1" || process.env.MAINTENANCE === "true";
+    if (!maintenance) return next();
+    const mutating = ["POST", "PUT", "PATCH", "DELETE"].includes(request.method.toUpperCase());
+    if (!mutating || !request.path.startsWith("/api/") || request.path === "/api/auth/login") {
+      return next();
+    }
+    response.status(503).json({
+      error: {
+        code: "MAINTENANCE",
+        message: process.env.MAINTENANCE_MESSAGE || "服务维护中，请稍后再试",
+        details: null
+      }
+    });
+  });
+
   // Admin dashboard. The HTML lives at /admin/ and is unauthenticated
   // (it's a static shell). Every /admin/api/* call requires the Bearer
   // token from ADMIN_TOKEN env var; if that env var is missing the

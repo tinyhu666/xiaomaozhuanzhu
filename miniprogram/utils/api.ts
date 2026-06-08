@@ -117,7 +117,8 @@ async function callContainerCloud<T>({ path, method = "GET", data }: RequestOpti
 
   const header: Record<string, string> = {
     "X-WX-SERVICE": runtimeConfig.service,
-    "X-CLIENT-UID": getOrCreateClientUid()
+    "X-CLIENT-UID": getOrCreateClientUid(),
+    "X-CLIENT-VERSION": runtimeConfig.appVersion
   };
   if (method === "POST") {
     header["content-type"] = "application/json";
@@ -293,7 +294,8 @@ type HttpExtra = { bearer?: string; skipAuth?: boolean };
 
 function httpRequestOnce(opts: RequestOptions, extra: HttpExtra): Promise<HttpResult> {
   const header: Record<string, string> = {
-    "X-CLIENT-UID": getOrCreateClientUid()
+    "X-CLIENT-UID": getOrCreateClientUid(),
+    "X-CLIENT-VERSION": runtimeConfig.appVersion
   };
   if (opts.method === "POST") {
     header["content-type"] = "application/json";
@@ -373,11 +375,12 @@ function finalizeHttp<T>(opts: RequestOptions, res: HttpResult): T {
 }
 
 async function callHttp<T>(opts: RequestOptions): Promise<T> {
-  // The login endpoint bootstraps auth — never attach/refresh a bearer for
-  // it (that would recurse). Everything else gets a token first, and a
-  // single silent re-login on a 401 (token expired / secret rotated).
-  const isLogin = opts.path === "/auth/login";
-  if (isLogin) {
+  // Public endpoints need no bearer: /auth/login bootstraps auth (attaching
+  // one would recurse), and /app-config must work pre-login AND during a
+  // maintenance window. Everything else gets a token first, with a single
+  // silent re-login on a 401 (token expired / secret rotated).
+  const isPublic = opts.path === "/auth/login" || opts.path === "/app-config";
+  if (isPublic) {
     return finalizeHttp<T>(opts, await httpRequestWithRetry(opts, { skipAuth: true }));
   }
   const bearer = await ensureSessionToken();
@@ -430,6 +433,48 @@ export async function warmUpBackend() {
     // Best-effort warmup. Swallow errors so app launch never fails.
     console.info("[api] warmup failed (will retry on real call)", error);
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  v0.42 — launch-time app gate (maintenance / forced upgrade)                 */
+/* -------------------------------------------------------------------------- */
+
+export type AppConfig = {
+  maintenance: boolean;
+  minClientVersion: string;
+  message: string;
+};
+
+/**
+ * Fetch the launch gate. Auth-free, works in both transports, and FAILS
+ * OPEN (returns null on any error) so a transient blip never bricks launch.
+ */
+export async function fetchAppConfig(): Promise<AppConfig | null> {
+  try {
+    const cfg = await callContainer<Partial<AppConfig>>({ path: "/app-config", method: "GET" });
+    return {
+      maintenance: Boolean(cfg?.maintenance),
+      minClientVersion: typeof cfg?.minClientVersion === "string" ? cfg.minClientVersion : "",
+      message: typeof cfg?.message === "string" ? cfg.message : ""
+    };
+  } catch (error) {
+    console.info("[api] app-config fetch failed (fail-open)", error);
+    return null;
+  }
+}
+
+/** True when `current` is a lower x.y.z version than `min`. Empty min ⇒ false. */
+export function isClientVersionBelow(current: string, min: string): boolean {
+  if (!min) return false;
+  const toParts = (v: string) => String(v).split(".").map((n) => parseInt(n, 10) || 0);
+  const c = toParts(current);
+  const m = toParts(min);
+  for (let i = 0; i < Math.max(c.length, m.length); i += 1) {
+    const cv = c[i] ?? 0;
+    const mv = m[i] ?? 0;
+    if (cv !== mv) return cv < mv;
+  }
+  return false;
 }
 
 export function bootstrapProfile() {
