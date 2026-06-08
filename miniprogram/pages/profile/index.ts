@@ -146,7 +146,9 @@ Page<{}, ProfilePageData>({
         // user is gently nudged to set it (the CTA stays visible until
         // a non-empty nickname has been saved).
         nickname: this.data.profile.nickname || "",
-        avatarUrl: uploaded.fileId
+        // cloud:// fileId (云托管) or cos://objectKey (VPS) — the server
+        // resolves either to a signed URL on read.
+        avatarUrl: uploaded.avatarUrl
       });
       this.setData({
         profile: { ...this.data.profile, avatarUrl: localUrl }

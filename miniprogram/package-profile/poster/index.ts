@@ -1,6 +1,6 @@
 // @ts-nocheck
 import type { ProfileDashboardResponse } from "../../types/models";
-import { getHome, getProfileDashboard } from "../../utils/api";
+import { getHome, getProfileDashboard, getTempUrls } from "../../utils/api";
 import { formatDuration, getDailyQuote } from "../../utils/view-models";
 
 /**
@@ -460,6 +460,12 @@ async function loadImageOntoCanvas(canvas: any, url: string): Promise<any> {
         fail: reject
       });
     });
+  } else if (url.startsWith("cos://")) {
+    // VPS mode: cos://<objectKey> → server signs a temporary GET URL
+    // (canvas createImage can't fetch cos:// or a private bucket directly).
+    const objectKey = url.slice("cos://".length);
+    const res = await getTempUrls([{ objectKey }]);
+    finalUrl = res.items?.[0]?.url || url;
   }
   return new Promise((resolve, reject) => {
     const img = canvas.createImage();

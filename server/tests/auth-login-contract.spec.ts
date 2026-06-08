@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app";
 import { signSession, verifySession } from "../src/domain/session-token";
+import { MemoryStore } from "../src/store/memory-store";
 
 /**
  * v0.39 — VPS auth contract (云托管 → Lighthouse migration, M1).
@@ -211,19 +212,27 @@ describe("Authorization: Bearer — token authenticates requests", () => {
 });
 
 describe("login merges anonymous clientUid history into the openid account", () => {
-  it("carries a profile set under clientUid into the openid identity", async () => {
-    const app = createApp({ seedNews: false, wechat: makeWeChat({ c: "merge-openid" }), sessionSecret: SECRET });
+  it("carries a 云托管-era anonymous (clientUid) profile into the openid identity on first VPS login", async () => {
+    // Shared store models the migrated DB. The anonymous profile is created
+    // in 云托管 mode (clientUid-only is valid there); the user then logs in
+    // for the first time on the VPS (Bearer mode) from the same device.
+    const store = new MemoryStore();
     const clientUid = "anon-client-uid-123456";
 
-    // Anonymous user (clientUid only) completes onboarding.
-    await request(app)
+    const cloudApp = createApp({ seedNews: false, store });
+    await request(cloudApp)
       .post("/api/me/profile")
       .set("x-client-uid", clientUid)
       .send({ nickname: "匿名喵", avatarUrl: "" })
       .expect(200);
 
-    // Now they log in WITH the same clientUid still attached.
-    const login = await request(app)
+    const vpsApp = createApp({
+      seedNews: false,
+      store,
+      wechat: makeWeChat({ c: "merge-openid" }),
+      sessionSecret: SECRET
+    });
+    const login = await request(vpsApp)
       .post("/api/auth/login")
       .set("x-client-uid", clientUid)
       .send({ code: "c" })
@@ -232,10 +241,45 @@ describe("login merges anonymous clientUid history into the openid account", () 
 
     // The openid account inherits the anonymous profile (merge happened).
     const token = login.body.token as string;
-    const boot = await request(app)
+    const boot = await request(vpsApp)
       .post("/api/me/bootstrap")
       .set("Authorization", `Bearer ${token}`)
       .expect(200);
     expect(boot.body.profile.nickname).toBe("匿名喵");
+  });
+});
+
+describe("VPS mode requires a valid Bearer for protected routes", () => {
+  // The whole point of the silent-relogin client path: an expired/missing
+  // token must 401 (NOT silently fall back to the anonymous clientUid
+  // identity), so the client knows to wx.login again.
+  it("401s a clientUid-only request (no token) instead of serving the anonymous identity", async () => {
+    const app = createApp({ seedNews: false, wechat: makeWeChat(), sessionSecret: SECRET });
+    const res = await request(app)
+      .post("/api/me/bootstrap")
+      .set("x-client-uid", "some-anon-client-uid-1234")
+      .send({});
+    expect(res.status).toBe(401);
+  });
+
+  it("401s an expired Bearer even when a clientUid is also present", async () => {
+    const app = createApp({ seedNews: false, wechat: makeWeChat(), sessionSecret: SECRET });
+    // Issued ~100 days ago → past the 90-day default window.
+    const stale = signSession("openid-stale", SECRET, Date.now() - 100 * 24 * 60 * 60 * 1000);
+    const res = await request(app)
+      .post("/api/me/bootstrap")
+      .set("Authorization", `Bearer ${stale}`)
+      .set("x-client-uid", "some-anon-client-uid-1234")
+      .send({});
+    expect(res.status).toBe(401);
+  });
+
+  it("still serves a request with a fresh valid Bearer", async () => {
+    const app = createApp({ seedNews: false, wechat: makeWeChat({ c: "vps-ok" }), sessionSecret: SECRET });
+    const login = await request(app).post("/api/auth/login").send({ code: "c" }).expect(200);
+    await request(app)
+      .post("/api/me/bootstrap")
+      .set("Authorization", `Bearer ${login.body.token}`)
+      .expect(200);
   });
 });

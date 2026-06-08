@@ -1050,6 +1050,17 @@ function withUser(
     try {
       const openid = getOpenId(request, sessionSecret);
       const clientUid = getClientUid(request);
+      // VPS mode (sessionSecret set): a verified Bearer (→ openid) is the
+      // ONLY accepted identity for protected routes. clientUid is plaintext
+      // / spoofable and is used solely at /api/auth/login (anonymous-history
+      // merge). A missing/expired/invalid token must 401 so the client
+      // silently re-logs-in (wx.login → fresh token) — otherwise an expired
+      // token would silently downgrade the user to their anonymous clientUid
+      // identity (different streak/records). clientUid still rides along so
+      // ensureUser can backfill it onto the openid row.
+      if (sessionSecret && !openid) {
+        throw new AppError(401, "UNAUTHORIZED", "登录态失效，请重新登录");
+      }
       if (!openid && !clientUid) {
         throw new AppError(
           401,

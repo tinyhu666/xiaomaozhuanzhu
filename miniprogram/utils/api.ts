@@ -112,7 +112,7 @@ function classifyError(errMsg: string): RetryKind {
   return "none";
 }
 
-async function callContainer<T>({ path, method = "GET", data }: RequestOptions) {
+async function callContainerCloud<T>({ path, method = "GET", data }: RequestOptions) {
   ensureCloudReady();
 
   const header: Record<string, string> = {
@@ -209,7 +209,208 @@ async function callContainer<T>({ path, method = "GET", data }: RequestOptions) 
   return response.data as T;
 }
 
+/* -------------------------------------------------------------------------- */
+/*  v0.41 (M3) — VPS transport: wx.request + wx.login Bearer token              */
+/* -------------------------------------------------------------------------- */
+
+/** True when the client should talk HTTPS to the VPS instead of 云托管. */
+function isHttpMode(): boolean {
+  return Boolean(runtimeConfig.apiBaseUrl);
+}
+
+const SESSION_TOKEN_STORAGE_KEY = "cpa.sessionToken";
+let cachedSessionToken: string | null = null;
+
+function getStoredSessionToken(): string {
+  if (cachedSessionToken) return cachedSessionToken;
+  try {
+    const existing = wx.getStorageSync(SESSION_TOKEN_STORAGE_KEY);
+    if (typeof existing === "string" && existing) {
+      cachedSessionToken = existing;
+      return existing;
+    }
+  } catch (error) {
+    console.warn("[api] read session token failed", error);
+  }
+  return "";
+}
+
+function setStoredSessionToken(token: string) {
+  cachedSessionToken = token || null;
+  try {
+    if (token) {
+      wx.setStorageSync(SESSION_TOKEN_STORAGE_KEY, token);
+    } else {
+      wx.removeStorageSync(SESSION_TOKEN_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.warn("[api] persist session token failed", error);
+  }
+}
+
+function wxLoginCode(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: (res) => (res.code ? resolve(res.code) : reject(new Error("wx.login 未返回 code"))),
+      fail: (error) => reject(new Error(extractErrMsg(error) || "wx.login 失败"))
+    });
+  });
+}
+
+/** Exchange a fresh wx.login code for a signed session token (VPS mode). */
+async function loginForToken(): Promise<string> {
+  const code = await wxLoginCode();
+  // Bare request WITHOUT a bearer — this call is how we obtain one.
+  const res = await httpRequestWithRetry({ path: "/auth/login", method: "POST", data: { code } }, {
+    skipAuth: true
+  });
+  const body = finalizeHttp<{ token?: string }>({ path: "/auth/login", method: "POST" }, res);
+  const token = body?.token ?? "";
+  if (!token) throw new Error("登录失败：服务端未返回 token");
+  setStoredSessionToken(token);
+  return token;
+}
+
+// Coalesce concurrent logins: at launch several pages may fire requests
+// at once; without this each would call wx.login (single-use codes) and
+// race to store a token. One inflight login is shared by all callers.
+let inflightLogin: Promise<string> | null = null;
+
+function relogin(): Promise<string> {
+  if (inflightLogin) return inflightLogin;
+  inflightLogin = loginForToken().finally(() => {
+    inflightLogin = null;
+  });
+  return inflightLogin;
+}
+
+async function ensureSessionToken(): Promise<string> {
+  return getStoredSessionToken() || relogin();
+}
+
+type HttpResult = { statusCode: number; data: unknown };
+type HttpExtra = { bearer?: string; skipAuth?: boolean };
+
+function httpRequestOnce(opts: RequestOptions, extra: HttpExtra): Promise<HttpResult> {
+  const header: Record<string, string> = {
+    "X-CLIENT-UID": getOrCreateClientUid()
+  };
+  if (opts.method === "POST") {
+    header["content-type"] = "application/json";
+  }
+  if (!extra.skipAuth && extra.bearer) {
+    header["Authorization"] = `Bearer ${extra.bearer}`;
+  }
+  const url = `${runtimeConfig.apiBaseUrl}${runtimeConfig.basePath}${opts.path}`;
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url,
+      method: opts.method ?? "GET",
+      header,
+      data: opts.method === "POST" ? opts.data ?? {} : opts.data,
+      success: (res) => resolve({ statusCode: res.statusCode, data: res.data }),
+      fail: (error) => reject(error)
+    });
+  });
+}
+
+/**
+ * Single request with the same retry profiles as the 云托管 path:
+ *   - 5xx (502/503/504) ⇒ treat like a cold-start / deploy window → back off.
+ *   - request:fail / timeout ⇒ transient network → one quick retry.
+ * 4xx (incl. 401/404) are real responses, returned as-is for the caller
+ * to interpret (callHttp turns 401 into a silent re-login).
+ */
+async function httpRequestWithRetry(opts: RequestOptions, extra: HttpExtra): Promise<HttpResult> {
+  let coldAttempts = 0;
+  let networkAttempts = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      const res = await httpRequestOnce(opts, extra);
+      const is5xx = res.statusCode >= 500 && res.statusCode <= 599;
+      if (is5xx && coldAttempts < COLD_START_RETRY_DELAYS.length) {
+        await delay(COLD_START_RETRY_DELAYS[coldAttempts]);
+        coldAttempts += 1;
+        continue;
+      }
+      return res;
+    } catch (error) {
+      const kind = classifyError(extractErrMsg(error));
+      if (kind === "cold-start" && coldAttempts < COLD_START_RETRY_DELAYS.length) {
+        await delay(COLD_START_RETRY_DELAYS[coldAttempts]);
+        coldAttempts += 1;
+        continue;
+      }
+      if (kind === "network" && networkAttempts < NETWORK_RETRY_DELAYS.length) {
+        await delay(NETWORK_RETRY_DELAYS[networkAttempts]);
+        networkAttempts += 1;
+        continue;
+      }
+      const errMsg = extractErrMsg(error);
+      if (errMsg.toLowerCase().includes("timeout")) throw new Error("网络超时，请稍后再试");
+      if (errMsg.toLowerCase().includes("request:fail")) throw new Error("网络连接异常，请检查网络后重试");
+      throw new Error(errMsg || "网络请求失败");
+    }
+  }
+}
+
+/** Map the HTTP response into either a typed body or a thrown Error. */
+function finalizeHttp<T>(opts: RequestOptions, res: HttpResult): T {
+  const payload = res.data as
+    | { error?: { code: string; message: string } }
+    | string
+    | null
+    | undefined;
+  if (payload && typeof payload === "object" && "error" in payload && payload.error) {
+    throw new Error(payload.error.message);
+  }
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${res.statusCode}`;
+    throw new Error(`${opts.method ?? "GET"} ${opts.path} 失败：${fallback}`);
+  }
+  return res.data as T;
+}
+
+async function callHttp<T>(opts: RequestOptions): Promise<T> {
+  // The login endpoint bootstraps auth — never attach/refresh a bearer for
+  // it (that would recurse). Everything else gets a token first, and a
+  // single silent re-login on a 401 (token expired / secret rotated).
+  const isLogin = opts.path === "/auth/login";
+  if (isLogin) {
+    return finalizeHttp<T>(opts, await httpRequestWithRetry(opts, { skipAuth: true }));
+  }
+  const bearer = await ensureSessionToken();
+  let res = await httpRequestWithRetry(opts, { bearer });
+  if (res.statusCode === 401) {
+    setStoredSessionToken("");
+    const fresh = await relogin();
+    res = await httpRequestWithRetry(opts, { bearer: fresh });
+  }
+  return finalizeHttp<T>(opts, res);
+}
+
+/**
+ * Transport dispatcher. Every exported API function calls this; it picks
+ * the 云托管 or VPS transport from runtimeConfig.apiBaseUrl so the cutover
+ * is a one-line config flip with no call-site churn.
+ */
+async function callContainer<T>(opts: RequestOptions): Promise<T> {
+  return isHttpMode() ? callHttp<T>(opts) : callContainerCloud<T>(opts);
+}
+
 export async function warmUpBackend() {
+  if (isHttpMode()) {
+    // VPS: pre-create the clientUid and (best-effort) log in so the first
+    // real call already carries a Bearer. Never let warmup fail launch.
+    getOrCreateClientUid();
+    try {
+      await ensureSessionToken();
+    } catch (error) {
+      console.info("[api] VPS warmup/login failed (will retry on real call)", error);
+    }
+    return;
+  }
   ensureCloudReady();
   // Pre-create the clientUid before any real call so even the first
   // /me/bootstrap arrives carrying our anonymous fallback identifier.
@@ -502,7 +703,89 @@ export function reminderDisable() {
 // 「动态」 tab deletion. Client had 0 importers since v0.22; server
 // /api/news + /api/news/:id routes are also gone (this version).
 
+/* -------------------------------------------------------------------------- */
+/*  Photo / avatar upload — dual mode (云托管 cloud:// vs VPS COS direct)        */
+/* -------------------------------------------------------------------------- */
+
+const ALLOWED_UPLOAD_EXTS = ["jpg", "jpeg", "png", "webp", "heic"];
+
+function safeUploadExt(localPath: string): string {
+  const raw = (localPath.split(".").pop() || "").split("?")[0].toLowerCase();
+  return ALLOWED_UPLOAD_EXTS.includes(raw) ? raw : "jpg";
+}
+
+function contentTypeForExt(ext: string): string {
+  switch (ext) {
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "heic":
+      return "image/heic";
+    default:
+      return "image/jpeg";
+  }
+}
+
+function requestUploadCredentials(kind: "checkin" | "avatar", exts: string[]) {
+  return callContainer<{
+    credentials: Array<{
+      objectKey: string;
+      method: string;
+      uploadUrl: string;
+      publicUrl: string;
+      expiresAt: string;
+    }>;
+  }>({
+    path: "/storage/upload-credential",
+    method: "POST",
+    data: { kind, files: exts.map((ext) => ({ ext })) }
+  });
+}
+
+function putToCos(uploadUrl: string, data: ArrayBuffer, contentType: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: uploadUrl,
+      method: "PUT",
+      header: { "Content-Type": contentType },
+      data,
+      success: (res) =>
+        res.statusCode >= 200 && res.statusCode < 300
+          ? resolve()
+          : reject(new Error(`上传失败 HTTP ${res.statusCode}`)),
+      fail: (error) => reject(new Error(extractErrMsg(error) || "上传失败"))
+    });
+  });
+}
+
+/**
+ * VPS direct upload: ask the server for a presigned PUT (it picks the
+ * objectKey), then PUT the file bytes straight to COS. Returns the
+ * server-chosen objectKey to submit back via complete / profile.
+ */
+async function uploadToCos(kind: "checkin" | "avatar", localPath: string): Promise<string> {
+  const ext = safeUploadExt(localPath);
+  const { credentials } = await requestUploadCredentials(kind, [ext]);
+  const cred = credentials?.[0];
+  if (!cred) throw new Error("未获取到上传凭证");
+  let buffer: ArrayBuffer;
+  try {
+    buffer = wx.getFileSystemManager().readFileSync(localPath) as ArrayBuffer;
+  } catch (error) {
+    console.warn("[api] read local file failed", error);
+    throw new Error("读取本地图片失败");
+  }
+  await putToCos(cred.uploadUrl, buffer, contentTypeForExt(ext));
+  return cred.objectKey;
+}
+
 export async function uploadCheckinPhoto(localPath: string) {
+  if (isHttpMode()) {
+    const objectKey = await uploadToCos("checkin", localPath);
+    // COS photos have no cloud:// fileId; the server keys on objectKey.
+    return { fileId: "", objectKey, localPath };
+  }
   ensureCloudReady();
   const timestamp = Date.now();
   const extension = localPath.split(".").pop() || "jpg";
@@ -523,6 +806,11 @@ export async function uploadCheckinPhoto(localPath: string) {
 }
 
 export async function uploadAvatar(localPath: string) {
+  if (isHttpMode()) {
+    const objectKey = await uploadToCos("avatar", localPath);
+    // `avatarUrl` is what the caller stores; cos:// is signed on read.
+    return { fileId: "", objectKey, avatarUrl: `cos://${objectKey}` };
+  }
   ensureCloudReady();
   const timestamp = Date.now();
   const extension = localPath.split(".").pop()?.split("?")[0] || "jpg";
@@ -537,6 +825,8 @@ export async function uploadAvatar(localPath: string) {
 
   return {
     fileId: result.fileID,
-    objectKey: cloudPath
+    objectKey: cloudPath,
+    // In 云托管 mode the avatar is stored as its cloud:// fileId.
+    avatarUrl: result.fileID
   };
 }

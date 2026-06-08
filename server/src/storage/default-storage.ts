@@ -253,6 +253,11 @@ export function createStorageClient(): StorageClient {
         return items.map((item) => ({
           objectKey: item.objectKey,
           method: "PUT" as const,
+          // The PUT URL intentionally does NOT sign request headers (no
+          // `Headers` passed). The client therefore sends an UNSIGNED
+          // Content-Type, which COS accepts. If header signing is ever
+          // added here, the client's putToCos Content-Type must be removed
+          // or signed in lockstep or every upload 403s (SignatureDoesNotMatch).
           uploadUrl: client.getObjectUrl({
             Bucket: bucket,
             Region: region,

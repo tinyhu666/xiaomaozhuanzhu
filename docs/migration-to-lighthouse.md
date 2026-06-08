@@ -124,9 +124,12 @@ mysql -u cpa -p cpa < backup.sql
 
 ## 微信小程序后台配置（M3 上线前）
 
-开发管理 → 服务器域名：
-- **request 合法域名**：`https://api.你的域名`
-- **uploadFile / downloadFile 合法域名**：COS 域名 `https://<bucket>.cos.<region>.myqcloud.com`
+开发管理 → 服务器域名（**注意**：客户端用 `wx.request` PUT 直传 COS，**不走 `wx.uploadFile`**，所以 COS 域名要进 **request** 白名单，而不是 uploadFile）：
+- **request 合法域名**：
+  - `https://api.你的域名`（业务 API）
+  - `https://<bucket>.cos.<region>.myqcloud.com`（照片直传 PUT，走 wx.request）
+- **downloadFile 合法域名**：
+  - `https://<bucket>.cos.<region>.myqcloud.com`（`<image>` 渲染签名 GET、海报 canvas 取图）
 
 ## 切换 & 回滚
 
@@ -155,3 +158,21 @@ mysql -u cpa -p cpa < backup.sql
 - **L3 500 处理器回显 `error.message`**（非 M1 引入）：后续将未捕获 500 收敛为通用消息，仅服务端记录细节。
 
 > 客户端 M3 注意：token 90 天过期 → 请求拿到 401（且非首次启动）时静默 `wx.login` 重新换 token 重试一次，对用户无感。
+
+## M2 评审结论（code-reviewer，APPROVE）
+
+- 核心安全属性（objectKey 由服务端决定、客户端不能注入路径）正确并有测试覆盖。
+- 修掉 `contentType` 空转参数（签名未绑定、有误导）→ 删除。
+- 遗留低危（`/storage/temp-urls` 跨用户签名 / 客户端自拟 `cos://` 头像，UUID 不可猜）已开后台 chip 跟踪，M2 范围外。
+
+## M3 评审结论（code-reviewer）+ 已修
+
+**云托管 parity 通过**：`apiBaseUrl===""` 时 `isHttpMode()` 为假，所有导出函数走原 `callContainerCloud` / `wx.cloud.uploadFile`，行为逐字节不变（仅重命名，未改实现）。发版时 `apiBaseUrl=""` 是 no-op，切换仅需改这一行。
+
+**评审发现 + 本次已修**：
+- **H（关键，已修）401 静默重登原为死代码**：客户端总带 `x-client-uid`，旧 `withUser` 仅在 openid+clientUid 都缺时才 401 → token 过期时 openid 空但 clientUid 在 → 不 401，请求被**静默降级为匿名身份**（streak/记录全变），客户端永远收不到 401、不会重登。**修复**：VPS 模式（设了 `sessionSecret`）`withUser` 要求有效 Bearer（→openid），缺失/过期/无效 token 一律 401；clientUid 仅在 `/api/auth/login` 用于合并匿名历史，且仍随请求透传供 `ensureUser` 回填。契约测试已加（clientUid-only→401、过期 Bearer→401、有效 Bearer→200）。
+- **M（已修）`app.ts` onLaunch 无条件 `wx.cloud.init`**：VPS 模式应 wx.cloud-free → 门控在 `!apiBaseUrl`。
+- **M（已修）海报 `cos://` 头像不渲染**：`loadImageOntoCanvas` 原只认 `cloud://` → 增 `cos://` 分支，走 `getTempUrls` 签临时 GET。
+- **M（已修）COS 直传 PUT 与签名**：服务端预签名**不签 header**，客户端发未签名 `Content-Type` 可被接受；已加注释把两侧锁在一起（将来若加 header 签名需同步）。
+- **M（已修）`readFileSync` 失败信息**：包一层友好报错「读取本地图片失败」。
+- 合法域名要点已并入上文「微信小程序后台配置」：COS 直传走 `wx.request` PUT → COS 域名进 **request** 白名单（非 uploadFile）。

@@ -8,12 +8,17 @@ App<IAppOption>({
     bootstrapped: false
   },
   async onLaunch() {
-    wx.cloud.init({
-      env: runtimeConfig.cloudEnv,
-      traceUser: true
-    });
-    // Fire-and-forget probe so the cloud-run container is warm by the time
-    // a page calls bootstrap / start. Errors are swallowed.
+    // 云托管 mode only — VPS mode (runtimeConfig.apiBaseUrl set) talks plain
+    // HTTPS and must stay wx.cloud-free, so don't init the cloud SDK there.
+    if (!runtimeConfig.apiBaseUrl) {
+      wx.cloud.init({
+        env: runtimeConfig.cloudEnv,
+        traceUser: true
+      });
+    }
+    // Fire-and-forget probe so the backend is warm (and, in VPS mode, the
+    // session token is pre-fetched) by the time a page calls bootstrap /
+    // start. Errors are swallowed.
     warmUpBackend().catch(() => {});
   },
   async ensureProfile() {
