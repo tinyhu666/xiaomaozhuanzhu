@@ -880,7 +880,11 @@ export function createApp(options: CreateAppOptions = {}) {
     const urlMap = new Map(tempUrls.map((item) => [item.objectKey, item.url]));
 
     const profileSerialized = serializeProfile(record.user, record.publicProfile);
-    profileSerialized.avatarUrl = await resolvePublicAvatarUrl(storage, profileSerialized.avatarUrl);
+    profileSerialized.avatarUrl = await resolvePublicAvatarUrl(
+      storage,
+      profileSerialized.avatarUrl,
+      record.user.id
+    );
 
     response.json({
       profile: profileSerialized,
@@ -909,12 +913,12 @@ export function createApp(options: CreateAppOptions = {}) {
   // now in case we revive the feature later. news_items table
   // also kept so existing data isn't deleted.
 
-  app.post("/api/storage/temp-urls", withUser(store, clock, sessionSecret, async (request, response) => {
+  app.post("/api/storage/temp-urls", withUser(store, clock, sessionSecret, async (request, response, context) => {
     const payload = parse(tempUrlSchema, request.body);
     const queries = [
       ...(payload.items ?? []),
       ...(payload.objectKeys ?? []).map((objectKey) => ({ objectKey }))
-    ];
+    ].filter((query) => objectKeyBelongsToUser(query.objectKey, context.user.id));
     response.json({
       items: await storage.getTemporaryUrls(queries)
     });
@@ -1235,6 +1239,24 @@ async function reapStaleSession(
 }
 
 /**
+ * v0.40 — ownership guard for COS signing. Server-issued keys are
+ * `uploads/<userId>/…` (checkin photos) and `avatars/<userId>/…`, so the
+ * 2nd path segment is the owner. We refuse to sign such a key for anyone
+ * but its owner — otherwise an authenticated user who learns/guesses
+ * another user's objectKey could mint a signed GET to a private object.
+ * Legacy / non-namespaced keys (云托管 `checkins/…`, resolved by fileId and
+ * never created on COS) are not subject to this and pass through, so the
+ * 云托管 read path is unaffected.
+ */
+function objectKeyBelongsToUser(objectKey: string, userId: string): boolean {
+  const parts = objectKey.split("/");
+  if (parts[0] === "uploads" || parts[0] === "avatars") {
+    return parts[1] === userId;
+  }
+  return true;
+}
+
+/**
  * Turn a stored avatar/photo reference into a storage query, or null if
  * it's already a plain URL (https) or empty.
  *  - `cloud://env.appid/path` (云托管): host is the env, so the real key
@@ -1260,9 +1282,21 @@ function extractStorageRef(value: string): StorageQuery | null {
   return null;
 }
 
-async function resolvePublicAvatarUrl(storage: StorageClient, avatarUrl: string) {
+async function resolvePublicAvatarUrl(
+  storage: StorageClient,
+  avatarUrl: string,
+  ownerUserId: string
+) {
   const ref = extractStorageRef(avatarUrl);
   if (!ref) return avatarUrl;
+  // cos:// avatars are client-chosen (profileSchema only checks scheme +
+  // length), so only sign one that actually belongs to the profile owner —
+  // otherwise a user could store `cos://avatars/<other>/x.jpg` and surface a
+  // signed URL to someone else's object on their own public page. cloud://
+  // (云托管) refs come from a platform-issued fileId and are trusted as-is.
+  if (avatarUrl.startsWith("cos://") && !objectKeyBelongsToUser(ref.objectKey, ownerUserId)) {
+    return "";
+  }
   const [resolved] = await storage.getTemporaryUrls([ref]);
   return resolved?.url || avatarUrl;
 }

@@ -163,7 +163,8 @@ mysql -u cpa -p cpa < backup.sql
 
 - 核心安全属性（objectKey 由服务端决定、客户端不能注入路径）正确并有测试覆盖。
 - 修掉 `contentType` 空转参数（签名未绑定、有误导）→ 删除。
-- 遗留低危（`/storage/temp-urls` 跨用户签名 / 客户端自拟 `cos://` 头像，UUID 不可猜）已开后台 chip 跟踪，M2 范围外。
+- 遗留低危（`/storage/temp-urls` 跨用户签名 / 客户端自拟 `cos://` 头像，UUID 不可猜）→ **v0.41.1 已修**：新增 `objectKeyBelongsToUser` 归属校验——`uploads/<userId>/…`、`avatars/<userId>/…` 只为本人签名；temp-urls 过滤非本人 key、`cos://` 头像仅签 profile 属主自己的 key（非本人→不签，返回空）；云托管 `checkins/…`（非命名空间、按 fileId 解析）放行不受影响。契约测试覆盖（本人签得到 / 跨用户被拒 / 旧 key 放行）。
+- `contentType` 空转字段在 M2 即已删除（option a）；v0.41.1 补一条契约测试钉住「额外 contentType 被 zod 剥离、不回显、签名也不绑定」。
 
 ## M3 评审结论（code-reviewer）+ 已修
 

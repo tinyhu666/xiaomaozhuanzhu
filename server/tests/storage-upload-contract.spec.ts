@@ -128,6 +128,21 @@ describe("POST /api/storage/upload-credential", () => {
     expect(creds[0].objectKey).toMatch(/^avatars\/[\w-]+\/[\w-]+\.png$/);
   });
 
+  it("ignores an extra contentType field — the signed PUT never bound it (option a)", async () => {
+    const { storage } = makeStubStorage();
+    const app = createApp({ clock: { now: () => clock.now() }, seedNews: false, storage });
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
+    const res = await request(app)
+      .post("/api/storage/upload-credential")
+      .set("x-wx-openid", openid)
+      // contentType is NOT in the schema; zod (non-strict) strips it.
+      .send({ kind: "checkin", files: [{ ext: "jpg", contentType: "image/jpeg" }] })
+      .expect(200);
+    const cred = res.body.credentials[0] as UploadCredential & { contentType?: string };
+    expect(cred.objectKey).toMatch(/^uploads\/[\w-]+\/202606\/[\w-]+\.jpg$/);
+    expect(cred).not.toHaveProperty("contentType");
+  });
+
   it("rejects avatar with more than one file, and >3 / empty files", async () => {
     const { storage } = makeStubStorage();
     const app = createApp({ clock: { now: () => clock.now() }, seedNews: false, storage });
@@ -241,14 +256,16 @@ describe("profileSchema — cos:// avatar accept + resolve", () => {
       .expect(400);
   });
 
-  it("resolves a cos:// avatar to a signed URL on the public profile", async () => {
+  it("resolves an OWNED cos:// avatar to a signed URL on the public profile", async () => {
     const boot = await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
     const slug = boot.body.profile.shareSlug as string;
+    const userId = boot.body.profile.id as string;
+    const key = `avatars/${userId}/a.jpg`;
 
     await request(app)
       .post("/api/me/profile")
       .set("x-wx-openid", openid)
-      .send({ nickname: "喵", avatarUrl: "cos://avatars/u/a.jpg" })
+      .send({ nickname: "喵", avatarUrl: `cos://${key}` })
       .expect(200);
     await request(app)
       .post("/api/share/me")
@@ -257,7 +274,89 @@ describe("profileSchema — cos:// avatar accept + resolve", () => {
       .expect(200);
 
     const pub = await request(app).get(`/api/public/${slug}`).expect(200);
-    // cos://avatars/u/a.jpg → objectKey "avatars/u/a.jpg" → stub signs it.
-    expect(pub.body.profile.avatarUrl).toBe("https://signed.example/avatars/u/a.jpg");
+    expect(pub.body.profile.avatarUrl).toBe(`https://signed.example/${key}`);
+  });
+
+  it("does NOT sign a cross-user cos:// avatar (ownership guard → empty)", async () => {
+    const boot = await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
+    const slug = boot.body.profile.shareSlug as string;
+
+    // The schema still ACCEPTS the write (scheme-only check), but the read
+    // path must refuse to sign a key in someone else's namespace.
+    await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", openid)
+      .send({ nickname: "喵", avatarUrl: "cos://avatars/another-user-id/secret.jpg" })
+      .expect(200);
+    await request(app)
+      .post("/api/share/me")
+      .set("x-wx-openid", openid)
+      .send({ isPublic: true, requireWechatAuth: false })
+      .expect(200);
+
+    const pub = await request(app).get(`/api/public/${slug}`).expect(200);
+    expect(pub.body.profile.avatarUrl).toBe("");
+  });
+});
+
+describe("POST /api/storage/temp-urls — per-user ownership guard", () => {
+  let clock: TestClock;
+  const openid = "temp-url-user";
+  let app: ReturnType<typeof createApp>;
+
+  beforeEach(() => {
+    clock = new TestClock("2026-06-07T09:00:00+08:00");
+    const { storage } = makeStubStorage();
+    app = createApp({ clock: { now: () => clock.now() }, seedNews: false, storage });
+  });
+
+  // A server-issued key reveals the caller's userId as its 2nd segment.
+  async function ownUploadKey(): Promise<{ userId: string; key: string }> {
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
+    const cred = await request(app)
+      .post("/api/storage/upload-credential")
+      .set("x-wx-openid", openid)
+      .send({ kind: "checkin", files: [{ ext: "jpg" }] })
+      .expect(200);
+    const key = cred.body.credentials[0].objectKey as string;
+    return { userId: key.split("/")[1], key };
+  }
+
+  it("signs the caller's own uploads/<userId> key", async () => {
+    const { key } = await ownUploadKey();
+    const res = await request(app)
+      .post("/api/storage/temp-urls")
+      .set("x-wx-openid", openid)
+      .send({ objectKeys: [key] })
+      .expect(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].url).toContain(key);
+  });
+
+  it("refuses to sign another user's uploads/ or avatars/ key, keeps the caller's own", async () => {
+    const { userId, key } = await ownUploadKey();
+    const foreignUpload = `uploads/${userId}-someone-else/202606/x.jpg`;
+    const foreignAvatar = "avatars/victim-user-id/face.jpg";
+    const res = await request(app)
+      .post("/api/storage/temp-urls")
+      .set("x-wx-openid", openid)
+      .send({ objectKeys: [key, foreignUpload, foreignAvatar] })
+      .expect(200);
+    const signed = (res.body.items as Array<{ objectKey: string }>).map((i) => i.objectKey);
+    expect(signed).toEqual([key]);
+    expect(signed).not.toContain(foreignUpload);
+    expect(signed).not.toContain(foreignAvatar);
+  });
+
+  it("passes through legacy 云托管 checkins/ keys (not user-namespaced)", async () => {
+    await request(app).post("/api/me/bootstrap").set("x-wx-openid", openid).expect(200);
+    const legacy = "checkins/2026/06/1717000000.jpg";
+    const res = await request(app)
+      .post("/api/storage/temp-urls")
+      .set("x-wx-openid", openid)
+      .send({ items: [{ objectKey: legacy, fileId: "cloud://env.appid/checkins/2026/06/1717000000.jpg" }] })
+      .expect(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].objectKey).toBe(legacy);
   });
 });
