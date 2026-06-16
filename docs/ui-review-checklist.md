@@ -160,6 +160,7 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 - [ ] `npm run typecheck` 双绿
 - [ ] `npx vitest run` 全过
 - [ ] 改了 wxml/wxss → 跑过 §1 的按钮/pill 审查
+- [ ] 改了等分网格/多列布局 → 跑过 §6（grid 不用 flex%）+ grep 自查
 - [ ] 改了 tab bar 配置 → 跑过 §2 的索引同步
 - [ ] 改了 home / complete → 跑过 §3 的 smoke test
 - [ ] 版本号同步（`package.json` + `miniprogram/config/runtime.ts`）
@@ -182,3 +183,44 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 | v0.26.0 | profile 头像有"未知绿色色块" | 38rpx 角标在 `overflow:hidden + border-radius:50%` 的圆形 mask 下被裁成三角形 | 直接删除角标，依靠 chooseAvatar 全区域 tap target；§1E：圆形 mask 内不要放方形角标 |
 | v0.26.0 | 学习日报「保存失败」误报 | iOS 端 `saveImageToPhotosAlbum` errMsg 格式多变，老的 auth 检测错过这些 case | 扩大 auth 关键词匹配（auth/scope/permission/deny），并在 toast 里显示截断 errMsg 方便排查 |
 | v0.31.3-4 | 真机上几乎所有卡片/chip/按钮"不可见"，专注模式背景变浅 | ① WeChat `<button>` 原生底色优先级高，`.btn-v2--primary { background: var(--c-primary) }` 不加 `!important` 压不住 → 按钮透明 ② 白卡 `#FFFFFF` 叠在近白页面 `#F3FAF6` 上 + 4% 阴影 + 浅描边，真机上对比度低于感知阈值 → 卡片像"悬空文字" | §1F 本文件：关键表面用**字面量 hex**（非 var），按钮底色 `!important`，卡片必须有**清晰可见的描边**（≥ #D2E1DA）不能只靠填充对比；focus mode bg/文字用 hex + `!important` |
+| v0.42.1 | 日历周次表头「日」叠到「一」下、日期网格每行只剩 6 格错列 | 重构期把 `.calendar-board__weekdays/__grid` 从 `display:grid` 改成 `flex-wrap:wrap` + `width: calc(14.285% - 8rpx)`，7 项每行总宽在 rpx 取整下临界溢出 → 第 7 列折行 | §6 本文件：等分多列**禁用 flex% 宽度**，一律 `display:grid; repeat(N, minmax(0,1fr))`；同型隐患同期在 `app.wxss .photo-grid`（33.333%）一并清除 |
+
+---
+
+## 6. 等分多列网格 —— 用 CSS grid，**禁用 flex% 宽度**
+
+任何「N 列等分」的网格（星期表头、日历格子、照片九宫格、六科卡片、徽章墙、
+图例、横排标签…）**必须**用：
+
+```css
+.grid {
+  display: grid;
+  grid-template-columns: repeat(N, minmax(0, 1fr));
+  gap: Xrpx;            /* 行列间距交给 gap，别用子项 margin */
+}
+/* 子项不要写 width；grid track 自己撑满 */
+```
+
+**禁止**这种写法（v0.42.1 日历 + photo-grid 两次踩坑的根因）：
+
+```css
+.grid { display: flex; flex-wrap: wrap; margin: -Xrpx; }
+.grid__item { width: calc(100%/N - Xrpx); margin: Xrpx; }   /* ✗ */
+```
+
+为什么会坏：`100%/N` 在 rpx→px 取整时，N 个子项 + margin 累加常常比容器**多出
+亚像素**，flex-wrap 就把最后一个挤到下一行 → 整列折行、错位。模拟器按理想像素
+算，**看不出来**；真机不同屏宽才暴露。grid 的 `repeat(N, 1fr)` 由布局引擎精确均分，
+数学上不会溢出，永不折行。
+
+ship 前 grep 自查（应只命中注释，不命中真实规则）：
+
+```bash
+for f in $(find miniprogram -name '*.wxss'); do \
+  grep -q 'flex-wrap' "$f" && grep -qE 'width: *calc\([0-9.]+%' "$f" && echo "SUSPECT: $f"; done
+```
+
+> 另一坑：同一选择器被**多处重复定义**（重构追加的新块覆盖旧块）。改布局前先
+> 确认「最终生效」的是哪一份（WXSS 同特异性按**源序后者胜**），别在旧块上改而被
+> 后面的块盖掉。v0.42.1 日历正是三处 `.calendar-board__grid` 级联、flex 块覆盖了
+> 正确的 grid 块所致。
