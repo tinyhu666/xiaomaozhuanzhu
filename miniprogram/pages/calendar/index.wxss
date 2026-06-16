@@ -497,22 +497,11 @@
   padding: 24rpx;
 }
 
-.calendar-board__weekdays,
-.calendar-board__grid {
-  display: flex;
-  flex-wrap: wrap;
-  margin-left: -4rpx;
-  margin-right: -4rpx;
-}
-
-.calendar-board__weekdays text,
-.calendar-board__cell {
-  width: calc(14.285% - 8rpx);
-  margin-left: 4rpx;
-  margin-right: 4rpx;
-  box-sizing: border-box;
-}
-
+/* v0.42.1 — column layout removed here. This redesign-era block used
+   `display:flex; flex-wrap:wrap` + `width: calc(14.285% - 8rpx)`, which on
+   rpx rounding overflowed by a sub-pixel and wrapped the 7th column (日
+   stacked under 一). The robust `display:grid; repeat(7, 1fr)` rule above
+   is now the single source of column layout. Visual-only rules stay. */
 .calendar-board__weekdays text {
   color: #5E7D75;
   font-size: 20rpx;
@@ -525,7 +514,6 @@
 
 .calendar-board__cell {
   height: 88rpx;
-  margin-bottom: 8rpx;
   border-radius: 16rpx;
   border: 1rpx solid #DCEAE3;
   background: #ECF5F0;
@@ -708,19 +696,8 @@
   margin-top: 14rpx;
 }
 
-.calendar-board__weekdays,
-.calendar-board__grid {
-  margin-left: -5rpx;
-  margin-right: -5rpx;
-}
-
-.calendar-board__weekdays text,
-.calendar-board__cell {
-  width: calc(14.285% - 10rpx);
-  margin-left: 5rpx;
-  margin-right: 5rpx;
-}
-
+/* v0.42.1 — see note above: dropped the flex/percentage-width column
+   layout that wrapped the 7th column. CSS grid (repeat(7,1fr)) handles it. */
 .calendar-board__weekdays text {
   color: rgba(31, 38, 36, 0.46);
   font-size: 18rpx;
@@ -732,7 +709,7 @@
   align-items: flex-start;
   justify-content: space-between;
   height: 76rpx;
-  margin-bottom: 10rpx;
+  /* row spacing comes from the grid `gap` now (was margin-bottom under flex) */
   padding: 10rpx;
   border-radius: 14rpx;
   border: 1rpx solid rgba(21, 89, 70, 0.08);
@@ -952,7 +929,9 @@
 .calendar-makeup__btn {
   display: inline-flex;
   align-items: center;
-  min-height: 60rpx;
+  /* v0.42.1 — 60rpx was below the project's 76rpx secondary-control tap
+     floor (cf. .calendar-hero__nav, v0.32.5). padding stays 0 28rpx. */
+  min-height: 76rpx;
   padding: 0 28rpx;
   border-radius: 999rpx;
   background: #ecf5f0;

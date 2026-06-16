@@ -286,6 +286,9 @@
 .complete-hero__pill {
   display: inline-flex;
   align-items: center;
+  /* v0.42.1 — emoji + CJK split into separate <text> children with an
+     explicit line-height to kill the baseline jitter (§1A). gap spaces them. */
+  gap: 4rpx;
   min-height: 44rpx;
   margin-top: 16rpx;
   padding: 0 16rpx;
@@ -294,6 +297,12 @@
   color: #C2562B;
   font-size: 22rpx;
   font-weight: 600;
+  line-height: 1.4;
+}
+
+.complete-hero__pill-emoji,
+.complete-hero__pill-text {
+  line-height: 1.4;
 }
 
 .complete-form {

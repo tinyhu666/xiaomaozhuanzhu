@@ -2,7 +2,10 @@
   <view class="complete-hero">
     <text class="complete-hero__label">结束学习</text>
     <text class="complete-hero__title">这次专注了 {{durationText}}</text>
-    <text wx:if="{{pomodoroBadgeText}}" class="complete-hero__pill">{{pomodoroBadgeText}}</text>
+    <view wx:if="{{pomodoroCycles > 0}}" class="complete-hero__pill">
+      <text class="complete-hero__pill-emoji">🍅</text>
+      <text class="complete-hero__pill-text">完成 {{pomodoroCycles}} 个番茄</text>
+    </view>
   </view>
 
   <view class="complete-form">

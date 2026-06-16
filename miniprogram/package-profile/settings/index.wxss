@@ -232,6 +232,19 @@
   flex-shrink: 0;
 }
 
+/* v0.42.1 — bindtap is on the 76×44rpx switch itself; the mint pill size is
+   intentional (v0.32 note), so expand only the tap HIT AREA to ~88rpx via a
+   transparent ::after. Zero visual change; parent is position:relative. */
+.reminder-row__switch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 88rpx;
+  height: 88rpx;
+}
+
 .reminder-row__switch.is-on {
   background: linear-gradient(135deg, #63cba8 0%, #2ea985 100%);
 }

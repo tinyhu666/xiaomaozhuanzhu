@@ -837,6 +837,17 @@ page {
   box-sizing: border-box;
 }
 
+/* v0.42.1 — interactive chips need a taller tap target than the shared
+   pill above (48rpx). Scoped to the tappable chips only so the non-
+   interactive .badge keeps its compact 48rpx. Uses vertical padding so
+   wrapped multi-row chip lists still breathe. */
+.chip-v2,
+.tag-chip {
+  min-height: 56rpx;
+  padding-top: 14rpx;
+  padding-bottom: 14rpx;
+}
+
 .chip-v2.is-active,
 .tag-chip.is-active {
   background: #155946;
@@ -920,17 +931,14 @@ page {
   min-height: 176rpx;
 }
 
-.photo-grid {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -8rpx;
-}
-
+/* v0.42.1 — removed the duplicate flex `.photo-grid` that shadowed the
+   grid definition above. `flex-wrap` + `width: calc(33.333% - 16rpx)` is the
+   same rpx-rounding wrap anti-pattern that broke the calendar (see the note
+   in pages/calendar/index.wxss). The grid `repeat(3, minmax(0,1fr))` above
+   is now the single layout source; these item rules keep the live visuals. */
 .photo-item,
 .photo-picker {
-  width: calc(33.333% - 16rpx);
   height: 184rpx;
-  margin: 8rpx;
   border-radius: 16rpx;
   background: #ECF5F0;
 }

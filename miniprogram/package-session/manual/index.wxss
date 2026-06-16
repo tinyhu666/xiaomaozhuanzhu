@@ -26,7 +26,9 @@
 
 .manual-date__chev {
   font-size: 32rpx;
-  color: #8fa59c;
+  /* v0.42.1 — #8fa59c was 2.46:1 on #f2faf6 (below AA). #4F6E66 = 5.27:1,
+     still lighter than the date value (#21473f) so the chevron stays sub. */
+  color: #4F6E66;
 }
 
 /* v0.37 — A3 章节/主题 input. */

@@ -33,9 +33,11 @@ type CompletePageData = {
   tagChips: ChipView[];
   photos: LocalPhoto[];
   submitting: boolean;
-  /** Pomodoro cycles completed in this session — display + submit. */
+  /** Pomodoro cycles completed in this session — display + submit.
+   *  v0.42.1 — the badge is now rendered from pomodoroCycles directly in
+   *  WXML (emoji + CJK split into separate <text>), so the old
+   *  pre-joined `pomodoroBadgeText` string was removed (§1A baseline). */
   pomodoroCycles: number;
-  pomodoroBadgeText: string;
   /** v0.25 — when set, the user just unlocked an achievement on this
    *  submit. We surface a dedicated unlock overlay. If null, we just
    *  toast "已记录" and head home — no celebratory noise for sessions
@@ -61,7 +63,6 @@ Page<{}, CompletePageData>({
     photos: [],
     submitting: false,
     pomodoroCycles: 0,
-    pomodoroBadgeText: "",
     unlockedBadge: null,
     unlockedBadgeRarityLabel: ""
   },
@@ -79,8 +80,7 @@ Page<{}, CompletePageData>({
       sessionId: String(query.sessionId ?? ""),
       durationText: `${minutes} 分钟`,
       subjectChips: SUBJECTS.map((value) => ({ value, selected: false })),
-      pomodoroCycles: cycles,
-      pomodoroBadgeText: cycles > 0 ? `🍅 完成 ${cycles} 个番茄` : ""
+      pomodoroCycles: cycles
     });
   },
 
