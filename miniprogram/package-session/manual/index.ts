@@ -12,8 +12,12 @@ const TAGS = ["顺利", "卡住", "高效", "复习", "刷题", "新课"];
 const DURATIONS = [15, 25, 30, 45, 60, 90, 120];
 
 function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // v0.43 — Shanghai "today", mirroring the server's formatShanghaiDate
+  // (fixed +8h). The server rejects date > Shanghai-today, so a device in
+  // UTC+9..+14 between local midnight and Shanghai midnight used to get a
+  // default date of "tomorrow in Shanghai" → 400「不能补录未来的日期」.
+  const d = new Date(Date.now() + 8 * 3600_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
 Page({

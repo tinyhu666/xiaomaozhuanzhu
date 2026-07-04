@@ -31,6 +31,8 @@ type GuideRow = {
   rarity: BadgeRarity;
   rarityLabel: string;
   unlocked: boolean;
+  /** Cat-breed illustration; wxml falls back to a「猫」placeholder without it. */
+  imageUrl?: string;
 };
 
 type BadgesPageData = {
@@ -127,7 +129,11 @@ Page<{}, BadgesPageData>({
           description: b.description,
           rarity: b.rarity,
           rarityLabel: b.rarityLabel,
-          unlocked: b.unlocked
+          unlocked: b.unlocked,
+          // v0.43 — was missing, so the guide's wx:if={{item.imageUrl}} never
+          // fired and every row showed the「猫」text placeholder while the
+          // grid above showed real cat images.
+          imageUrl: b.imageUrl
         }));
 
       // v0.25 — pick the hero sub-line content.

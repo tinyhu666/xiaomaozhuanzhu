@@ -44,7 +44,24 @@
 }
 
 .share-card__switch {
+  /* relative 必须在 switch 自身：::after 命中区才以开关为中心（放父行会
+     悬在整行文字上导致误触）。 */
+  position: relative;
   transform: scale(0.85);
+}
+
+/* v0.43 — 触控扩区（对齐 settings 开关的 v0.42.1 基线）。104rpx ≈ 88/0.85，
+   补偿 scale(0.85) 坐标系后净得约 88rpx。透明、零视觉影响。
+   ⚠️ 原生 <switch> 走 bindchange：真机需点一次扩张区确认能触发；
+   若不触发，回退方案 = 删掉 scale(0.85) 用原生尺寸。 */
+.share-card__switch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 104rpx;
+  height: 104rpx;
 }
 
 .share-card__label {

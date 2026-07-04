@@ -11,5 +11,5 @@ export const runtimeConfig = {
   // cutover = set this to the备案'd HTTPS domain, rollback = clear it.
   // Must also be in the 小程序后台 request 合法域名 whitelist.
   apiBaseUrl: "",
-  appVersion: "0.42.1"
+  appVersion: "0.43.0"
 };

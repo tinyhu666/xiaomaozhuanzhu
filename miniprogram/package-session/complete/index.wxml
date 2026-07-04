@@ -72,7 +72,7 @@
     </view>
   </view>
 
-  <button class="cta-button complete-submit" loading="{{submitting}}" bindtap="submit">完成打卡</button>
+  <button class="cta-button complete-submit" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submit">完成打卡</button>
 
   <!--
     v0.25 — Achievement unlock overlay. Replaces the per-session

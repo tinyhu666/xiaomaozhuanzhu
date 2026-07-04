@@ -102,6 +102,21 @@ function extractErrMsg(error: unknown): string {
   return String(error);
 }
 
+/**
+ * v0.43 — user-friendly error for non-2xx responses WITHOUT a structured
+ * `{error:{message}}` body (those keep the server's Chinese copy). Pages
+ * toast `error.message` directly, so "POST /xxx 失败：HTTP 400" leaked raw
+ * transport details to users. Technical detail goes to the console only.
+ */
+function httpStatusError(method: string, path: string, statusCode: number, rawBody: unknown): Error {
+  console.warn(`[api] ${method} ${path} HTTP ${statusCode}`, rawBody);
+  if (statusCode === 400 || statusCode === 422) return new Error("请求参数有误，请重试");
+  if (statusCode === 401 || statusCode === 403) return new Error("登录状态已失效，请重新进入小程序");
+  if (statusCode === 404) return new Error("服务暂不可用，请稍后再试");
+  if (statusCode >= 500) return new Error("服务异常，请稍后再试");
+  return new Error(`请求失败（${statusCode}），请稍后再试`);
+}
+
 type RetryKind = "cold-start" | "network" | "none";
 
 function classifyError(errMsg: string): RetryKind {
@@ -203,8 +218,7 @@ async function callContainerCloud<T>({ path, method = "GET", data }: RequestOpti
 
   const statusCode = (response as { statusCode?: number }).statusCode;
   if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
-    const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${statusCode}`;
-    throw new Error(`${method} ${path} 失败：${fallback}`);
+    throw httpStatusError(method, path, statusCode, payload);
   }
 
   return response.data as T;
@@ -368,8 +382,7 @@ function finalizeHttp<T>(opts: RequestOptions, res: HttpResult): T {
     throw new Error(payload.error.message);
   }
   if (res.statusCode < 200 || res.statusCode >= 300) {
-    const fallback = typeof payload === "string" && payload.length > 0 ? payload : `HTTP ${res.statusCode}`;
-    throw new Error(`${opts.method ?? "GET"} ${opts.path} 失败：${fallback}`);
+    throw httpStatusError(opts.method ?? "GET", opts.path, res.statusCode, payload);
   }
   return res.data as T;
 }

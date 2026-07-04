@@ -216,8 +216,12 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 ship 前 grep 自查（应只命中注释，不命中真实规则）：
 
 ```bash
-for f in $(find miniprogram -name '*.wxss'); do \
-  grep -q 'flex-wrap' "$f" && grep -qE 'width: *calc\([0-9.]+%' "$f" && echo "SUSPECT: $f"; done
+# 先剥离注释再匹配 —— 防再犯注释里会引用反模式原文，不剥会永远误报
+for f in $(find miniprogram -name '*.wxss'); do
+  s=$(perl -0777 -pe 's{/\*.*?\*/}{}gs' "$f")
+  echo "$s" | grep -q 'flex-wrap' && echo "$s" | grep -qE 'width: *calc\([0-9.]+%' \
+    && echo "SUSPECT: $f"
+done
 ```
 
 > 另一坑：同一选择器被**多处重复定义**（重构追加的新块覆盖旧块）。改布局前先

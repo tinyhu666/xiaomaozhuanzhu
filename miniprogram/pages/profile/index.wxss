@@ -755,15 +755,10 @@
   font-size: 22rpx;
 }
 
-.stat-grid {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -8rpx;
-}
-
+/* v0.43 — redesign 期的 .stat-grid flex% 覆盖已删（checklist §6 反模式，
+   同 v0.42.1 calendar）：残留 gap:14rpx + 每行恰好 100% → 2×2 必塌成
+   1 列 4 行。布局回落到上方 grid repeat(2)；视觉属性保留。 */
 .stat-tile {
-  width: calc(50% - 16rpx);
-  margin: 8rpx;
   padding: 24rpx;
   box-sizing: border-box;
   overflow: hidden;

@@ -177,6 +177,13 @@ Page<{}, CompletePageData>({
   },
 
   async submit() {
+    // v0.43 — re-entry guard. WeChat <button loading> is only a visual
+    // spinner (does NOT block taps), so a double-tap during the network
+    // round-trip would fire a second POST (server is idempotent, but the
+    // duplicate response's toast + switchTab timer destroys the badge
+    // unlock overlay mid-animation). catch resets submitting=false so a
+    // failed submit stays retryable.
+    if (this.data.submitting) return;
     const selectedSubjectChip = this.data.subjectChips.find((chip) => chip.selected);
     const selectedTags = this.data.tagChips.filter((chip) => chip.selected).map((chip) => chip.value);
 

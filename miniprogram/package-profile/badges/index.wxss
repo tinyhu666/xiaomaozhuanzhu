@@ -397,15 +397,10 @@
   font-weight: 600;
 }
 
-.badges-grid {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -8rpx;
-}
-
+/* v0.43 — redesign 期的 .badges-grid flex% 覆盖已删（checklist §6 反模式，
+   同 v0.42.1 calendar）。布局回落到上方 grid repeat(2)；width/margin 必须
+   一并删（grid 下 50% 会按 track 解析成 1/4 容器宽），视觉属性保留。 */
 .badge-tile {
-  width: calc(50% - 16rpx);
-  margin: 8rpx;
   padding: 24rpx 18rpx;
   box-sizing: border-box;
   filter: grayscale(0.85);

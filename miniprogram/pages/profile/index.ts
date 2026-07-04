@@ -23,6 +23,11 @@ type StatTileView = {
 
 type ProfilePageData = {
   profile: { nickname: string; avatarUrl: string; profileCompleted: boolean };
+  /** v0.43 — the PERMANENT avatar reference (cloud:// or cos://) to send
+   *  back on saveProfile. profile.avatarUrl may hold a local temp path
+   *  (wxfile://) right after choosing a new avatar so the <image> can
+   *  render it; sending that to the server fails schema validation. */
+  avatarRef: string;
   nicknameFocus: boolean;
   badgeProgressLabel: string;
   subjectsHint: string;
@@ -49,6 +54,7 @@ type ProfilePageData = {
 Page<{}, ProfilePageData>({
   data: {
     profile: { nickname: "", avatarUrl: "", profileCompleted: false },
+    avatarRef: "",
     nicknameFocus: false,
     badgeProgressLabel: "—",
     subjectsHint: "—",
@@ -115,6 +121,7 @@ Page<{}, ProfilePageData>({
           avatarUrl: dashboard.profile?.avatarUrl || "",
           profileCompleted: Boolean(dashboard.profile?.profileCompleted)
         },
+        avatarRef: dashboard.profile?.avatarUrl || "",
         badgeProgressLabel: totalBadges ? `已解锁 ${unlocked} / ${totalBadges}` : "—",
         subjectsHint: subjectsLabel,
         shareHint: dashboard.profile?.isPublic ? "已开启" : "未开启",
@@ -151,7 +158,12 @@ Page<{}, ProfilePageData>({
         avatarUrl: uploaded.avatarUrl
       });
       this.setData({
-        profile: { ...this.data.profile, avatarUrl: localUrl }
+        // Display keeps the local temp path (renders immediately; cos://
+        // wouldn't render in <image>), while avatarRef tracks the permanent
+        // reference so later saveProfile calls never send wxfile:// (which
+        // the server schema rejects → nickname saves would 400).
+        profile: { ...this.data.profile, avatarUrl: localUrl },
+        avatarRef: uploaded.avatarUrl
       });
       wx.showToast({ title: "头像已更新", icon: "success" });
       if (focusNicknameAfter) {
@@ -180,7 +192,8 @@ Page<{}, ProfilePageData>({
     try {
       await saveProfile({
         nickname: value,
-        avatarUrl: this.data.profile.avatarUrl || ""
+        // Always send the permanent reference, never a local temp path.
+        avatarUrl: this.data.avatarRef || this.data.profile.avatarUrl || ""
       });
       this.setData({
         profile: { ...this.data.profile, nickname: value, profileCompleted: true }

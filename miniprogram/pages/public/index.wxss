@@ -218,17 +218,9 @@
   color: #5E7D75;
 }
 
-.public-stats {
-  display: flex;
-  flex-wrap: wrap;
-  margin: -8rpx;
-}
-
-.public-stat {
-  width: calc(50% - 16rpx);
-  margin: 8rpx;
-  box-sizing: border-box;
-}
+/* v0.43 — redesign 期的 flex% 覆盖已删（同 v0.42.1 calendar/photo-grid
+   反模式，见 checklist §6）：flex-wrap + calc(50%-16rpx) 叠加前块残留
+   gap:16rpx 必超行宽 → 第二列必现折行。布局回落到上方 grid repeat(2)。 */
 
 .public-stat__value,
 .recent-item__subject {
