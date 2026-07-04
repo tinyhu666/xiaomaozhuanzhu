@@ -57,6 +57,12 @@
 
 ## 服务器部署（M4，备案后执行）
 
+> **已脚本化**：`scripts/deploy-vps.sh`（经独立审查）。SSH 到新服务器后：
+> `curl -fsSL https://raw.githubusercontent.com/tinyhu666/xiaomaozhuanzhu/main/scripts/deploy-vps.sh -o deploy-vps.sh && sudo bash deploy-vps.sh setup`
+> 子命令：`deploy`（日常更新）/ `import backup.sql`（迁数据）/ `ssl <域名>`（备案后签 HTTPS）
+> / `expose-mysql <云托管出口IP>`（共享库双跑）/ `status`（体检）。
+> 下面的手工步骤仅作原理参考，以脚本为准。
+
 **规格建议**：2 核 2G 起；地域选已备案域名对应区域（国内）。系统 Ubuntu 22.04。
 
 ```bash
@@ -76,7 +82,9 @@ npm ci && npm run build:server
 # 4. server/.env（见下「环境变量」）
 
 # 5. 启动（schema 启动自动建表/迁移）
-pm2 start "node server/dist/index.js" --name cpa --update-env
+#    ⚠️ 产物入口是 dist/src/index.js（tsconfig rootDir="." 镜像源码树），
+#    且 cwd 必须是仓库根（index.ts 从 cwd 解析 server/.env）
+pm2 start server/dist/src/index.js --name cpa --cwd /opt/xiaomao
 pm2 save && pm2 startup
 
 # 6. nginx 反代 + HTTPS（certbot）
