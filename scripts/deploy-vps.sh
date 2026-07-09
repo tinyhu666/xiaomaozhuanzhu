@@ -63,19 +63,29 @@ setup_packages() {
   log "apt 安装 nginx / mysql-server / git 等"
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
-  apt-get install -y nginx mysql-server git curl ca-certificates
+  # gnupg 必装：NodeSource 安装脚本要用它加 APT GPG key，缺了会导致
+  # 只装上不带 npm 的发行版 nodejs（经典坑）。
+  apt-get install -y nginx mysql-server git curl ca-certificates gnupg
   timedatectl set-timezone Asia/Shanghai || true
   systemctl enable --now nginx mysql
 }
 
 setup_node() {
-  if command -v node >/dev/null 2>&1 && [ "$(node -v | sed 's/^v//' | cut -d. -f1)" -ge 20 ]; then
-    log "Node $(node -v) 已就绪，跳过安装"
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 \
+     && [ "$(node -v | sed 's/^v//' | cut -d. -f1)" -ge 20 ]; then
+    log "Node $(node -v) + npm 已就绪，跳过安装"
   else
     log "安装 Node 20（NodeSource）"
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    # 先下载到文件再执行：`curl | bash` 在下载失败时会把空输入喂给 bash
+    # 而静默成功（set -e 抓不到），改成 -o 文件让失败能被捕获。
+    curl -fsSL https://deb.nodesource.com/setup_20.x -o /tmp/nodesource_setup.sh \
+      || die "NodeSource 安装脚本下载失败（网络？）。重试或手动：apt-get install -y nodejs npm"
+    bash /tmp/nodesource_setup.sh
     apt-get install -y nodejs
   fi
+  # 显式校验：装完必须有 npm，否则明确报错而不是拖到后面 npm ci 才炸。
+  command -v npm >/dev/null 2>&1 \
+    || die "Node 安装异常：npm 不存在。排查：node -v；apt-cache policy nodejs（来源应是 nodesource，不是 Ubuntu universe）"
   command -v pm2 >/dev/null 2>&1 || npm install -g pm2
 }
 
