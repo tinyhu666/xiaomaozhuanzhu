@@ -35,8 +35,11 @@
 .manual-topic-input {
   display: block;
   width: 100%;
+  /* v0.44.1 — 同 complete 页：原生 <input> 竖向 padding 无 height 会裁字。
+     改显式 height + 横向 padding。 */
+  height: 84rpx;
   margin-top: 10rpx;
-  padding: 18rpx 22rpx;
+  padding: 0 22rpx;
   border-radius: 18rpx;
   background: #f2faf6;
   border: 1rpx solid rgba(46, 169, 133, 0.12);

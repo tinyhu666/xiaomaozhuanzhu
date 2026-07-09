@@ -184,6 +184,7 @@ grep -rn "selected:\s*[0-9]" miniprogram/pages
 | v0.26.0 | 学习日报「保存失败」误报 | iOS 端 `saveImageToPhotosAlbum` errMsg 格式多变，老的 auth 检测错过这些 case | 扩大 auth 关键词匹配（auth/scope/permission/deny），并在 toast 里显示截断 errMsg 方便排查 |
 | v0.31.3-4 | 真机上几乎所有卡片/chip/按钮"不可见"，专注模式背景变浅 | ① WeChat `<button>` 原生底色优先级高，`.btn-v2--primary { background: var(--c-primary) }` 不加 `!important` 压不住 → 按钮透明 ② 白卡 `#FFFFFF` 叠在近白页面 `#F3FAF6` 上 + 4% 阴影 + 浅描边，真机上对比度低于感知阈值 → 卡片像"悬空文字" | §1F 本文件：关键表面用**字面量 hex**（非 var），按钮底色 `!important`，卡片必须有**清晰可见的描边**（≥ #D2E1DA）不能只靠填充对比；focus mode bg/文字用 hex + `!important` |
 | v0.42.1 | 日历周次表头「日」叠到「一」下、日期网格每行只剩 6 格错列 | 重构期把 `.calendar-board__weekdays/__grid` 从 `display:grid` 改成 `flex-wrap:wrap` + `width: calc(14.285% - 8rpx)`，7 项每行总宽在 rpx 取整下临界溢出 → 第 7 列折行 | §6 本文件：等分多列**禁用 flex% 宽度**，一律 `display:grid; repeat(N, minmax(0,1fr))`；同型隐患同期在 `app.wxss .photo-grid`（33.333%）一并清除 |
+| v0.44.1 | 「章节/主题」原生 `<input>` 文字/placeholder 顶部被裁 | 原生 `<input>` 设了竖向 `padding: 18rpx` 却没设 `height`，文本行盒被裁（complete + manual 两处同款 v0.37 输入） | 原生 `<input>` 用**显式 `height` + 仅横向 `padding`**（`height:84rpx; padding:0 22rpx`），让组件在 height 内垂直居中；别靠竖向 padding 撑高 |
 
 ---
 
