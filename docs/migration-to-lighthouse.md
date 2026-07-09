@@ -88,9 +88,9 @@ pm2 start server/dist/src/index.js --name cpa --cwd /opt/xiaomao
 pm2 save && pm2 startup
 
 # 6. nginx 反代 + HTTPS（certbot）
-#   server { listen 443 ssl; server_name api.你的域名;
+#   server { listen 443 ssl; server_name api.buffpp.com;
 #            location /api/ { proxy_pass http://127.0.0.1:3000; } }
-certbot --nginx -d api.你的域名
+certbot --nginx -d api.buffpp.com
 ```
 
 ### 环境变量（server/.env）
@@ -113,9 +113,9 @@ SESSION_SECRET=<随机长串>
 # COS 存储（M2）
 COS_SECRET_ID=<腾讯云 API 密钥>
 COS_SECRET_KEY=<...>
-COS_BUCKET=<bucket-appid>
-COS_REGION=ap-guangzhou
-STORAGE_PUBLIC_BASE_URL=https://<bucket>.cos.<region>.myqcloud.com
+COS_BUCKET=xiaomaozhuanzhu-1259551686
+COS_REGION=ap-shanghai
+STORAGE_PUBLIC_BASE_URL=https://xiaomaozhuanzhu-1259551686.cos.ap-shanghai.myqcloud.com
 ```
 
 ## 数据迁移（云托管 MySQL → 新库）
@@ -134,10 +134,10 @@ mysql -u cpa -p cpa < backup.sql
 
 开发管理 → 服务器域名（**注意**：客户端用 `wx.request` PUT 直传 COS，**不走 `wx.uploadFile`**，所以 COS 域名要进 **request** 白名单，而不是 uploadFile）：
 - **request 合法域名**：
-  - `https://api.你的域名`（业务 API）
-  - `https://<bucket>.cos.<region>.myqcloud.com`（照片直传 PUT，走 wx.request）
+  - `https://api.buffpp.com`（业务 API）
+  - `https://xiaomaozhuanzhu-1259551686.cos.ap-shanghai.myqcloud.com`（照片直传 PUT，走 wx.request）
 - **downloadFile 合法域名**：
-  - `https://<bucket>.cos.<region>.myqcloud.com`（`<image>` 渲染签名 GET、海报 canvas 取图）
+  - `https://xiaomaozhuanzhu-1259551686.cos.ap-shanghai.myqcloud.com`（`<image>` 渲染签名 GET、海报 canvas 取图）
 
 ## 切换策略：共享库双跑（已选定，保证旧版本全程可用）
 
