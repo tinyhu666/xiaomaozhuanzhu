@@ -116,25 +116,62 @@ export function parseMysqlAddress(address: string) {
   };
 }
 
+/**
+ * Parse a single `mysql://user:pass@host:port/db` URL into a bootstrap
+ * plan. The VPS deploy sets DATABASE_URL (not the discrete MYSQL_* vars),
+ * and the app store + reminder already resolve DATABASE_URL via
+ * resolveDatabaseUrl — so the schema bootstrap MUST understand it too, or
+ * it silently skips ("using in-memory store") while the store connects to
+ * a table-less DB → every query throws ER_NO_SUCH_TABLE.
+ */
+function planFromDatabaseUrl(rawUrl: string) {
+  try {
+    const url = new URL(rawUrl);
+    const databaseName = decodeURIComponent(url.pathname.replace(/^\//, "")).trim();
+    if (!url.hostname || !databaseName) {
+      return null;
+    }
+    return {
+      adminConfig: {
+        host: url.hostname,
+        port: url.port ? Number(url.port) : 3306,
+        user: decodeURIComponent(url.username),
+        password: decodeURIComponent(url.password)
+      },
+      databaseName
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function buildBootstrapPlan(env: EnvMap = process.env) {
   const address = parseMysqlAddress(env.MYSQL_ADDRESS ?? "");
   const username = env.MYSQL_USERNAME?.trim();
   const password = env.MYSQL_PASSWORD;
   const databaseName = env.MYSQL_DATABASE?.trim();
 
-  if (!address || !username || password === undefined || !databaseName) {
-    return null;
+  // Discrete MYSQL_* vars take precedence (unchanged behavior).
+  if (address && username && password !== undefined && databaseName) {
+    return {
+      adminConfig: {
+        host: address.host,
+        port: address.port,
+        user: username,
+        password
+      },
+      databaseName
+    };
   }
 
-  return {
-    adminConfig: {
-      host: address.host,
-      port: address.port,
-      user: username,
-      password
-    },
-    databaseName
-  };
+  // Fall back to a single DATABASE_URL — same source the store uses, so
+  // bootstrap and store never disagree about which DB to touch.
+  const directUrl = env.DATABASE_URL?.trim();
+  if (directUrl) {
+    return planFromDatabaseUrl(directUrl);
+  }
+
+  return null;
 }
 
 export async function ensureMySqlSchema(env: EnvMap = process.env) {
