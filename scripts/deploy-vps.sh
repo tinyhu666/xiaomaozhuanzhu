@@ -117,15 +117,30 @@ SQL
 # 代码 + .env + 构建
 # --------------------------------------------------------------------------
 setup_repo() {
+  # 国内 VPS 到 github 常见 GnuTLS/TLS reset：用 HTTP/1.1 + 大 postBuffer
+  # 缓解，并对 fetch 做重试（这类错多为瞬时）。
+  git config --global http.version HTTP/1.1 2>/dev/null || true
+  git config --global http.postBuffer 524288000 2>/dev/null || true
+
   if [ -d "$APP_DIR/.git" ]; then
     log "仓库已存在，拉取最新 main"
-    git -C "$APP_DIR" pull --ff-only origin main || die \
-"本地与 origin/main 分叉，无法快进。先看改动：git -C $APP_DIR status
-确认可丢弃后执行：git -C $APP_DIR reset --hard origin/main  再重跑本命令。"
+    local fetched=""
+    for i in 1 2 3 4 5; do
+      if git -C "$APP_DIR" fetch origin main; then fetched=1; break; fi
+      warn "git fetch 失败（网络/TLS？），3s 后重试 ($i/5)"; sleep 3
+    done
+    [ -n "$fetched" ] || die \
+"git fetch 反复失败——多为 VPS 到 github 的网络不稳（GnuTLS/TLS reset），与代码无关。
+手动多试几次：git -C $APP_DIR fetch origin main
+或走镜像：git -C $APP_DIR remote set-url origin https://ghproxy.net/https://github.com/tinyhu666/xiaomaozhuanzhu.git（拉完 reset --hard origin/main 后改回原地址）"
+    git -C "$APP_DIR" merge --ff-only origin/main || die \
+"本地与 origin/main 分叉，无法快进。确认可丢弃本地改动后：
+  git -C $APP_DIR reset --hard origin/main
+再重跑本命令。"
   else
     log "克隆仓库到 $APP_DIR"
     git clone "$REPO_URL" "$APP_DIR" \
-      || die "克隆失败。若仓库私有：REPO_URL=https://<token>@github.com/... 重跑，或先配 deploy key。"
+      || die "克隆失败。私有仓库：REPO_URL=https://<token>@github.com/... 重跑；或网络不稳时走 ghproxy 镜像。"
   fi
 }
 
