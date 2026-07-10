@@ -958,7 +958,10 @@
 }
 
 .exam-hero__count {
-  padding: 0;
+  /* v0.44.2 — was padding:0（redesign 块覆盖了上面带内边距的定义），使
+     紧迫度变体只补了底色、内边距为 0 → 数字贴边、顶到卡片圆角外（卡片
+     overflow:hidden）。恢复内边距，彩色胶囊有呼吸、内容从边缘内缩。 */
+  padding: 8rpx 18rpx;
   border: 0;
   background: transparent;
 }

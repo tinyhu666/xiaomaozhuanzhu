@@ -20,17 +20,28 @@ describe("CPA exam-date schedule", () => {
   });
 
   it("falls back to previous year schedule (with year swapped) when current year is missing", () => {
-    // Simulate 2026 (no entry yet). Should derive 2026-08-23 / 24
-    // from 2025's schedule.
-    const schedule = getExamSchedule(new Date("2026-04-01T00:00:00Z"));
+    // 2027 has no entry yet → derive from the most recent official (2026),
+    // swapping the year to 2027. (2026 is now official — see EXAM_DATES.)
+    const schedule = getExamSchedule(new Date("2027-04-01T00:00:00Z"));
     const accounting = schedule.find((s) => s.subject === "会计")!;
-    expect(accounting.date).toBe("2026-08-23");
+    expect(accounting.date).toBe("2027-08-29");
     expect(accounting.fallback).toBe(true);
-    expect(accounting.sourceYear).toBe(2025);
+    expect(accounting.sourceYear).toBe(2026);
 
     const audit = schedule.find((s) => s.subject === "审计")!;
-    expect(audit.date).toBe("2026-08-24");
+    expect(audit.date).toBe("2027-08-30");
     expect(audit.fallback).toBe(true);
+  });
+
+  it("uses the official 2026 schedule (8/29–30) without a 参考 fallback", () => {
+    const schedule = getExamSchedule(new Date("2026-07-10T00:00:00Z"));
+    const accounting = schedule.find((s) => s.subject === "会计")!;
+    expect(accounting.date).toBe("2026-08-29");
+    expect(accounting.fallback).toBe(false);
+    expect(accounting.sourceYear).toBe(2026);
+    const audit = schedule.find((s) => s.subject === "审计")!;
+    expect(audit.date).toBe("2026-08-30");
+    expect(audit.fallback).toBe(false);
   });
 
   it("rolls a past in-year date forward by one year so users always see a future countdown", () => {
