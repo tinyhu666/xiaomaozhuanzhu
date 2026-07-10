@@ -9,17 +9,6 @@ import type {
   UserProfile
 } from "../types/models";
 
-let cloudReady = false;
-
-function ensureCloudReady() {
-  if (cloudReady) return;
-  wx.cloud.init({
-    env: runtimeConfig.cloudEnv,
-    traceUser: true
-  });
-  cloudReady = true;
-}
-
 /**
  * Stable anonymous identifier for this install. Generated lazily on first
  * use, persisted in `wx.setStorageSync` so it survives reopens / restarts.
@@ -120,118 +109,17 @@ function httpStatusError(method: string, path: string, statusCode: number, rawBo
 type RetryKind = "cold-start" | "network" | "none";
 
 function classifyError(errMsg: string): RetryKind {
-  if (errMsg.includes("102002")) return "cold-start";
   if (errMsg.includes("502") || errMsg.includes("503") || errMsg.includes("504")) return "cold-start";
   if (errMsg.toLowerCase().includes("timeout")) return "cold-start";
   if (errMsg.toLowerCase().includes("request:fail")) return "network";
   return "none";
 }
 
-async function callContainerCloud<T>({ path, method = "GET", data }: RequestOptions) {
-  ensureCloudReady();
-
-  const header: Record<string, string> = {
-    "X-WX-SERVICE": runtimeConfig.service,
-    "X-CLIENT-UID": getOrCreateClientUid(),
-    "X-CLIENT-VERSION": runtimeConfig.appVersion
-  };
-  if (method === "POST") {
-    header["content-type"] = "application/json";
-  }
-
-  const callOnce = () =>
-    wx.cloud.callContainer({
-      config: {
-        env: runtimeConfig.cloudEnv
-      },
-      path: `${runtimeConfig.basePath}${path}`,
-      method,
-      header,
-      data: method === "POST" ? data ?? {} : data
-    });
-
-  let response: { data: unknown; statusCode?: number } | undefined;
-  let lastError: unknown;
-  let coldAttempts = 0;
-  let networkAttempts = 0;
-  // Keep looping until we either succeed or run out of the matching
-  // retry budget for this error kind.
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    try {
-      response = await callOnce();
-      lastError = undefined;
-      break;
-    } catch (error) {
-      lastError = error;
-      const errMsg = extractErrMsg(error);
-      const kind = classifyError(errMsg);
-      if (kind === "cold-start" && coldAttempts < COLD_START_RETRY_DELAYS.length) {
-        await delay(COLD_START_RETRY_DELAYS[coldAttempts]);
-        coldAttempts += 1;
-        continue;
-      }
-      if (kind === "network" && networkAttempts < NETWORK_RETRY_DELAYS.length) {
-        await delay(NETWORK_RETRY_DELAYS[networkAttempts]);
-        networkAttempts += 1;
-        continue;
-      }
-      break;
-    }
-  }
-
-  if (lastError) {
-    const errMsg = extractErrMsg(lastError);
-    if (errMsg.includes("102002")) {
-      throw new Error("后端正在唤醒，请稍后再试");
-    }
-    if (errMsg.includes("100002")) {
-      throw new Error("云托管环境 ID 不正确，请联系管理员");
-    }
-    if (errMsg.toLowerCase().includes("timeout")) {
-      throw new Error("网络超时，请稍后再试");
-    }
-    if (errMsg.toLowerCase().includes("request:fail")) {
-      throw new Error("网络连接异常，请检查网络后重试");
-    }
-    throw new Error(errMsg || "网络请求失败");
-  }
-
-  if (!response) {
-    throw new Error("网络请求失败");
-  }
-
-  const payload = response.data as
-    | {
-        error?: {
-          code: string;
-          message: string;
-        };
-      }
-    | string
-    | null
-    | undefined;
-
-  if (payload && typeof payload === "object" && "error" in payload && payload.error) {
-    throw new Error(payload.error.message);
-  }
-
-  const statusCode = (response as { statusCode?: number }).statusCode;
-  if (typeof statusCode === "number" && (statusCode < 200 || statusCode >= 300)) {
-    throw httpStatusError(method, path, statusCode, payload);
-  }
-
-  return response.data as T;
-}
-
 /* -------------------------------------------------------------------------- */
-/*  v0.41 (M3) — VPS transport: wx.request + wx.login Bearer token              */
+/*  Transport: wx.request to the VPS (api.buffpp.com) + wx.login Bearer token.  */
+/*  v0.45 — 微信云托管 (wx.cloud.callContainer) was fully removed; HTTPS to the  */
+/*  备案'd VPS is the sole transport and COS holds all media.                   */
 /* -------------------------------------------------------------------------- */
-
-/** True when the client should talk HTTPS to the VPS instead of 云托管. */
-function isHttpMode(): boolean {
-  return Boolean(runtimeConfig.apiBaseUrl);
-}
 
 const SESSION_TOKEN_STORAGE_KEY = "cpa.sessionToken";
 let cachedSessionToken: string | null = null;
@@ -407,44 +295,22 @@ async function callHttp<T>(opts: RequestOptions): Promise<T> {
 }
 
 /**
- * Transport dispatcher. Every exported API function calls this; it picks
- * the 云托管 or VPS transport from runtimeConfig.apiBaseUrl so the cutover
- * is a one-line config flip with no call-site churn.
+ * Transport dispatcher. Every exported API function calls this. Kept as a
+ * thin wrapper (35+ call sites depend on the name) over the sole HTTPS/VPS
+ * transport. (v0.45 — the 云托管 branch was removed.)
  */
 async function callContainer<T>(opts: RequestOptions): Promise<T> {
-  return isHttpMode() ? callHttp<T>(opts) : callContainerCloud<T>(opts);
+  return callHttp<T>(opts);
 }
 
 export async function warmUpBackend() {
-  if (isHttpMode()) {
-    // VPS: pre-create the clientUid and (best-effort) log in so the first
-    // real call already carries a Bearer. Never let warmup fail launch.
-    getOrCreateClientUid();
-    try {
-      await ensureSessionToken();
-    } catch (error) {
-      console.info("[api] VPS warmup/login failed (will retry on real call)", error);
-    }
-    return;
-  }
-  ensureCloudReady();
-  // Pre-create the clientUid before any real call so even the first
-  // /me/bootstrap arrives carrying our anonymous fallback identifier.
+  // Pre-create the clientUid and (best-effort) log in so the first real
+  // call already carries a Bearer. Never let warmup fail launch.
   getOrCreateClientUid();
   try {
-    await wx.cloud.callContainer({
-      config: {
-        env: runtimeConfig.cloudEnv
-      },
-      path: "/health",
-      method: "GET",
-      header: {
-        "X-WX-SERVICE": runtimeConfig.service
-      }
-    });
+    await ensureSessionToken();
   } catch (error) {
-    // Best-effort warmup. Swallow errors so app launch never fails.
-    console.info("[api] warmup failed (will retry on real call)", error);
+    console.info("[api] VPS warmup/login failed (will retry on real call)", error);
   }
 }
 
@@ -839,52 +705,13 @@ async function uploadToCos(kind: "checkin" | "avatar", localPath: string): Promi
 }
 
 export async function uploadCheckinPhoto(localPath: string) {
-  if (isHttpMode()) {
-    const objectKey = await uploadToCos("checkin", localPath);
-    // COS photos have no cloud:// fileId; the server keys on objectKey.
-    return { fileId: "", objectKey, localPath };
-  }
-  ensureCloudReady();
-  const timestamp = Date.now();
-  const extension = localPath.split(".").pop() || "jpg";
-  const objectKey = `checkins/${new Date().getFullYear()}/${String(new Date().getMonth() + 1).padStart(2, "0")}/${timestamp}.${extension}`;
-  const result = await wx.cloud.uploadFile({
-    cloudPath: objectKey,
-    filePath: localPath,
-    config: {
-      env: runtimeConfig.cloudEnv
-    }
-  });
-
-  return {
-    fileId: result.fileID,
-    objectKey,
-    localPath
-  };
+  const objectKey = await uploadToCos("checkin", localPath);
+  // COS photos have no cloud:// fileId; the server keys on objectKey.
+  return { fileId: "", objectKey, localPath };
 }
 
 export async function uploadAvatar(localPath: string) {
-  if (isHttpMode()) {
-    const objectKey = await uploadToCos("avatar", localPath);
-    // `avatarUrl` is what the caller stores; cos:// is signed on read.
-    return { fileId: "", objectKey, avatarUrl: `cos://${objectKey}` };
-  }
-  ensureCloudReady();
-  const timestamp = Date.now();
-  const extension = localPath.split(".").pop()?.split("?")[0] || "jpg";
-  const cloudPath = `avatars/${timestamp}.${extension}`;
-  const result = await wx.cloud.uploadFile({
-    cloudPath,
-    filePath: localPath,
-    config: {
-      env: runtimeConfig.cloudEnv
-    }
-  });
-
-  return {
-    fileId: result.fileID,
-    objectKey: cloudPath,
-    // In 云托管 mode the avatar is stored as its cloud:// fileId.
-    avatarUrl: result.fileID
-  };
+  const objectKey = await uploadToCos("avatar", localPath);
+  // `avatarUrl` is what the caller stores; cos:// is signed on read.
+  return { fileId: "", objectKey, avatarUrl: `cos://${objectKey}` };
 }

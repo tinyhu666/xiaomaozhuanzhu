@@ -195,8 +195,8 @@ describe("Admin dashboard", () => {
     expect(completedSessions[0].subject).toBe("审计");
     expect(completedSessions[0].tags).toEqual(["复习", "顺利"]);
     expect(completedSessions[0].photos).toHaveLength(2);
-    // Photos are now exposed as same-origin signed proxy URLs.
-    expect(completedSessions[0].photos[0].url).toMatch(/^\/admin\/api\/photos\/proxy\?fileId=/);
+    // Photos are now exposed as same-origin signed proxy URLs (keyed on objectKey).
+    expect(completedSessions[0].photos[0].url).toMatch(/^\/admin\/api\/photos\/proxy\?key=/);
   });
 
   it("returns 404 for an unknown user id", async () => {
@@ -428,8 +428,8 @@ describe("Admin dashboard", () => {
     const completed = detail.body.sessions.find((x: { status: string }) => x.status === "completed");
     expect(completed.photos).toHaveLength(1);
     const photoUrl: string = completed.photos[0].url;
-    // Same-origin signed URL, not a raw upstream URL.
-    expect(photoUrl).toMatch(/^\/admin\/api\/photos\/proxy\?fileId=/);
+    // Same-origin signed URL keyed on the COS objectKey, not a raw upstream URL.
+    expect(photoUrl).toMatch(/^\/admin\/api\/photos\/proxy\?key=/);
     expect(photoUrl).toContain("&exp=");
     expect(photoUrl).toContain("&sig=");
   });
@@ -439,41 +439,39 @@ describe("Admin dashboard", () => {
     await request(app).get("/admin/api/photos/proxy").expect(400);
     // Missing sig
     await request(app)
-      .get("/admin/api/photos/proxy?fileId=cloud://demo/x.jpg&exp=99999999999")
+      .get("/admin/api/photos/proxy?key=uploads/x.jpg&exp=99999999999")
       .expect(400);
     // Bad sig
     await request(app)
-      .get("/admin/api/photos/proxy?fileId=cloud://demo/x.jpg&exp=99999999999&sig=deadbeef")
+      .get("/admin/api/photos/proxy?key=uploads/x.jpg&exp=99999999999&sig=deadbeef")
       .expect(403);
   });
 
   it("rejects expired photo proxy signatures", async () => {
     // Build an expired signature manually using the same algorithm
     const { createHmac } = await import("node:crypto");
-    const fileId = "cloud://demo/old.jpg";
+    const objectKey = "uploads/old.jpg";
     const exp = Math.floor(Date.now() / 1000) - 60; // already past
-    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${fileId}:${exp}`).digest("hex");
+    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${objectKey}:${exp}`).digest("hex");
     await request(app)
-      .get(`/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`)
+      .get(`/admin/api/photos/proxy?key=${encodeURIComponent(objectKey)}&exp=${exp}&sig=${sig}`)
       .expect(410);
   });
 
   it("returns an inline SVG placeholder when the storage backend is the default fallback", async () => {
-    // Build a valid signature against a fileId that the default storage
+    // Build a valid signature against an objectKey that the default storage
     // client will resolve to an unreachable temp.example.com URL.
     const { createHmac } = await import("node:crypto");
-    const fileId = "cloud://demo/missing.jpg";
+    const objectKey = "uploads/missing.jpg";
     const exp = Math.floor(Date.now() / 1000) + 600;
-    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${fileId}:${exp}`).digest("hex");
+    const sig = createHmac("sha256", ADMIN_TOKEN).update(`${objectKey}:${exp}`).digest("hex");
 
     // Re-create app without the test storage stub so it falls back to
     // the default placeholder client.
-    delete process.env.WECHAT_OPENAPI_INTERNAL;
-    delete process.env.WECHAT_CLOUD_ENV;
     const fallbackApp = createApp({ clock: { now: () => clock.now() } });
 
     const res = await request(fallbackApp)
-      .get(`/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`)
+      .get(`/admin/api/photos/proxy?key=${encodeURIComponent(objectKey)}&exp=${exp}&sig=${sig}`)
       .buffer(true)
       .parse((response, callback) => {
         const chunks: Buffer[] = [];
@@ -486,8 +484,8 @@ describe("Admin dashboard", () => {
     const body = String(res.body);
     expect(body).toContain("<svg");
     expect(body).toContain("图片暂不可用");
-    // Hint visible to user: missing OpenAPI env or unresolvable.
-    expect(body).toMatch(/未配置 WeChat OpenAPI|无法解析 fileId/);
+    // Hint visible to user: storage unconfigured or unresolvable.
+    expect(body).toMatch(/对象存储未配置|无法解析 objectKey/);
   });
 
   it("exposes a /diag endpoint reporting storage mode + env flags", async () => {

@@ -118,9 +118,12 @@ Page<{}, ProfilePageData>({
       this.setData({
         profile: {
           nickname: dashboard.profile?.nickname || "",
-          avatarUrl: dashboard.profile?.avatarUrl || "",
+          // Display the server-signed URL (cos:// can't render in <image>);
+          // fall back to any plain-https avatarUrl for safety.
+          avatarUrl: dashboard.profile?.avatarDisplayUrl || dashboard.profile?.avatarUrl || "",
           profileCompleted: Boolean(dashboard.profile?.profileCompleted)
         },
+        // avatarRef keeps the RAW permanent ref (cos://…) for saveProfile.
         avatarRef: dashboard.profile?.avatarUrl || "",
         badgeProgressLabel: totalBadges ? `已解锁 ${unlocked} / ${totalBadges}` : "—",
         subjectsHint: subjectsLabel,

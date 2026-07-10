@@ -1,61 +1,34 @@
 # 管理后台
 
-内置在云托管 server 里的简易后台，用于查看所有用户的学习数据。无额外部署。
+内置在 Express server 里的简易后台，跑在腾讯云轻量 VPS 上，用于查看所有用户的学习数据。无额外部署。
 
 ## 启用步骤
 
-> ⚠️ **图片预览额外要求**：`ADMIN_TOKEN` 只解决登录。要让用户上传的图片能在后台显示，**还需要让服务能调用微信 OpenAPI 把 cloud:// 的 fileId 解析成 HTTP URL**。第 1 步是必须的；第 2 步只有"图片显示不出来"时才需要做。
+> ⚠️ **图片预览额外要求**：`ADMIN_TOKEN` 只解决登录。要让用户上传的图片能在后台显示，服务需要能把照片的 COS `objectKey` 签成可访问的 URL。第 1 步是必须的；第 2 步只有"图片显示不出来"时才需要做。
 
-1. **设置 admin token**（云托管环境变量）
-   - 微信云托管控制台 → 服务管理 → `cpa-study-checkin` → 服务设置
-   - 找到 **环境变量** 区域，新增一项：
+1. **设置 admin token**（VPS 上的 `server/.env`）
+   - 编辑服务器上的 `server/.env`，新增一项：
      - Key: `ADMIN_TOKEN`
      - Value: 自取一个随机字符串（建议 32+ 字符），例如：
        ```bash
        openssl rand -hex 32
        ```
        或就是一句你能记住的长 passphrase，比如 `cpa-mama-good-luck-2026-spring`
-   - 保存 → 触发滚动更新（容器会带新环境变量重启）
+   - 保存 → `pm2 restart cpa --update-env`（或走 `bash scripts/deploy-remote.sh` 重新部署）
 
-2. **（图片预览必需）配置 WeChat OpenAPI**
+2. **图片预览：COS 签名**
 
-   有两种模式，**选一种**即可（也可以同时配，自动 fallback）：
+   Admin 后台通过签名 COS GET URL 来展示照片的 `objectKey`，并在管理页同源代理（`/admin/api/photos/proxy?key=<objectKey>`），无需额外配置——只要 `server/.env` 里的 `COS_SECRET_ID` / `COS_SECRET_KEY` / `COS_BUCKET` / `COS_REGION` 已就绪（见 [server/.env.example](../server/.env.example)），图片就能正常显示。
 
-   ### 模式 A — Cloudrun 自动注入（最省事，但依赖平台权限）
+   > ⚠️ **不要**在 VPS 的 `server/.env` 里设置 `WECHAT_CLOUD_ENV` 或 `WECHAT_OPENAPI_INTERNAL`——这两个变量属于已下线的微信云托管路径，一旦设置会把存储模式从 COS 切回云托管，导致图片显示不出来。
 
-   在「环境变量」区域加：
-   - `WECHAT_OPENAPI_INTERNAL` = `1`
-   - `WECHAT_CLOUD_ENV` = `prod-d4g3sqnpj0acb9be5`
-
-   然后云托管会自动给 `http://api.weixin.qq.com/*` 的请求注入 access_token。**前提**是云托管 → 服务设置 → 微信 API 调用权限里 `tcb/batchdownloadfile` 已开启。
-
-   如果 `/admin/api/diag` 返回 **`access_token missing rid: ... (41001)`**，说明这个自动注入没生效。改用模式 B 即可。
-
-   ### 模式 B — Token 模式（用 AppSecret，最稳）
-
-   1. 拿到小程序 AppSecret：
-      - 打开 [https://mp.weixin.qq.com](https://mp.weixin.qq.com) → 登录
-      - **开发管理** → **开发设置** → **AppSecret**（小程序密钥）
-      - 第一次需要管理员扫码 + **生成/重置** 一次（注意：重置会让旧 secret 立即失效，如果其他服务在用要小心）
-      - 复制下来，**只显示这一次**
-
-   2. 在云托管「环境变量」加：
-      - `WECHAT_APP_ID` = `wxfb24f334e5070a82`
-      - `WECHAT_APP_SECRET` = 上一步那串
-      - `WECHAT_CLOUD_ENV` = `prod-d4g3sqnpj0acb9be5`
-
-   3. （可选）保留模式 A 的 `WECHAT_OPENAPI_INTERNAL=1`：服务会**先试 cloudrun 模式，失败再 fallback 到 token 模式**，hybrid 自动容错。
-
-   保存触发滚动更新。
-
-   > 不配模式 A 或 B 也能登录后台、看用户列表 / 学习时长 / 连签数据 — 唯一影响是**用户上传的照片显示不出来**（会用 SVG 占位图代替，并在图上写明原因）。如果 admin 顶部出现红色横幅"⚠️ 存储未配置"或"调用失败"，就说明这一步没接通。
+   > 如果 admin 顶部出现红色横幅"⚠️ 存储未配置"或"调用失败"，说明 COS 环境变量没配齐，检查 `server/.env` 后重启。
 
 3. **访问后台**
    - 浏览器打开：
      ```
-     https://<your-cloud-run-domain>/admin/
+     https://api.buffpp.com/admin/
      ```
-     例如：`https://cpa-study-checkin-247395-5-1422934587.sh.run.tcloudbase.com/admin/`
    - 输入 `ADMIN_TOKEN` → 登录
    - Token 保存在 localStorage，下次直接进入
 
@@ -65,9 +38,9 @@
      https://<domain>/admin/api/diag | jq
    ```
    返回 JSON 直接告诉你：
-   - `storageMode`: 当前用的存储模式（`wechat-cloudrun` / `wechat-token` / `cos` / `default`）
+   - `storageMode`: 当前用的存储模式（`cos` / `default`；`default` 表示 COS 环境变量未配齐）
    - `envFlags`: 各关键 env 变量是否就绪（只显示 true/false，不暴露原值）
-   - `probe`: 一次真实的 OpenAPI 调用尝试结果（成功的 url 或错误信息）
+   - `probe`: 一次真实的 COS 签名尝试结果（成功的 url 或错误信息）
    - `hint`: 推断出的下一步建议
 
    截这个 JSON 给我能直接定位问题。
@@ -99,7 +72,7 @@
 - **标签云**：最常用的标签（按出现次数排序）
 - **近 6 个月热力图**（与小程序色阶一致，悬停看时长）
 - **完整学习记录**：每次 session 的起止时间、时长、科目、标签、一句话总结、上传的照片缩略图
-- 照片自动通过 WeChat OpenAPI 转换为可访问的临时 URL
+- 照片通过服务端签名 COS GET URL 展示，并经 `/admin/api/photos/proxy?key=<objectKey>` 同源代理
 
 ### CSV 导出
 - 用户列表页右上「导出 CSV」 → 下载 `users.csv`（全部用户聚合数据）

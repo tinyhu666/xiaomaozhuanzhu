@@ -52,5 +52,17 @@ MINIPROGRAM_PRIVATE_KEY_PATH=... npm run upload:miniprogram
 
 ## 部署提醒
 
-服务端有改动时（`server/**` 变化），提醒用户在云托管「版本管理」拉一次
-最新 commit 部署，否则客户端发出的请求拿不到新字段。
+后端跑在**腾讯云轻量 VPS**（`api.buffpp.com`，PM2 + nginx + HTTPS），存储用
+**腾讯云 COS**。微信云托管已于 v0.45.0 整体下线，客户端不再有 `wx.cloud` /
+`cloud://` 回退。
+
+服务端有改动时（`server/**` 变化），从本机一键部署（会 rsync 源码 → VPS →
+构建 → 重启 pm2，并保护服务器上的 `server/.env`）：
+
+```bash
+bash scripts/deploy-remote.sh     # 默认 root@118.89.94.251，密钥 ~/.ssh/xiaomao_deploy
+```
+
+登录鉴权仍走微信开放平台 `code2session`（`WECHAT_APP_ID` / `WECHAT_APP_SECRET`，
+非云托管、免费），务必保留；`WECHAT_CLOUD_ENV` / `WECHAT_OPENAPI_INTERNAL` 已废弃，
+**不要在 VPS 的 `server/.env` 里设置**（一旦设置会把存储从 COS 切回云托管）。

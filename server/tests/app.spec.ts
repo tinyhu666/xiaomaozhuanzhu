@@ -292,13 +292,22 @@ describe("CPA study check-in API", () => {
     expect(publicProfile.body.recentSummaries[0].summary).toBe("跨夜把财管公式重新梳理了一遍。");
   });
 
-  it("resolves cloud:// avatar fileIDs to web-renderable temp URLs on the public profile", async () => {
+  it("resolves cos:// avatar objectKeys to web-renderable temp URLs on the public profile", async () => {
+    // Learn the owner's internal id first (avatar keys are namespaced by it,
+    // and the cos:// resolver only signs a key the profile owner owns).
+    const first = await request(app)
+      .post("/api/me/profile")
+      .set("x-wx-openid", "cos-avatar-owner")
+      .send({ nickname: "头像考生", avatarUrl: "", isPublic: true, requireWechatAuth: false })
+      .expect(200);
+    const userId = first.body.profile.id as string;
+
     const profile = await request(app)
       .post("/api/me/profile")
-      .set("x-wx-openid", "cloud-avatar-owner")
+      .set("x-wx-openid", "cos-avatar-owner")
       .send({
-        nickname: "云头像考生",
-        avatarUrl: "cloud://prod-test.6e69-prod-test/avatars/abc-123.jpg",
+        nickname: "头像考生",
+        avatarUrl: `cos://avatars/${userId}/abc-123.jpg`,
         isPublic: true,
         requireWechatAuth: false
       })
@@ -310,8 +319,10 @@ describe("CPA study check-in API", () => {
       .get(`/api/public/${slug}`)
       .expect(200);
 
-    expect(publicProfile.body.profile.avatarUrl).toBe("https://temp.example.com/avatars/abc-123.jpg");
-    expect(publicProfile.body.profile.avatarUrl.startsWith("cloud://")).toBe(false);
+    expect(publicProfile.body.profile.avatarUrl).toBe(
+      `https://temp.example.com/avatars/${userId}/abc-123.jpg`
+    );
+    expect(publicProfile.body.profile.avatarUrl.startsWith("cos://")).toBe(false);
   });
 
   it("validates completion payload requirements", async () => {

@@ -1,8 +1,0 @@
-{
-  "version": "2.0",
-  "envId": "prod-d4g3sqnpj0acb9be5",
-  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
-  "cloudrun": {
-    "name": "cpa-study-checkin"
-  }
-}

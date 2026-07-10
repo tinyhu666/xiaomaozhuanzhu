@@ -45,10 +45,10 @@ export function registerAdminRoutes(
       response.status(503).json({ error: { code: "ADMIN_DISABLED", message: "ADMIN_TOKEN env var is not set" } });
       return;
     }
-    const fileId = String(request.query.fileId ?? "");
+    const objectKey = String(request.query.key ?? "");
     const expRaw = Number(request.query.exp ?? 0);
     const sig = String(request.query.sig ?? "");
-    if (!fileId || !Number.isFinite(expRaw) || expRaw <= 0 || !sig) {
+    if (!objectKey || !Number.isFinite(expRaw) || expRaw <= 0 || !sig) {
       response.status(400).end();
       return;
     }
@@ -56,7 +56,7 @@ export function registerAdminRoutes(
       response.status(410).json({ error: { code: "EXPIRED", message: "Signed URL expired" } });
       return;
     }
-    const expected = signPhotoSignature(adminToken, fileId, expRaw);
+    const expected = signPhotoSignature(adminToken, objectKey, expRaw);
     if (!timingSafeEquals(sig, expected)) {
       response.status(403).end();
       return;
@@ -69,7 +69,7 @@ export function registerAdminRoutes(
     let resolvedUrl = "";
     let resolutionError: string | null = null;
     try {
-      const [item] = await storage.getTemporaryUrls([{ objectKey: fileId, fileId }]);
+      const [item] = await storage.getTemporaryUrls([{ objectKey }]);
       resolvedUrl = item?.url ?? "";
     } catch (error) {
       resolutionError = error instanceof Error ? error.message : String(error);
@@ -86,8 +86,8 @@ export function registerAdminRoutes(
         "图片暂不可用",
         resolutionError ||
           (isPlaceholderUrl
-            ? "未配置 WeChat OpenAPI（缺 WECHAT_OPENAPI_INTERNAL=1）"
-            : "无法解析 fileId")
+            ? "对象存储未配置（缺 COS_SECRET_ID/KEY/BUCKET/REGION）"
+            : "无法解析 objectKey")
       );
       return;
     }
@@ -107,7 +107,7 @@ export function registerAdminRoutes(
     }
     const contentType = fetchRes.headers.get("content-type") || "image/jpeg";
     response.setHeader("content-type", contentType);
-    // Photos are immutable per cloud:// fileId, so cache aggressively
+    // Photos are immutable per COS objectKey, so cache aggressively
     // within the signed URL's lifetime. The signature's `exp` already
     // bounds re-use.
     response.setHeader("cache-control", "private, max-age=300");
@@ -138,16 +138,13 @@ export function registerAdminRoutes(
   });
 
   // Storage diagnostic. Reveals which mode the server is running in
-  // (wechat-cloudrun / wechat-token / cos / default) and which env
-  // vars are present. Only env names — never the values — are
-  // returned, so this is safe to call even without the OpenAPI
-  // permission set up.
+  // (cos / default) and which env vars are present. Only env names —
+  // never the values — are returned, so this is safe to call even
+  // before COS is fully configured.
   app.get("/admin/api/diag", asyncHandler(async (_request, response) => {
     const mode = detectStorageMode();
     const envFlags = {
       ADMIN_TOKEN: Boolean(process.env.ADMIN_TOKEN),
-      WECHAT_OPENAPI_INTERNAL: process.env.WECHAT_OPENAPI_INTERNAL ?? null,
-      WECHAT_CLOUD_ENV: Boolean(process.env.WECHAT_CLOUD_ENV),
       WECHAT_APP_ID: Boolean(process.env.WECHAT_APP_ID),
       WECHAT_APP_SECRET: Boolean(process.env.WECHAT_APP_SECRET),
       COS_SECRET_ID: Boolean(process.env.COS_SECRET_ID),
@@ -156,14 +153,13 @@ export function registerAdminRoutes(
       COS_REGION: process.env.COS_REGION ?? null
     };
 
-    // Try a real round-trip with a synthetic fileId so we can report
-    // whether OpenAPI is actually reachable. Errors are caught and
-    // reported as text rather than thrown.
+    // Sign a synthetic COS objectKey so we can report whether the storage
+    // client is wired up. NOTE: getObjectUrl signs without checking that
+    // the object exists, so a healthy probe does NOT prove the bucket is
+    // correct — load a real known object to confirm that.
     let probe: { url: string | null; error: string | null } = { url: null, error: null };
     try {
-      const [item] = await storage.getTemporaryUrls([
-        { objectKey: "diag/probe.jpg", fileId: "cloud://diag/probe.jpg" }
-      ]);
+      const [item] = await storage.getTemporaryUrls([{ objectKey: "diag/probe.jpg" }]);
       probe = { url: item?.url ?? null, error: null };
     } catch (error) {
       probe = { url: null, error: error instanceof Error ? error.message : String(error) };
@@ -171,9 +167,9 @@ export function registerAdminRoutes(
 
     const hint =
       mode === "default"
-        ? "Set WECHAT_OPENAPI_INTERNAL=1 and WECHAT_CLOUD_ENV in 云托管 → 服务设置 → 环境变量, then redeploy."
+        ? "Set COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET / COS_REGION in server/.env on the VPS, then pm2 restart."
         : probe.error
-          ? "Backend is configured but the call failed. Check that the cloud-run service has 微信 OpenAPI 调用权限 enabled."
+          ? "COS is configured but signing failed. Check COS_SECRET_ID/KEY/BUCKET/REGION and the bucket's permissions."
           : null;
 
     response.json({
@@ -356,10 +352,10 @@ export function registerAdminRoutes(
     const sessionIds = completed.map((session) => session.id);
     const photos = await store.getPhotosBySessionIds(sessionIds);
     // Generate same-origin signed URLs for each photo. The admin browser
-    // hits /admin/api/photos/proxy?...sig=... which validates the HMAC,
-    // resolves the cloud:// fileId via WeChat OpenAPI server-side, and
-    // streams the bytes back. This avoids any CORS / referrer / domain
-    // restrictions on the upstream Tencent COS signed URL.
+    // hits /admin/api/photos/proxy?key=...&sig=... which validates the HMAC,
+    // signs a COS GET URL for the objectKey server-side, and streams the
+    // bytes back. This avoids any CORS / referrer / domain restrictions on
+    // the upstream Tencent COS signed URL.
     const photosBySession = new Map<string, Array<{
       objectKey: string;
       fileId: string;
@@ -370,7 +366,7 @@ export function registerAdminRoutes(
       list.push({
         objectKey: photo.objectKey,
         fileId: photo.fileId,
-        url: adminToken ? buildSignedPhotoUrl(adminToken, photo.fileId) : ""
+        url: adminToken ? buildSignedPhotoUrl(adminToken, photo.objectKey) : ""
       });
       photosBySession.set(photo.sessionId, list);
     }
@@ -684,19 +680,19 @@ function csvCell(value: string) {
  * endpoint verifies the signature, then streams the upstream WeChat
  * COS bytes back to the admin browser.
  *
- * This is a "capability URL" — possession of a valid (fileId, exp,
- * sig) triple is enough to fetch that one image, but it expires after
+ * This is a "capability URL" — possession of a valid (key, exp, sig)
+ * triple is enough to fetch that one image, but it expires after
  * PHOTO_URL_TTL_SECONDS. Re-loading the user-detail page mints fresh
  * URLs.
  */
-function buildSignedPhotoUrl(adminToken: string, fileId: string) {
+function buildSignedPhotoUrl(adminToken: string, objectKey: string) {
   const exp = Math.floor(Date.now() / 1000) + PHOTO_URL_TTL_SECONDS;
-  const sig = signPhotoSignature(adminToken, fileId, exp);
-  return `/admin/api/photos/proxy?fileId=${encodeURIComponent(fileId)}&exp=${exp}&sig=${sig}`;
+  const sig = signPhotoSignature(adminToken, objectKey, exp);
+  return `/admin/api/photos/proxy?key=${encodeURIComponent(objectKey)}&exp=${exp}&sig=${sig}`;
 }
 
-function signPhotoSignature(adminToken: string, fileId: string, exp: number) {
-  return createHmac("sha256", adminToken).update(`${fileId}:${exp}`).digest("hex");
+function signPhotoSignature(adminToken: string, objectKey: string, exp: number) {
+  return createHmac("sha256", adminToken).update(`${objectKey}:${exp}`).digest("hex");
 }
 
 /**

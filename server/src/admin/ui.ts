@@ -735,8 +735,6 @@ export const adminIndexHtml = `<!DOCTYPE html>
     const diag = state.diag;
     const diagBanner = (function buildDiagBanner() {
       if (!diag) return "";
-      if (diag.storageMode === "wechat-cloudrun" && !diag.probe.error) return "";
-      if (diag.storageMode === "wechat-token" && !diag.probe.error) return "";
       if (diag.storageMode === "cos" && !diag.probe.error) return "";
       const reason = diag.storageMode === "default"
         ? "存储未配置（图片代理会显示占位图）"

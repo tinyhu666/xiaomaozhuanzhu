@@ -74,10 +74,13 @@ type CreateAppOptions = {
 
 const profileSchema = z.object({
   nickname: z.string().trim().min(1).max(20),
-  // avatarUrl is either a valid URL (incl. cloud:// fileId for 云托管 or
-  // cos:// objectKey for the VPS), or empty so users can update just
-  // their nickname without having uploaded an avatar yet. A cos:// ref
-  // is signed to a temporary GET URL on read (private bucket).
+  // avatarUrl is either a valid URL (cos:// objectKey for COS, or a plain
+  // https URL), or empty so users can update just their nickname without
+  // having uploaded an avatar yet. A cos:// ref is signed to a temporary
+  // GET URL on read (private bucket). v0.45 — all new refs are cos://; the
+  // legacy `cloud://` scheme is still ACCEPTED (so a not-yet-updated client
+  // doesn't 400 on profile save) but is no longer resolved, so it renders
+  // blank until the client updates and re-uploads.
   avatarUrl: z
     .string()
     .max(512)
@@ -115,13 +118,11 @@ const completeSchema = z.object({
   photos: z
     .array(
       z.object({
-        // v0.40 — fileId is now OPTIONAL. 云托管 sends a `cloud://` fileId;
-        // COS direct-upload has no fileId (the objectKey alone identifies
-        // the object, signed on read). If present it must be a cloud:// id.
-        fileId: z
-          .string()
-          .refine((value) => value === "" || value.startsWith("cloud://"), "fileId must be a cloud:// id")
-          .optional(),
+        // COS direct-upload identifies the object by objectKey alone (signed
+        // on read); fileId is always "" from current clients. Kept OPTIONAL
+        // and untyped so a not-yet-updated client still POSTs successfully.
+        // (v0.45 — dropped the legacy 云托管 cloud:// fileId refine.)
+        fileId: z.string().optional(),
         objectKey: z
           .string()
           .min(1)
@@ -434,8 +435,18 @@ export function createApp(options: CreateAppOptions = {}) {
     const peakWeekday = pickPeakIndex(weekdayPattern);
     const bestWeek = findBestWeek(dailyStats.values());
 
+    // v0.45 — resolve the owner's own avatar to a signed COS GET URL for
+    // display. `avatarUrl` stays the raw cos:// ref (the client round-trips
+    // it back on saveProfile as the permanent reference); `avatarDisplayUrl`
+    // is the short-lived signed URL the <image> actually renders.
+    const avatarDisplayUrl = await resolvePublicAvatarUrl(
+      storage,
+      context.user.avatarUrl,
+      context.user.id
+    );
+
     response.json({
-      profile: serializeProfile(context.user, context.publicProfile),
+      profile: { ...serializeProfile(context.user, context.publicProfile), avatarDisplayUrl },
       summary: {
         totalMinutes,
         currentStreakDays,
@@ -1301,22 +1312,12 @@ function objectKeyBelongsToUser(objectKey: string, userId: string): boolean {
 /**
  * Turn a stored avatar/photo reference into a storage query, or null if
  * it's already a plain URL (https) or empty.
- *  - `cloud://env.appid/path` (云托管): host is the env, so the real key
- *    is the URL pathname; resolution keys on the fileId.
- *  - `cos://path/to/object` (VPS): the whole tail is the objectKey; the
- *    COS client signs it on read (no fileId).
+ *  - `cos://path/to/object`: the whole tail is the objectKey; the COS
+ *    client signs it on read.
+ * (v0.45 — dropped the legacy 云托管 `cloud://` scheme; all media is on COS.)
  */
 function extractStorageRef(value: string): StorageQuery | null {
   if (!value) return null;
-  if (value.startsWith("cloud://")) {
-    try {
-      const url = new URL(value);
-      const key = url.pathname.replace(/^\//, "");
-      return key ? { objectKey: key, fileId: value } : null;
-    } catch {
-      return null;
-    }
-  }
   if (value.startsWith("cos://")) {
     const key = value.slice("cos://".length).replace(/^\/+/, "");
     return key ? { objectKey: key } : null;

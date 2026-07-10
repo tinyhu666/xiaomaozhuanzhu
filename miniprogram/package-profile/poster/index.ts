@@ -441,28 +441,14 @@ function drawAvatarPlaceholder(ctx: any, w: number) {
 }
 
 /**
- * Load an arbitrary URL into the canvas-bound Image so it can be
- * drawn. Cloud:// avatars need to be normalized to https first via
- * wx.cloud.getTempFileURL — MP's canvas createImage doesn't speak
- * cloud:// natively.
+ * Load an arbitrary URL into the canvas-bound Image so it can be drawn.
+ * A cos://<objectKey> avatar is normalized to a signed https URL first —
+ * MP's canvas createImage can't fetch cos:// or a private bucket directly.
+ * (v0.45 — dropped the legacy 云托管 cloud:// / wx.cloud.getTempFileURL path.)
  */
 async function loadImageOntoCanvas(canvas: any, url: string): Promise<any> {
   let finalUrl = url;
-  if (url.startsWith("cloud://")) {
-    finalUrl = await new Promise<string>((resolve, reject) => {
-      wx.cloud.getTempFileURL({
-        fileList: [url],
-        success: (res: any) => {
-          const item = res.fileList?.[0];
-          if (item?.tempFileURL) resolve(item.tempFileURL);
-          else reject(new Error(item?.errMsg || "无法解析云端头像"));
-        },
-        fail: reject
-      });
-    });
-  } else if (url.startsWith("cos://")) {
-    // VPS mode: cos://<objectKey> → server signs a temporary GET URL
-    // (canvas createImage can't fetch cos:// or a private bucket directly).
+  if (url.startsWith("cos://")) {
     const objectKey = url.slice("cos://".length);
     const res = await getTempUrls([{ objectKey }]);
     finalUrl = res.items?.[0]?.url || url;

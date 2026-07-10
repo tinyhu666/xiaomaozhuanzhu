@@ -200,7 +200,10 @@ export type DashboardPatterns = {
 };
 
 export type ProfileDashboardResponse = {
-  profile: UserProfile;
+  // avatarDisplayUrl (v0.45): a signed, renderable https URL for the owner's
+  // own cos:// avatar. avatarUrl stays the raw cos:// ref for the save
+  // round-trip; the <image> renders avatarDisplayUrl.
+  profile: UserProfile & { avatarDisplayUrl?: string };
   summary: {
     totalMinutes: number;
     currentStreakDays: number;

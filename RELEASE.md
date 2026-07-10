@@ -1,8 +1,8 @@
 # 发版手册 (RELEASE)
 
-小猫专注 · 微信小程序 + 云托管后端。本文件给「准备发版」时照着走。
+小猫专注 · 微信小程序，Express 后端部署在腾讯云轻量 VPS。本文件给「准备发版」时照着走。
 
-当前发布版本：**v0.38.1**（git tag `v0.38.1`，commit `ebbb4c1`）
+当前发布版本：**v0.45.0**
 
 ---
 
@@ -10,7 +10,7 @@
 
 本版含服务端新接口 + 两个数据库迁移。**顺序错了会让新功能对所有用户失效**：
 
-1. **先**在云托管部署最新 commit（第 2 步）
+1. **先**在 VPS 部署最新 commit（第 2 步）
 2. **再**在公众平台提交客户端审核 / 发布（第 3 步）
 
 > 安全垫：zod schema 无 `.strict()`，且客户端对老服务端优雅降级（补录/周复盘
@@ -50,16 +50,16 @@ v0.38.1 自检结果：198 单测全过、typecheck 双绿、关键流回归 19/
 
 ---
 
-## 2. 部署服务端（云托管）
+## 2. 部署服务端（腾讯云轻量 VPS）
 
-1. 打开 微信云托管控制台 → 服务 `cpa-study-checkin`（环境 `prod-d4g3sqnpj0acb9be5`）
-2. 「版本管理」→ 拉取最新 commit（本次 `ebbb4c1` / tag `v0.38.1`）→ 构建 → 上线
-3. 等待新版本流量切到 100%
-4. 数据库迁移会在服务**启动时自动幂等执行**（无需手动 SQL）：
-   - `study_sessions.topic`（A3 章节）— `ALTER TABLE ADD COLUMN IF missing`
-   - `weekly_reviews` 表（B2/B4 周复盘）— `CREATE TABLE IF NOT EXISTS`
-5. 冒烟：`GET /api/home`、`POST /api/sessions/manual`、`POST /api/me/weekly-review`
-   返回 200（不是 404）。
+1. 部署：`bash scripts/deploy-remote.sh`（从本机 rsync `server/` → VPS → `npm run build:server` → `pm2 restart cpa`，不会覆盖服务器上的 `server/.env`）。
+2. 数据库迁移会在服务**启动时自动幂等执行**（无需手动 SQL）。
+3. 健康检查冒烟：
+   ```bash
+   curl https://api.buffpp.com/health
+   ```
+   以及 `GET /api/home`、`POST /api/sessions/manual`、`POST /api/me/weekly-review`
+   返回 200（不是 404/5xx）。
 
 > 何时**必须**重新部署：只要 `server/**` 有变更。本版有改，所以这次必须部署。
 

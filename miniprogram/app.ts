@@ -8,16 +8,10 @@ App<IAppOption>({
     bootstrapped: false
   },
   async onLaunch() {
-    // 云托管 mode only — VPS mode (runtimeConfig.apiBaseUrl set) talks plain
-    // HTTPS and must stay wx.cloud-free, so don't init the cloud SDK there.
-    if (!runtimeConfig.apiBaseUrl) {
-      wx.cloud.init({
-        env: runtimeConfig.cloudEnv,
-        traceUser: true
-      });
-    }
+    // v0.45 — the client talks plain HTTPS to the VPS (api.buffpp.com) and is
+    // wx.cloud-free; 微信云托管 was fully removed.
     // v0.42 — aggressively apply 小程序 updates so a published version drains
-    // the old one fast (key during the 云托管 → VPS cutover).
+    // the old one fast.
     this.setupAutoUpdate();
     // Fire-and-forget probe so the backend is warm (and, in VPS mode, the
     // session token is pre-fetched) by the time a page calls bootstrap /

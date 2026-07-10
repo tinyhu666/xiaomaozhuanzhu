@@ -1,46 +1,25 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  HybridStorageClient,
-  detectStorageMode,
-  type StorageClient
+  DefaultStorageClient,
+  createStorageClient,
+  detectStorageMode
 } from "../src/storage/default-storage";
 
-function fakeClient(label: string, behavior: (items: Array<{ objectKey: string; fileId?: string }>) => Promise<Array<{ objectKey: string; url: string; expiresAt: string }>>): StorageClient {
-  return {
-    getTemporaryUrls: vi.fn(behavior).mockName(label) as StorageClient["getTemporaryUrls"]
-  };
-}
-
 describe("detectStorageMode", () => {
-  it("identifies wechat-hybrid when both cloudrun and token credentials are present", () => {
+  it("identifies cos when all COS credentials are present", () => {
     expect(
       detectStorageMode({
-        WECHAT_OPENAPI_INTERNAL: "1",
-        WECHAT_CLOUD_ENV: "prod",
-        WECHAT_APP_ID: "app",
-        WECHAT_APP_SECRET: "secret"
+        COS_SECRET_ID: "id",
+        COS_SECRET_KEY: "key",
+        COS_BUCKET: "bucket-123",
+        COS_REGION: "ap-shanghai"
       })
-    ).toBe("wechat-hybrid");
+    ).toBe("cos");
   });
 
-  it("falls through to wechat-token when only token credentials exist", () => {
-    expect(
-      detectStorageMode({
-        WECHAT_CLOUD_ENV: "prod",
-        WECHAT_APP_ID: "app",
-        WECHAT_APP_SECRET: "secret"
-      })
-    ).toBe("wechat-token");
-  });
-
-  it("identifies wechat-cloudrun when only cloudrun env is set", () => {
-    expect(
-      detectStorageMode({
-        WECHAT_OPENAPI_INTERNAL: "1",
-        WECHAT_CLOUD_ENV: "prod"
-      })
-    ).toBe("wechat-cloudrun");
+  it("falls through to default when COS credentials are incomplete", () => {
+    expect(detectStorageMode({ COS_SECRET_ID: "id", COS_BUCKET: "bucket-123" })).toBe("default");
   });
 
   it("falls through to default when no credentials are present", () => {
@@ -48,68 +27,38 @@ describe("detectStorageMode", () => {
   });
 });
 
-describe("HybridStorageClient", () => {
-  const items = [{ objectKey: "checkins/a.jpg", fileId: "cloud://demo/a.jpg" }];
+describe("DefaultStorageClient", () => {
+  it("returns a placeholder URL (no real backend configured)", async () => {
+    const client = new DefaultStorageClient();
+    const [item] = await client.getTemporaryUrls([{ objectKey: "uploads/u/x.jpg" }]);
+    expect(item.objectKey).toBe("uploads/u/x.jpg");
+    expect(item.url).toContain("/uploads/u/x.jpg");
+  });
+});
 
-  it("uses the primary client when it returns resolvable URLs", async () => {
-    const primary = fakeClient("primary", async () => [
-      { objectKey: "checkins/a.jpg", url: "https://primary.example/a.jpg", expiresAt: "x" }
-    ]);
-    const fallback = fakeClient("fallback", async () => {
-      throw new Error("fallback should not be called");
-    });
-
-    const client = new HybridStorageClient(primary, fallback, "primary", "fallback");
-    const result = await client.getTemporaryUrls(items);
-
-    expect(result[0].url).toBe("https://primary.example/a.jpg");
-    expect(primary.getTemporaryUrls).toHaveBeenCalledOnce();
-    expect(fallback.getTemporaryUrls).not.toHaveBeenCalled();
+describe("createStorageClient (COS mode)", () => {
+  const saved = { ...process.env };
+  afterEach(() => {
+    process.env = { ...saved };
   });
 
-  it("falls back when primary throws", async () => {
-    const primary = fakeClient("primary", async () => {
-      throw new Error("WeChat batchdownloadfile failed: access_token missing (41001)");
-    });
-    const fallback = fakeClient("fallback", async () => [
-      { objectKey: "checkins/a.jpg", url: "https://fallback.example/a.jpg", expiresAt: "x" }
-    ]);
+  it("signs a COS GET url for the objectKey and exposes upload credentials", async () => {
+    process.env.COS_SECRET_ID = "AKIDTESTTESTTESTTESTTESTTESTTEST";
+    process.env.COS_SECRET_KEY = "TESTSECRETKEYTESTSECRETKEYTEST12";
+    process.env.COS_BUCKET = "xiaomao-1259551686";
+    process.env.COS_REGION = "ap-shanghai";
+    delete process.env.STORAGE_PUBLIC_BASE_URL;
 
-    const client = new HybridStorageClient(primary, fallback, "primary", "fallback");
-    const result = await client.getTemporaryUrls(items);
+    const client = createStorageClient();
+    const [item] = await client.getTemporaryUrls([{ objectKey: "uploads/u/x.jpg" }]);
+    expect(item.url).toContain("xiaomao-1259551686.cos.ap-shanghai.myqcloud.com/uploads/u/x.jpg");
+    expect(item.url).toContain("q-sign-algorithm=sha1");
 
-    expect(result[0].url).toBe("https://fallback.example/a.jpg");
-    expect(primary.getTemporaryUrls).toHaveBeenCalledOnce();
-    expect(fallback.getTemporaryUrls).toHaveBeenCalledOnce();
-  });
-
-  it("falls back when primary returns rows with no URLs (silent failure)", async () => {
-    const primary = fakeClient("primary", async () => [
-      { objectKey: "checkins/a.jpg", url: "", expiresAt: "x" }
-    ]);
-    const fallback = fakeClient("fallback", async () => [
-      { objectKey: "checkins/a.jpg", url: "https://fallback.example/a.jpg", expiresAt: "x" }
-    ]);
-
-    const client = new HybridStorageClient(primary, fallback, "primary", "fallback");
-    const result = await client.getTemporaryUrls(items);
-
-    expect(result[0].url).toBe("https://fallback.example/a.jpg");
-    expect(fallback.getTemporaryUrls).toHaveBeenCalledOnce();
-  });
-
-  it("does not fall back when items have no fileIds (nothing to resolve)", async () => {
-    const primary = fakeClient("primary", async () => [
-      { objectKey: "checkins/a.jpg", url: "", expiresAt: "x" }
-    ]);
-    const fallback = fakeClient("fallback", async () => {
-      throw new Error("fallback should not be called");
-    });
-
-    const client = new HybridStorageClient(primary, fallback, "primary", "fallback");
-    const result = await client.getTemporaryUrls([{ objectKey: "checkins/a.jpg" }]);
-
-    expect(result).toHaveLength(1);
-    expect(fallback.getTemporaryUrls).not.toHaveBeenCalled();
+    const [cred] = await client.createUploadCredentials!([{ objectKey: "uploads/u/y.jpg" }]);
+    expect(cred.method).toBe("PUT");
+    expect(cred.uploadUrl).toContain("q-signature=");
+    expect(cred.publicUrl).toBe(
+      "https://xiaomao-1259551686.cos.ap-shanghai.myqcloud.com/uploads/u/y.jpg"
+    );
   });
 });

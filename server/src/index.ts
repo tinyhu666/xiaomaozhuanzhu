@@ -20,7 +20,7 @@ if (envPath) {
   loadEnv({ path: envPath });
 }
 
-// 监听端口需与云托管「服务设置 → 监听端口」一致；可通过 PORT 环境变量覆盖。
+// 监听端口需与 VPS 上 nginx 的 proxy_pass 端口一致；可通过 PORT 环境变量覆盖。
 const port = Number(process.env.PORT ?? 3000);
 
 // v0.39 — WeChat credentials, resolved once and shared by both the
